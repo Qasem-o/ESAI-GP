@@ -1,11 +1,70 @@
+# EyeStocks AI - منصة تداول ومحاكاة ذكية
 
-  # EyeStocks AI Homepage Design
+هذا المشروع هو منصة متكاملة لتحليل الأسهم، تتبع المحافظ الاستثمارية، ومحاكاة التداول الافتراضي باستخدام الذكاء الاصطناعي.
 
-  This is a code bundle for EyeStocks AI Homepage Design. The original project is available at https://www.figma.com/design/2g91rdNabS7YMl8hgdfE41/StockEye-AI-Homepage-Design.
+---
 
-  ## Running the code
+## 🚀 الميزات الرئيسية
 
-  Run `npm i` to install the dependencies.
+- **محاكي التداول (Virtual Trading):** ابدأ بميزانية 2,000 دولار وحاول الوصول إلى هدف 10,000 دولار.
+- **إدارة المحفظة (Portfolio Management):** تتبع استثماراتك الحقيقية، الأرباح، والخسائر بشكل ديناميكي.
+- **تحليل الذكاء الاصطناعي:** توقعات مدعومة بنماذج تعلم آلي لأسعار الأسهم.
+- **نظام حسابات متكامل:** تسجيل دخول، ملف شخصي، ورفع صور شخصية.
+- **وضع الدارك مود:** تصميم عصري ومريح للعين.
 
-  Run `npm run dev -- --host` to start the development server.
-  
+---
+
+## 🛠️ متطلبات التشغيل (Prerequisites)
+
+1. **Node.js** (للواجهة الأمامية)
+2. **Python 3.10+** (للواجهة الخلفية)
+3. **PostgreSQL** (قاعدة البيانات الأساسية)
+
+---
+
+## ⚙️ طريقة التثبيت والتشغيل
+
+### 1. إعداد قاعدة البيانات (PostgreSQL)
+- قم بإنشاء قاعدة بيانات باسم `Stocksdata` في PostgreSQL.
+- تأكد من بيانات الوصول في ملف `backend/main.py`:
+  - `PG_USER`: postgres
+  - `PG_PASS`: 123123 (أو كلمة مرورك الخاصة)
+
+### 2. تشغيل الواجهة الخلفية (Backend)
+افتح تيرمينال جديد داخل مجلد `backend`:
+```bash
+cd backend
+pip install fastapi uvicorn sqlalchemy psycopg2 jose python-dotenv passlib[bcrypt] python-multipart
+# لتشغيل السيرفر:
+python -m uvicorn main:app --reload
+```
+*سيعمل سيرفر الباك‌اند على: `http://localhost:8000`*
+
+### 3. تشغيل الواجهة الأمامية (Frontend)
+افتح تيرمينال جديد في المجلد الرئيسي للمشروع:
+```bash
+npm install
+npm run dev
+```
+*ستعمل الواجهة الأمامية على: `http://localhost:3000` (أو 5173 حسب الإعداد)*
+
+---
+
+## 📁 هيكلة المشروع
+
+- `/src`: تحتوي على مكونات React وواجهات TypeScript.
+- `/backend`: يحتوي على مسارات الـ API (FastAPI) ومنطق قاعدة البيانات.
+- `/public`: الصور والملفات العامة.
+- `model_training.py`: كود تدريب نماذج الذكاء الاصطناعي.
+- `preparedata.py`: سكريبت معالجة وسحب بيانات الأسهم الأصلية.
+
+---
+
+## 🔐 ملاحظة حول الأمان
+- تم تعديل نظام الجلسات ليكون "أبدياً" للتسهيل في بيئة التطوير (JWT No Expiration).
+- يرجى إنشاء ملف `.env` بناءً على `.env.example` لإضافة مفاتيح الأمان الخاصة بك.
+
+---
+
+## 📄 رخصة المشروع
+هذا المشروع تم تطويره لصالح EyeStocks AI. جميع الحقوق محفوظة لعام 2026.
