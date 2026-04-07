@@ -1,0 +1,230 @@
+from fastapi import APIRouter, Depends, HTTPException, Header
+from sqlalchemy.orm import Session
+from sqlalchemy import desc
+from typing import List, Optional
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+from simulator_models import SimulatorHolding, SimulatorTransaction, SimulatorState
+from auth_utils import verify_token
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from preparedata import Stock, PriceHistory
+
+router = APIRouter(prefix="/simulator", tags=["simulator"])
+
+def get_db():
+    from main import SessionLocal
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def get_current_user_id(authorization: str = Header(None)) -> int:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Session expired")
+    token = authorization.split(" ")[1]
+    payload = verify_token(token, "access")
+    if not payload or "user_id" not in payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload["user_id"]
+
+class BuyStockRequest(BaseModel):
+    symbol: str
+    shares: float = Field(..., gt=0)
+    price: float = Field(..., gt=0)
+
+class SellStockRequest(BaseModel):
+    symbol: str
+    shares: float = Field(..., gt=0)
+    price: float = Field(..., gt=0)
+
+def get_or_create_state(db: Session, user_id: int) -> SimulatorState:
+    state = db.query(SimulatorState).filter(SimulatorState.user_id == user_id).first()
+    if not state:
+        state = SimulatorState(user_id=user_id, balance=2000.0, starting_balance=2000.0, is_completed=0)
+        db.add(state)
+        db.commit()
+        db.refresh(state)
+    return state
+
+def get_current_price(db: Session, symbol: str) -> float:
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if stock and stock.current_price: return float(stock.current_price)
+    latest = db.query(PriceHistory).join(Stock).filter(Stock.symbol == symbol).order_by(desc(PriceHistory.date)).first()
+    if latest: return float(latest.close)
+    return 0.0
+
+def check_win_condition(db: Session, state: SimulatorState, total_portfolio_value: float):
+    # if cash + stocks value >= 10000, user wins!
+    if state.balance + total_portfolio_value >= 10000.0 and state.is_completed == 0:
+        state.is_completed = 1
+        db.commit()
+
+@router.get("/summary")
+async def get_simulator_summary(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    holdings = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id).all()
+    state = get_or_create_state(db, user_id)
+
+    total_cost = 0.0
+    total_value = 0.0
+
+    for h in holdings:
+        current_price = get_current_price(db, h.stock_symbol)
+        total_cost += h.shares * h.avg_price
+        total_value += h.shares * current_price
+
+    total_gain = total_value - total_cost
+    gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
+    
+    # Check win
+    check_win_condition(db, state, total_value)
+
+    return {
+        "total_value": round(total_value + state.balance, 2),
+        "portfolio_value": round(total_value, 2),
+        "total_cost": round(total_cost, 2),
+        "total_gain": round(total_gain, 2),
+        "gain_percentage": round(gain_pct, 2),
+        "cash": round(state.balance, 2),
+        "starting_balance": round(state.starting_balance, 2),
+        "holdings_count": len(holdings),
+        "is_completed": state.is_completed == 1
+    }
+
+@router.get("/holdings")
+async def get_holdings(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    holdings = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id).all()
+    total_portfolio = 0.0
+    enriched = []
+    for h in holdings:
+        cp = get_current_price(db, h.stock_symbol)
+        v = h.shares * cp
+        total_portfolio += v
+        enriched.append((h, cp, v))
+
+    result = []
+    for h, cp, v in enriched:
+        cost = h.shares * h.avg_price
+        gain = v - cost
+        gain_pct = (gain / cost * 100) if cost > 0 else 0
+        alloc = (v / total_portfolio * 100) if total_portfolio > 0 else 0
+
+        result.append({
+            "holding_id": h.holding_id,
+            "stock_symbol": h.stock_symbol,
+            "stock_name": h.stock_name,
+            "shares": h.shares,
+            "avg_price": round(h.avg_price, 2),
+            "current_price": round(cp, 2),
+            "total_value": round(v, 2),
+            "gain": round(gain, 2),
+            "gain_percentage": round(gain_pct, 2),
+            "allocation": round(alloc, 1),
+            "day_change": 0.0, # Simplified
+        })
+    return result
+
+@router.get("/transactions")
+async def get_transactions(
+    limit: int = 50,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    txns = db.query(SimulatorTransaction).filter(SimulatorTransaction.user_id == user_id).order_by(desc(SimulatorTransaction.created_at)).limit(limit).all()
+    return [{
+        "transaction_id": t.transaction_id,
+        "stock_symbol": t.stock_symbol,
+        "stock_name": t.stock_name,
+        "transaction_type": t.transaction_type,
+        "shares": t.shares,
+        "price": round(t.price, 2),
+        "total": round(t.total, 2),
+        "created_at": t.created_at,
+    } for t in txns]
+
+@router.post("/buy")
+async def buy_stock(
+    req: BuyStockRequest,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    total_cost = req.shares * req.price
+    state = get_or_create_state(db, user_id)
+    
+    if state.is_completed:
+        raise HTTPException(status_code=400, detail="You have already won the simulation. Reset to play again.")
+
+    if state.balance < total_cost:
+        raise HTTPException(status_code=400, detail=f"Insufficient cash. Available: ${state.balance:.2f}, Required: ${total_cost:.2f}")
+
+    stock = db.query(Stock).filter(Stock.symbol == req.symbol.upper()).first()
+    stock_name = stock.name if stock else req.symbol.upper()
+
+    holding = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id, SimulatorHolding.stock_symbol == req.symbol.upper()).first()
+    if holding:
+        total_shares = holding.shares + req.shares
+        holding.avg_price = ((holding.shares * holding.avg_price) + (req.shares * req.price)) / total_shares
+        holding.shares = total_shares
+        holding.stock_name = stock_name
+    else:
+        holding = SimulatorHolding(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, shares=req.shares, avg_price=req.price)
+        db.add(holding)
+
+    state.balance -= total_cost
+    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="buy", shares=req.shares, price=req.price, total=total_cost)
+    db.add(txn)
+    db.commit()
+
+    return {"message": f"Successfully bought {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}"}
+
+@router.post("/sell")
+async def sell_stock(
+    req: SellStockRequest,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    state = get_or_create_state(db, user_id)
+    if state.is_completed:
+        raise HTTPException(status_code=400, detail="You have already won the simulation. Reset to play again.")
+        
+    holding = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id, SimulatorHolding.stock_symbol == req.symbol.upper()).first()
+    if not holding: raise HTTPException(status_code=404, detail=f"You don't hold any shares of {req.symbol.upper()}")
+    if holding.shares < req.shares: raise HTTPException(status_code=400, detail=f"Insufficient shares.")
+
+    total_proceeds = req.shares * req.price
+    stock = db.query(Stock).filter(Stock.symbol == req.symbol.upper()).first()
+    stock_name = stock.name if stock else req.symbol.upper()
+
+    holding.shares -= req.shares
+    if holding.shares <= 0.001: db.delete(holding)
+
+    state.balance += total_proceeds
+    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="sell", shares=req.shares, price=req.price, total=total_proceeds)
+    db.add(txn)
+    db.commit()
+
+    return {"message": f"Successfully sold {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}"}
+
+
+@router.post("/reset")
+async def reset_simulator(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id).delete()
+    db.query(SimulatorTransaction).filter(SimulatorTransaction.user_id == user_id).delete()
+    
+    state = get_or_create_state(db, user_id)
+    state.balance = 2000.0
+    state.is_completed = 0
+    db.commit()
+    
+    return {"message": "Simulation reset successfully, back to $2,000"}

@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "../contexts/ThemeContext";
+import logoImg from "../assets/logo.png";
+import logoDarkImg from "../assets/logo-dark.png";
 
 interface LoadingScreenProps {
   onLoadingComplete: () => void;
@@ -6,6 +9,7 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -25,15 +29,15 @@ export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
   }, [onLoadingComplete]);
 
   return (
-    <div className="fixed inset-0 bg-white z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 bg-background z-[9999] flex items-center justify-center transition-colors duration-300">
       <div className="text-center space-y-8">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl">
-            <img 
-              src="/src/assets/logo.png" 
-              alt="StockEye AI Logo" 
-              className="w-full h-full object-cover"
+          <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl bg-background/50 backdrop-blur-sm border border-border">
+            <img
+              src={theme === 'dark' ? logoDarkImg : logoImg}
+              alt="EyeStocks AI Logo"
+              className="w-full h-full object-contain p-4"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E";
@@ -41,41 +45,41 @@ export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
             />
           </div>
         </div>
-        
+
         {/* Company Name */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-black">StockEye AI</h1>
-          <p className="text-xl text-gray-700">Intelligent Market Predictions</p>
+          <h1 className="text-4xl font-bold text-foreground">EyeStocks AI</h1>
+          <p className="text-xl text-muted-foreground">Intelligent Market Predictions</p>
         </div>
-        
+
         {/* Investment Quote */}
         <div className="max-w-md mx-auto space-y-4">
           <div className="text-center">
-            <p className="text-lg text-gray-800 italic">
+            <p className="text-lg text-foreground italic">
               "Smart investments today, secure wealth tomorrow"
             </p>
-            <p className="text-sm text-gray-600 mt-2">
-              - StockEye AI Investment Philosophy
+            <p className="text-sm text-muted-foreground mt-2">
+              - EyeStocks AI Investment Philosophy
             </p>
           </div>
         </div>
-        
+
         {/* Loading Bar */}
         <div className="w-64 mx-auto space-y-2">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300 ease-out"
+          <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${loadingProgress}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Loading... {loadingProgress}%
           </p>
         </div>
-        
+
         {/* Loading Message */}
         <div className="text-center">
-          <p className="text-gray-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             Preparing your AI-powered trading experience
           </p>
         </div>

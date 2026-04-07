@@ -37,7 +37,7 @@ const courses = [
     progress: 67,
     rating: 4.8,
     students: 12847,
-    instructor: "Sarah Johnson",
+    instructor: "Layla Hassan",
     category: "Fundamentals",
     premium: false,
     thumbnail: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=400&h=200"
@@ -53,7 +53,7 @@ const courses = [
     progress: 0,
     rating: 4.9,
     students: 8934,
-    instructor: "Michael Chen",
+    instructor: "Ali Samer",
     category: "Technical Analysis",
     premium: true,
     thumbnail: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=400&h=200"
@@ -69,7 +69,7 @@ const courses = [
     progress: 0,
     rating: 4.7,
     students: 5621,
-    instructor: "David Kim",
+    instructor: "Qasem Sami",
     category: "Options",
     premium: true,
     thumbnail: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&h=200"
@@ -85,7 +85,7 @@ const courses = [
     progress: 100,
     rating: 4.6,
     students: 9876,
-    instructor: "Lisa Wang",
+    instructor: "Mariam Al-Sayed",
     category: "Risk Management",
     premium: false,
     thumbnail: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&h=200"
@@ -101,7 +101,7 @@ const courses = [
     progress: 20,
     rating: 4.5,
     students: 7543,
-    instructor: "Alex Rodriguez",
+    instructor: "Omar Khalid",
     category: "Crypto",
     premium: false,
     thumbnail: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=400&h=200"
@@ -117,7 +117,7 @@ const courses = [
     progress: 0,
     rating: 4.8,
     students: 6789,
-    instructor: "Emma Thompson",
+    instructor: "Sharidah Abdullah",
     category: "Portfolio Management",
     premium: true,
     thumbnail: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=400&h=200"
@@ -131,7 +131,7 @@ const articles = [
     excerpt: "Learn what causes market volatility and how to position your portfolio during turbulent times.",
     readTime: "5 min read",
     category: "Market Analysis",
-    author: "John Smith",
+    author: "Rami Yasin",
     publishedAt: "2 days ago"
   },
   {
@@ -140,7 +140,7 @@ const articles = [
     excerpt: "Explore the mental aspects of trading and common psychological traps that investors fall into.",
     readTime: "8 min read",
     category: "Psychology",
-    author: "Dr. Rachel Green",
+    author: "Dr. Mariam Al-Sayed",
     publishedAt: "1 week ago"
   },
   {
@@ -149,7 +149,7 @@ const articles = [
     excerpt: "Build a sustainable income stream through dividend-paying stocks and REITs.",
     readTime: "6 min read",
     category: "Income Investing",
-    author: "Mark Johnson",
+    author: "Tariq Zain",
     publishedAt: "3 days ago"
   }
 ];
@@ -223,7 +223,34 @@ export function Learn({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, 
 
   return (
     <div className="min-h-screen bg-background">
-
+      {/* Header */}
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-semibold">EyeStocks AI</span>
+            </div>
+            
+            <nav className="hidden md:flex items-center space-x-8">
+              <button onClick={onGoToHome} className="text-muted-foreground hover:text-foreground transition-colors">Home</button>
+              <button onClick={onGoToStocks} className="text-muted-foreground hover:text-foreground transition-colors">Stocks</button>
+              <button onClick={onGoToPortfolio} className="text-muted-foreground hover:text-foreground transition-colors">Portfolio</button>
+              <button onClick={onGoToCommunity} className="text-muted-foreground hover:text-foreground transition-colors">Community</button>
+              <button onClick={onGoToNews} className="text-muted-foreground hover:text-foreground transition-colors">News</button>
+              <button onClick={onGoToLearn} className="text-foreground font-medium">Learn</button>
+              <button onClick={onGoToSimulator} className="text-muted-foreground hover:text-foreground transition-colors">Simulator</button>
+            </nav>
+            
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" className="hidden md:inline-flex">Sign In</Button>
+              <Button variant="outline">Free Trial</Button>
+            </div>
+          </div>
+        </div>
+      </header>
 
       <main className="container mx-auto">
         <div className="py-6">

@@ -1,245 +1,309 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import create_engine, desc
+from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
-import pandas as pd
-import numpy as np
-import joblib
+from typing import List, Optional
+from datetime import date
+import sys
 import os
-import yfinance as yf
 
+# Add root directory to path to import from preparedata
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from preparedata import Base, Stock, PriceHistory, TechnicalIndicator, ModelMetric
 
-app = FastAPI(title="StockEye AI Backend", version="1.0")
+# Import authentication router and middleware
+from auth_routes import router as auth_router
+from profile_routes import router as profile_router
+from portfolio_routes import router as portfolio_router
+from simulator_routes import router as simulator_router
+from middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
-# CORS for Vite dev server and local files
+# Database Config
+PG_USER = "postgres"
+PG_PASS = "123123"
+PG_HOST = "localhost"
+PG_PORT = "5432"
+PG_DB = "Stocksdata"
+DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+app = FastAPI(title="EyeStocks AI API", version="1.0.0")
+
+# Security Middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "*",
-    ],
+    allow_origins=["*"], # Allow all for dev - restrict in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Register routers
+app.include_router(auth_router)
+app.include_router(profile_router)
+app.include_router(portfolio_router)
+app.include_router(simulator_router)
 
-# Paths relative to the main project folder
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "datasets")
-MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "trained_models", "linear_regression")
-SCALER_DIR = os.path.join(MODEL_DIR, "scalers")
+# Mount static files for uploaded avatars
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Debug: Print the actual paths being used
-print(f"DATA_DIR: {DATA_DIR}")
-print(f"MODEL_DIR: {MODEL_DIR}")
-print(f"SCALER_DIR: {SCALER_DIR}")
-print(f"Current working directory: {os.getcwd()}")
-print(f"Backend file location: {__file__}")
-print(f"Directory contents of DATA_DIR: {os.listdir(DATA_DIR) if os.path.exists(DATA_DIR) else 'DIRECTORY NOT FOUND'}")
-print(f"Directory contents of MODEL_DIR: {os.listdir(MODEL_DIR) if os.path.exists(MODEL_DIR) else 'DIRECTORY NOT FOUND'}")
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Map frontend symbols to dataset/model filenames and Yahoo symbols
-SYMBOL_MAP = {
-    "AAPL": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "AAPL",
-        "name": "Apple Inc.",
-    },
-    "2222.SR": {
-        "dataset": "2222.sr_stock_data.csv",
-        "model": "2222.sr_stock_data_lr_model.pkl",
-        "scaler": "2222.sr_stock_datalr_scaler.pkl",
-        "yahoo": "2222.SR",
-        "name": "Saudi Aramco",
-    },
-    # Add market indices
-    "^GSPC": {
-        "dataset": "AAPL_stock_data.csv",  # Fallback to existing dataset
-        "model": "AAPL_stock_data_lr_model.pkl",  # Fallback to existing model
-        "scaler": "AAPL_stock_datalr_scaler.pkl",  # Fallback to existing scaler
-        "yahoo": "^GSPC",
-        "name": "S&P 500",
-    },
-    "^IXIC": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "^IXIC",
-        "name": "NASDAQ Composite",
-    },
-    "^DJI": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "^DJI",
-        "name": "Dow Jones Industrial Average",
-    },
-    # Add other stocks
-    "GOOGL": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "GOOGL",
-        "name": "Alphabet Inc.",
-    },
-    "TSLA": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "TSLA",
-        "name": "Tesla, Inc.",
-    },
-    "MSFT": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "MSFT",
-        "name": "Microsoft Corporation",
-    },
-    "AMZN": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "AMZN",
-        "name": "Amazon.com, Inc.",
-    },
-    "NVDA": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "NVDA",
-        "name": "NVIDIA Corporation",
-    },
-    "META": {
-        "dataset": "AAPL_stock_data.csv",
-        "model": "AAPL_stock_data_lr_model.pkl",
-        "scaler": "AAPL_stock_datalr_scaler.pkl",
-        "yahoo": "META",
-        "name": "Meta Platforms, Inc.",
-    },
-}
-
-
-class GenerateResponse(BaseModel):
+# Pydantic Models
+class StockBase(BaseModel):
     symbol: str
     name: str
-    currentPrice: float
-    prediction: float
+    sector: Optional[str]
+    current_price: Optional[float]
+    description: Optional[str]
+    industry: Optional[str]
+    market_cap: Optional[int]
+    pe_ratio: Optional[float]
+    eps: Optional[float]
+    dividend_yield: Optional[float]
+    fifty_two_week_high: Optional[float]
+    fifty_two_week_low: Optional[float]
+    day_open: Optional[float] = None
+    day_high: Optional[float] = None
+    day_low: Optional[float] = None
+    volume: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class PricePoint(BaseModel):
+    date: date
+    close: float
+    volume: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class MetricResponse(BaseModel):
+    model_type: str
+    rmse: Optional[float]
+    mape: Optional[float]
+    directional_accuracy: Optional[float]
+
+    class Config:
+        from_attributes = True
+
+class TechnicalIndicatorResponse(BaseModel):
+    date: date
+    rsi: Optional[float]
+    macd: Optional[float]
+    macd_signal: Optional[float]
+    macd_histogram: Optional[float]
+    sma_20: Optional[float]
+    sma_50: Optional[float]
+    ema_20: Optional[float]
+    ema_50: Optional[float]
+    bollinger_upper: Optional[float]
+    bollinger_middle: Optional[float]
+    bollinger_lower: Optional[float]
+
+    class Config:
+        from_attributes = True
+
+class PredictionResponse(BaseModel):
+    tomorrow_price: float
     confidence: float
-    chartData: list
+    direction: str
+    change_percent: float
+    recommendation: str
+    target_price: float
+    stop_loss: float
+    risk_level: str
+    analysis: List[str]
 
+class SentimentResponse(BaseModel):
+    bullish_percent: int
+    bearish_percent: int
+    neutral_percent: int
+    total_discussions: int
 
-def _load_model_and_scalers(symbol_key: str):
-    paths = SYMBOL_MAP[symbol_key]
-    model_path = os.path.join(MODEL_DIR, paths["model"])
-    scaler_path = os.path.join(SCALER_DIR, paths["scaler"])
-    if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-        raise HTTPException(status_code=404, detail="Model or scaler not found for symbol")
-    model = joblib.load(model_path)
-    feature_scaler, target_scaler = joblib.load(scaler_path)
-    return model, feature_scaler, target_scaler
+# Endpoints
 
+@app.get("/stocks", response_model=List[StockBase])
+def get_stocks(db: Session = Depends(get_db)):
+    stocks = db.query(Stock).all()
+    
+    # Enrich with latest volume from PriceHistory for each stock
+    # Note: For production with many stocks, optimize this with a JOIN or subquery
+    enriched_stocks = []
+    
+    for stock in stocks:
+        latest_history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+            .order_by(desc(PriceHistory.date))\
+            .first()
+            
+        stock_dict = stock.__dict__.copy()
+        if latest_history:
+            stock_dict['volume'] = latest_history.volume
+            # Optional: ensure other dynamic fields if needed, e.g. day_high/low if we wanted them in list
+        
+        enriched_stocks.append(StockBase(**stock_dict))
+        
+    return enriched_stocks
 
-def _fetch_yahoo_features(yahoo_symbol: str):
-    # Get last daily candle to extract Open/High/Low/Volume
-    hist = yf.Ticker(yahoo_symbol).history(period="5d", interval="1d")
-    if hist is None or hist.empty:
-        raise HTTPException(status_code=404, detail="Yahoo Finance returned no data")
-    last = hist.iloc[-1]
-    open_v = float(last.get("Open", np.nan))
-    high_v = float(last.get("High", np.nan))
-    low_v = float(last.get("Low", np.nan))
-    vol_v = float(last.get("Volume", np.nan))
-    close_v = float(last.get("Close", np.nan))
-    if any(np.isnan([open_v, high_v, low_v, vol_v, close_v])):
-        raise HTTPException(status_code=500, detail="Incomplete OHLCV data from Yahoo Finance")
+@app.get("/stocks/{symbol}", response_model=StockBase)
+def get_stock_details(symbol: str, db: Session = Depends(get_db)):
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    # Enrich with latest price history for OHLV
+    latest_history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+        .order_by(desc(PriceHistory.date))\
+        .first()
+        
+    stock_dict = stock.__dict__.copy()
+    if latest_history:
+        stock_dict['day_open'] = float(latest_history.open) if latest_history.open else None
+        stock_dict['day_high'] = float(latest_history.high) if latest_history.high else None
+        stock_dict['day_low'] = float(latest_history.low) if latest_history.low else None
+        stock_dict['volume'] = latest_history.volume
+        
+    # Manually construct Pydantic model to mix ORM and extra data
+    return StockBase(**stock_dict)
+
+@app.get("/stocks/{symbol}/history", response_model=List[PricePoint])
+def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_db)):
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+        .order_by(desc(PriceHistory.date))\
+        .limit(limit)\
+        .all()
+    
+    # Reverse to return chronological order for charts
+    return history[::-1]
+
+@app.get("/stocks/{symbol}/metrics", response_model=List[MetricResponse])
+def get_stock_metrics(symbol: str, db: Session = Depends(get_db)):
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    metrics = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).all()
+    return metrics
+
+@app.get("/stocks/{symbol}/technicals", response_model=List[TechnicalIndicatorResponse])
+def get_stock_technicals(symbol: str, limit: int = 30, db: Session = Depends(get_db)):
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    technicals = db.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id == stock.stock_id)\
+        .order_by(desc(TechnicalIndicator.date))\
+        .limit(limit)\
+        .all()
+    
+    return technicals[::-1]
+
+@app.get("/stocks/{symbol}/prediction", response_model=PredictionResponse)
+def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    # Simple statistical prediction based on recent history
+    history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+        .order_by(desc(PriceHistory.date))\
+        .limit(30)\
+        .all()
+        
+    if not history or len(history) < 2:
+        return {
+            "tomorrow_price": float(stock.current_price or 0),
+            "confidence": 0,
+            "direction": "neutral",
+            "change_percent": 0
+        }
+    
+    # Calculate simple momentum
+    recent_closes = [float(h.close) for h in history]
+    current_price = recent_closes[0]
+    avg_change = sum((recent_closes[i] - recent_closes[i+1]) for i in range(len(recent_closes)-1)) / len(recent_closes)
+    
+    predicted_price = current_price + avg_change
+    change_percent = ((predicted_price - current_price) / current_price) * 100
+    
+    direction = "bullish" if change_percent > 0 else "bearish"
+    
+    # Fetch metrics for confidence if available
+    metric = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
+    confidence = float(metric.directional_accuracy) if metric else 75.0
+
+    # Auto-generate detailed fields
+    recommendation = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
+    target_price = round(predicted_price * 1.05 if direction == "bullish" else predicted_price * 0.95, 2)
+    stop_loss = round(current_price * 0.95 if direction == "bullish" else current_price * 1.05, 2)
+    
+    # Generate analysis points based on technicals if available
+    latest_tech = db.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id == stock.stock_id)\
+        .order_by(desc(TechnicalIndicator.date)).first()
+        
+    analysis_points = []
+    if latest_tech:
+        if latest_tech.rsi and latest_tech.rsi > 70:
+            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f}, indicating overbought conditions.")
+        elif latest_tech.rsi and latest_tech.rsi < 30:
+            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f}, indicating oversold conditions.")
+        else:
+            analysis_points.append(f"RSI is neutral at {float(latest_tech.rsi or 50):.1f}.")
+            
+        if latest_tech.macd and latest_tech.macd_signal:
+             if latest_tech.macd > latest_tech.macd_signal:
+                 analysis_points.append("MACD is above signal line (Bullish momentum).")
+             else:
+                 analysis_points.append("MACD is below signal line (Bearish momentum).")
+    
+    if not analysis_points:
+        analysis_points = ["Collecting more technical data for deep analysis."]
+        
+    if abs(change_percent) > 2:
+        analysis_points.append(f"Strong momentum detected ({change_percent:+.2f}% predicted).")
+    
+    
     return {
-        "Open": open_v,
-        "High": high_v,
-        "Low": low_v,
-        "Volume": vol_v,
-        "Close": close_v,
+        "tomorrow_price": round(predicted_price, 2),
+        "confidence": confidence,
+        "direction": direction,
+        "change_percent": round(change_percent, 2),
+        "recommendation": recommendation,
+        "target_price": target_price,
+        "stop_loss": stop_loss,
+        "risk_level": "Medium",
+        "analysis": analysis_points
     }
 
-
-def _load_chart_data(dataset_filename: str, limit: int = 120):
-    path = os.path.join(DATA_DIR, dataset_filename)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    df = pd.read_csv(path)
-    # Ensure chronological order and restrict columns
-    if "Date" in df.columns:
-        df["Date"] = pd.to_datetime(df["Date"])  # type: ignore
-        df = df.sort_values("Date")
-    else:
-        df = df.reset_index()
-        df.rename(columns={"index": "Date"}, inplace=True)
-    tail = df.tail(limit)
-    records = []
-    for _, row in tail.iterrows():
-        records.append({
-            "time": row["Date"].strftime("%Y-%m-%d") if isinstance(row["Date"], pd.Timestamp) else str(row["Date"]),
-            "price": float(row.get("Close", np.nan)),
-        })
-    return records
-
-
-@app.get("/price/{symbol}")
-def get_price(symbol: str):
-    if symbol not in SYMBOL_MAP:
-        raise HTTPException(status_code=400, detail="Unsupported symbol")
-    yahoo_symbol = SYMBOL_MAP[symbol]["yahoo"]
-    feats = _fetch_yahoo_features(yahoo_symbol)
-    return {"symbol": symbol, "name": SYMBOL_MAP[symbol]["name"], "price": feats["Close"]}
-
-
-@app.get("/chart/{symbol}")
-def get_chart(symbol: str, limit: int = Query(120, ge=30, le=1000)):
-    if symbol not in SYMBOL_MAP:
-        raise HTTPException(status_code=400, detail="Unsupported symbol")
-    data = _load_chart_data(SYMBOL_MAP[symbol]["dataset"], limit=limit)
-    return {"symbol": symbol, "data": data}
-
-
-@app.get("/generate", response_model=GenerateResponse)
-def generate(symbol: str = Query(..., description="Symbol e.g., AAPL or 2222.SR")):
-    if symbol not in SYMBOL_MAP:
-        raise HTTPException(status_code=400, detail="Unsupported symbol")
+@app.get("/stocks/{symbol}/sentiment", response_model=SentimentResponse)
+def get_stock_sentiment(symbol: str, db: Session = Depends(get_db)):
+    # Mock dynamic sentiment based on symbol hash to be deterministic but varied
+    val = sum(ord(c) for c in symbol) 
+    base_bullish = (val % 40) + 40 # 40-80%
+    base_bearish = 100 - base_bullish - 5
     
-    # Load the pre-trained model (no training, just prediction)
-    model, feature_scaler, target_scaler = _load_model_and_scalers(symbol)
-    yahoo_symbol = SYMBOL_MAP[symbol]["yahoo"]
-    
-    # Get current market data from Yahoo Finance
-    feats = _fetch_yahoo_features(yahoo_symbol)
-
-    # Prepare features in trained order: Open, High, Low, Volume
-    feature_vec = np.array([[feats["Open"], feats["High"], feats["Low"], feats["Volume"]]], dtype=float)
-    feature_vec_scaled = feature_scaler.transform(feature_vec)
-    pred_scaled = model.predict(feature_vec_scaled)
-    pred = float(target_scaler.inverse_transform(np.array(pred_scaled).reshape(-1, 1))[0][0])
-
-    # Confidence: simple heuristic using volatility, bounded 75-98
-    high_low_spread = max(1e-6, feats["High"] - feats["Low"])  # avoid zero
-    rel_volatility = min(1.0, high_low_spread / max(1e-6, feats["Close"]))
-    confidence = float(max(75.0, min(98.0, 98.0 - rel_volatility * 40.0)))
-
-    # Chart data: only last 30 days from dataset
-    chart = _load_chart_data(SYMBOL_MAP[symbol]["dataset"], limit=30)
-
-    return GenerateResponse(
-        symbol=symbol,
-        name=SYMBOL_MAP[symbol]["name"],
-        currentPrice=float(feats["Close"]),
-        prediction=float(pred),
-        confidence=round(confidence, 2),
-        chartData=chart,
-    )
-
-
-# Health check
-@app.get("/")
-def root():
-    return {"status": "ok"}
+    return {
+        "bullish_percent": base_bullish,
+        "bearish_percent": base_bearish,
+        "neutral_percent": 5,
+        "total_discussions": (val * 12) % 3000
+    }

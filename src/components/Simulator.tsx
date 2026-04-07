@@ -1,167 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Progress } from "./ui/progress";
-import { 
-  TrendingUp, 
+import { Header } from "./Header";
+import { useAuth } from "../contexts/AuthContext";
+import { simulatorAPI } from "../services/simulatorApi";
+import { portfolioAPI } from "../services/portfolioApi";
+
+import {
+  TrendingUp,
   TrendingDown,
-  DollarSign,
-  Target,
-  Activity,
-  BarChart3,
+  ArrowUpRight,
+  ArrowDownRight,
+  Search,
+  Zap,
+  RefreshCw,
   Plus,
   Minus,
-  RefreshCw,
-  Trophy,
-  Users,
-  Calendar,
-  PieChart,
-  Settings
+  Loader2,
+  Trophy
 } from "lucide-react";
-
-// Mock simulator data
-const portfolioData = {
-  totalValue: 102450.75,
-  cash: 25780.50,
-  totalGain: 2450.75,
-  gainPercentage: 2.45,
-  dayChange: 456.20,
-  dayChangePercentage: 0.45,
-  buyingPower: 25780.50,
-  startingBalance: 100000
-};
-
-const positions = [
-  {
-    symbol: "AAPL",
-    name: "Apple Inc.",
-    shares: 25,
-    avgPrice: 180.50,
-    currentPrice: 185.42,
-    totalValue: 4635.50,
-    gain: 123.00,
-    gainPercentage: 2.72,
-    dayChange: 62.50
-  },
-  {
-    symbol: "GOOGL",
-    name: "Alphabet Inc.",
-    shares: 15,
-    avgPrice: 145.20,
-    currentPrice: 142.83,
-    totalValue: 2142.45,
-    gain: -35.55,
-    gainPercentage: -1.63,
-    dayChange: -28.50
-  },
-  {
-    symbol: "TSLA",
-    name: "Tesla Inc.",
-    shares: 10,
-    avgPrice: 240.80,
-    currentPrice: 248.15,
-    totalValue: 2481.50,
-    gain: 73.50,
-    gainPercentage: 3.05,
-    dayChange: 45.80
-  },
-  {
-    symbol: "MSFT",
-    name: "Microsoft Corp.",
-    shares: 20,
-    avgPrice: 375.60,
-    currentPrice: 378.92,
-    totalValue: 7578.40,
-    gain: 66.40,
-    gainPercentage: 0.88,
-    dayChange: 32.20
-  }
-];
-
-const orderHistory = [
-  {
-    id: 1,
-    type: "BUY",
-    symbol: "AAPL",
-    shares: 25,
-    price: 180.50,
-    total: 4512.50,
-    timestamp: "2025-01-28 14:30:00",
-    status: "Filled"
-  },
-  {
-    id: 2,
-    type: "BUY",
-    symbol: "MSFT",
-    shares: 20,
-    price: 375.60,
-    total: 7512.00,
-    timestamp: "2025-01-28 11:15:00",
-    status: "Filled"
-  },
-  {
-    id: 3,
-    type: "SELL",
-    symbol: "GOOGL",
-    shares: 5,
-    price: 144.20,
-    total: 721.00,
-    timestamp: "2025-01-27 16:45:00",
-    status: "Filled"
-  },
-  {
-    id: 4,
-    type: "BUY",
-    symbol: "TSLA",
-    shares: 10,
-    price: 240.80,
-    total: 2408.00,
-    timestamp: "2025-01-27 09:30:00",
-    status: "Filled"
-  }
-];
-
-const leaderboard = [
-  { rank: 1, name: "TradingMaster99", return: 15.2, value: 115200 },
-  { rank: 2, name: "InvestorPro", return: 12.8, value: 112800 },
-  { rank: 3, name: "StockGuru2024", return: 11.5, value: 111500 },
-  { rank: 4, name: "You", return: 2.45, value: 102450 },
-  { rank: 5, name: "MarketWiz", return: 1.8, value: 101800 }
-];
-
-const challenges = [
-  {
-    id: 1,
-    title: "Beat the Market",
-    description: "Outperform the S&P 500 over 30 days",
-    progress: 60,
-    reward: "$50 Trading Credit",
-    timeLeft: "15 days",
-    participants: 1247
-  },
-  {
-    id: 2,
-    title: "Risk Manager",
-    description: "Keep maximum drawdown under 5%",
-    progress: 80,
-    reward: "Premium Features",
-    timeLeft: "8 days",
-    participants: 892
-  },
-  {
-    id: 3,
-    title: "Dividend Hunter",
-    description: "Build a portfolio with 4%+ dividend yield",
-    progress: 25,
-    reward: "Educational Course",
-    timeLeft: "22 days",
-    participants: 654
-  }
-];
 
 interface NavigationProps {
   currentPage: string;
@@ -173,469 +33,488 @@ interface NavigationProps {
   onGoToLearn: () => void;
   onGoToSimulator: () => void;
   onGoToProfile: () => void;
+  onGoToSignup?: () => void;
+  onGoToLogin?: () => void;
 }
 
-interface SimulatorProps extends NavigationProps {}
+interface SimulatorProps extends NavigationProps { }
 
-export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile }: SimulatorProps) {
-  const [orderType, setOrderType] = useState("market");
-  const [orderSide, setOrderSide] = useState("buy");
-  const [selectedStock, setSelectedStock] = useState("");
+export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: SimulatorProps) {
+  const { isAuthenticated } = useAuth();
+  
+  const [selectedTab, setSelectedTab] = useState<"trade" | "positions">("trade");
+  const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [shares, setShares] = useState("");
-  const [limitPrice, setLimitPrice] = useState("");
-  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const generatePerformanceData = () => {
-    const data = [];
-    const baseValue = portfolioData.startingBalance;
-    for (let i = 0; i < 30; i++) {
-      const variance = (Math.sin(i * 0.2) + Math.random() - 0.5) * 2000;
-      data.push({
-        day: i,
-        value: baseValue + variance + (i * 80) // Slight upward trend
-      });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTradeLoading, setIsTradeLoading] = useState(false);
+  const [tradeMessage, setTradeMessage] = useState<{type: "success"|"error", text: string} | null>(null);
+
+  // States
+  const [summary, setSummary] = useState<any>(null);
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const [availableStocks, setAvailableStocks] = useState<any[]>([]);
+  const [selectedStock, setSelectedStock] = useState<any | null>(null);
+
+  const fetchData = useCallback(async (silent = false) => {
+    if (!isAuthenticated) {
+      if (!silent) setIsLoading(false);
+      return;
     }
-    return data;
-  };
 
-  const performanceData = generatePerformanceData();
+    if (!silent) setIsLoading(true);
+    try {
+      try {
+        const stocksData = await portfolioAPI.getAvailableStocks();
+        setAvailableStocks(stocksData);
+        // We do not auto-select the first stock, to match Portfolio's UI behavior
+        setSelectedStock((prev: any) => {
+          if (prev) {
+            const updated = stocksData.find((s: any) => s.symbol === prev.symbol);
+            // Only update if price changed to avoid unnecessary re-renders
+            if (updated && updated.current_price !== prev.current_price) return updated;
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error("Failed to fetch stocks", err);
+      }
 
-  const handlePlaceOrder = () => {
-    if (selectedStock && shares) {
-      // In a real app, this would place the order
-      console.log("Placing order:", { orderType, orderSide, selectedStock, shares, limitPrice });
-      setShowOrderForm(false);
-      setSelectedStock("");
+      const [sumData, holdData] = await Promise.all([
+        simulatorAPI.getSummary(),
+        simulatorAPI.getHoldings()
+      ]);
+      setSummary(sumData);
+      setHoldings(holdData);
+      
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(() => fetchData(true), 15000); // 15s refresh
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const handleTrade = async () => {
+    if (!selectedStock || !shares || parseFloat(shares) <= 0) return;
+    setIsTradeLoading(true);
+    setTradeMessage(null);
+    try {
+      let res;
+      if (tradeType === "buy") {
+        res = await simulatorAPI.buyStock(selectedStock.symbol, parseFloat(shares), selectedStock.current_price);
+      } else {
+        res = await simulatorAPI.sellStock(selectedStock.symbol, parseFloat(shares), selectedStock.current_price);
+      }
+      setTradeMessage({ type: "success", text: res.message });
       setShares("");
-      setLimitPrice("");
+      await fetchData(true);
+    } catch (err: any) {
+      setTradeMessage({ type: "error", text: err.message });
+    } finally {
+      setIsTradeLoading(false);
     }
   };
+
+  const handleReset = async () => {
+    if (!confirm("Are you sure you want to reset the simulation to $2,000?")) return;
+    setIsTradeLoading(true);
+    try {
+      await simulatorAPI.resetSimulator();
+      setTradeMessage({ type: "success", text: "Simulation reset successfully." });
+      setShares("");
+      await fetchData(true);
+    } catch (err: any) {
+      setTradeMessage({ type: "error", text: err.message });
+    } finally {
+      setIsTradeLoading(false);
+    }
+  };
+
+  const calculateTotal = () => {
+    if (!selectedStock) return "0.00";
+    const numShares = parseFloat(shares) || 0;
+    return (numShares * selectedStock.current_price).toFixed(2);
+  };
+
+  const filteredStocks = availableStocks.filter(s => 
+    s.symbol.toLowerCase().includes(search.toLowerCase()) || 
+    s.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background">
+      <Header
+        currentPage="simulator"
+        onGoToHome={onGoToCommunity}
+        onGoToExplore={onGoToStocks}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+      />
 
-
-      <main className="container mx-auto">
-        <div className="py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-semibold">Trading Simulator</h1>
-              <p className="text-muted-foreground">Practice trading with virtual money - no risk, real learning</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Reset Portfolio
-              </Button>
-              <Button onClick={() => setShowOrderForm(!showOrderForm)} className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Place Order
-              </Button>
-            </div>
+      <div className="container mx-auto px-4 lg:px-6 py-6">
+        {isLoading && !summary ? (
+          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        ) : !isAuthenticated ? (
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-bold mb-4">Please log in to use the Trading Simulator</h2>
+            <Button onClick={onGoToLogin}>Sign In</Button>
           </div>
-
-          {/* Portfolio Summary */}
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Portfolio Value</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-3xl font-bold">${portfolioData.totalValue.toLocaleString()}</p>
-                  <div className={`flex items-center gap-1 text-sm ${
-                    portfolioData.dayChange >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {portfolioData.dayChange >= 0 ? (
-                      <TrendingUp className="w-4 h-4" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4" />
-                    )}
-                    ${Math.abs(portfolioData.dayChange).toFixed(2)} today
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Return</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className={`text-2xl font-bold ${
-                    portfolioData.totalGain >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {portfolioData.totalGain >= 0 ? '+' : ''}${portfolioData.totalGain.toFixed(2)}
-                  </p>
-                  <p className={`text-sm ${
-                    portfolioData.gainPercentage >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {portfolioData.gainPercentage >= 0 ? '+' : ''}{portfolioData.gainPercentage}%
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Cash Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">${portfolioData.cash.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Available to trade</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Leaderboard Rank</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">#4</p>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Trophy className="w-4 h-4" />
-                    <span>Top 10%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Form */}
-          {showOrderForm && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Place Order</CardTitle>
-                <CardDescription>Practice trading with virtual money</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-6 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Order Type</label>
-                    <Select value={orderType} onValueChange={setOrderType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="market">Market</SelectItem>
-                        <SelectItem value="limit">Limit</SelectItem>
-                        <SelectItem value="stop">Stop</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Side</label>
-                    <Select value={orderSide} onValueChange={setOrderSide}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buy">Buy</SelectItem>
-                        <SelectItem value="sell">Sell</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Symbol</label>
-                    <Input
-                      placeholder="e.g., AAPL"
-                      value={selectedStock}
-                      onChange={(e) => setSelectedStock(e.target.value.toUpperCase())}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Shares</label>
-                    <Input
-                      type="number"
-                      placeholder="100"
-                      value={shares}
-                      onChange={(e) => setShares(e.target.value)}
-                    />
-                  </div>
-                  
-                  {orderType === "limit" && (
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Limit Price</label>
-                      <Input
-                        type="number"
-                        placeholder="$0.00"
-                        value={limitPrice}
-                        onChange={(e) => setLimitPrice(e.target.value)}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-end gap-2">
-                    <Button onClick={handlePlaceOrder} className="flex-1">
-                      Place Order
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left Sidebar - Portfolio Summary */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              {/* Win Banner */}
+              {summary?.is_completed && (
+                <Card className="bg-yellow-500/10 border-yellow-500/50">
+                  <CardContent className="p-6 text-center">
+                    <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-yellow-600 dark:text-yellow-500 mb-2">Target Reached!</h2>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4">
+                      Congratulations! You successfully turned your $2,000 into $10,000.
+                    </p>
+                    <Button onClick={handleReset} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white cursor-pointer">
+                      Play Again
                     </Button>
-                    <Button variant="outline" onClick={() => setShowOrderForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Tabs defaultValue="portfolio" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="portfolio" className="flex items-center gap-2">
-                <PieChart className="w-4 h-4" />
-                Portfolio
-              </TabsTrigger>
-              <TabsTrigger value="performance" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Performance
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Orders
-              </TabsTrigger>
-              <TabsTrigger value="leaderboard" className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                Leaderboard
-              </TabsTrigger>
-              <TabsTrigger value="challenges" className="flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                Challenges
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="portfolio" className="space-y-6">
-              <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Current Positions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {positions.map((position) => (
-                          <div key={position.symbol} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-medium">{position.symbol}</span>
-                              </div>
-                              <div>
-                                <p className="font-medium">{position.symbol}</p>
-                                <p className="text-sm text-muted-foreground">{position.shares} shares</p>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-8 text-right">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Avg Price</p>
-                                <p className="font-medium">${position.avgPrice}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Current</p>
-                                <p className="font-medium">${position.currentPrice}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">P&L</p>
-                                <p className={`font-medium ${
-                                  position.gain >= 0 ? 'text-green-500' : 'text-red-500'
-                                }`}>
-                                  {position.gain >= 0 ? '+' : ''}${position.gain.toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Allocation</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      {positions.map((position) => {
-                        const allocation = (position.totalValue / (portfolioData.totalValue - portfolioData.cash)) * 100;
-                        return (
-                          <div key={position.symbol} className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{position.symbol}</span>
-                              <span>{allocation.toFixed(1)}%</span>
-                            </div>
-                            <Progress value={allocation} className="h-2" />
-                          </div>
-                        );
-                      })}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>Cash</span>
-                          <span>{((portfolioData.cash / portfolioData.totalValue) * 100).toFixed(1)}%</span>
-                        </div>
-                        <Progress value={(portfolioData.cash / portfolioData.totalValue) * 100} className="h-2" />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="performance" className="space-y-6">
-              <Card>
+              {/* Virtual Portfolio Card */}
+              <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
                 <CardHeader>
-                  <CardTitle>Portfolio Performance (30 Days)</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      Simulator Challenge
+                    </CardTitle>
+                    <Badge variant="secondary">Goal: $10k</Badge>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80 bg-gradient-to-br from-muted/50 to-background rounded-lg p-6 flex items-end justify-center">
-                    <div className="flex items-end space-x-1 h-full w-full">
-                      {performanceData.map((point, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center">
-                          <div 
-                            className="w-full bg-primary/80 rounded-t-sm transition-all duration-300 hover:bg-primary"
-                            style={{ 
-                              height: `${Math.max(10, ((point.value - 98000) / 8000) * 100)}%` 
-                            }}
-                          />
-                        </div>
-                      ))}
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-4xl font-bold">${summary?.total_value?.toLocaleString()}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant={summary?.total_gain >= 0 ? "default" : "destructive"}>
+                        {summary?.total_gain >= 0 ? '+' : ''}${Math.abs(summary?.total_gain || 0).toLocaleString()}
+                      </Badge>
+                      <span className={`flex items-center text-sm font-medium ${summary?.gain_percentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {summary?.gain_percentage >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {Math.abs(summary?.gain_percentage || 0)}%
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                    <span>30 days ago</span>
-                    <span className="text-primary font-medium">
-                      ${portfolioData.totalValue.toLocaleString()}
-                    </span>
-                    <span>Today</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="orders" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order History</CardTitle>
-                  <CardDescription>Your recent trading activity</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {orderHistory.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 rounded-full ${
-                            order.type === 'BUY' ? 'bg-green-500' : 'bg-red-500'
-                          }`}></div>
-                          <div>
-                            <p className="font-medium">
-                              {order.type} {order.shares} {order.symbol}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              @ ${order.price} • {order.timestamp}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <p className="font-medium">${order.total.toLocaleString()}</p>
-                          <Badge variant="secondary" className="text-xs">
-                            {order.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="pt-3 border-t space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Available Cash</span>
+                      <span className="font-medium">${summary?.cash?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Starting Balance</span>
+                      <span className="font-medium">${summary?.starting_balance?.toLocaleString()}</span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="leaderboard" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Leaderboard</CardTitle>
-                  <CardDescription>Top performing traders this month</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {leaderboard.map((trader) => (
+                  {/* Progress towards 10k! */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>$2,000</span>
+                      <span>$10,000</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div 
-                        key={trader.rank} 
-                        className={`flex items-center justify-between p-4 rounded-lg border ${
-                          trader.name === "You" ? 'bg-primary/5 border-primary/20' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                            trader.rank <= 3 ? 'bg-yellow-500 text-white' : 'bg-muted'
-                          }`}>
-                            {trader.rank}
-                          </div>
-                          <div>
-                            <p className="font-medium">{trader.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Portfolio: ${trader.value.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <p className={`font-medium ${
-                            trader.return >= 0 ? 'text-green-500' : 'text-red-500'
-                          }`}>
-                            {trader.return >= 0 ? '+' : ''}{trader.return}%
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
+                        style={{ width: `${Math.min(100, Math.max(0, ((summary?.total_value - 2000) / 8000) * 100))}%` }}
+                      ></div>
+                    </div>
                   </div>
+
+                  <Button variant="outline" className="w-full cursor-pointer" onClick={handleReset} disabled={isTradeLoading}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset Challenge
+                  </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="challenges" className="space-y-6">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {challenges.map((challenge) => (
-                  <Card key={challenge.id}>
+            {/* Center - Trading Interface */}
+            <div className="lg:col-span-8 space-y-4">
+              <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="trade" className="cursor-pointer">Trade</TabsTrigger>
+                  <TabsTrigger value="positions" className="cursor-pointer">Positions ({holdings.length})</TabsTrigger>
+                </TabsList>
+
+                {/* Trade Tab */}
+                <TabsContent value="trade" className="space-y-4 mt-4">
+                  {/* Trading Card */}
+                  <Card>
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{challenge.title}</CardTitle>
-                        <Badge variant="outline">{challenge.timeLeft} left</Badge>
-                      </div>
-                      <CardDescription>{challenge.description}</CardDescription>
+                      <CardTitle className="text-xl">Place Order</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span>{challenge.progress}%</span>
-                        </div>
-                        <Progress value={challenge.progress} className="h-2" />
-                      </div>
+                    <CardContent className="space-y-6">
                       
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          <span>{challenge.participants} participants</span>
+                      {tradeMessage && (
+                        <div className={`p-3 rounded-lg text-sm ${tradeMessage.type === 'error' ? 'bg-red-50 text-red-500 dark:bg-red-950/50' : 'bg-green-50 text-green-600 dark:bg-green-900/30'}`}>
+                          {tradeMessage.text}
                         </div>
-                        <Badge variant="secondary">{challenge.reward}</Badge>
+                      )}
+
+                      {/* Buy/Sell Toggle */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={tradeType === "buy" ? "default" : "outline"}
+                          onClick={() => setTradeType("buy")}
+                          className="h-12 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Buy
+                        </Button>
+                        <Button
+                          variant={tradeType === "sell" ? "default" : "outline"}
+                          onClick={() => setTradeType("sell")}
+                          className="h-12 cursor-pointer"
+                        >
+                          <Minus className="w-4 h-4 mr-2" />
+                          Sell
+                        </Button>
                       </div>
-                      
-                      <Button className="w-full" size="sm">
-                        {challenge.progress > 0 ? 'Continue' : 'Join Challenge'}
-                      </Button>
+
+                      {/* Conditional Search vs Options */}
+                      {!selectedStock ? (
+                        <>
+                          {/* Stock Search */}
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <input
+                              type="text"
+                              placeholder="Search stocks..."
+                              value={search}
+                              onChange={(e) => setSearch(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+
+                          {/* Stock List */}
+                          <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {filteredStocks.map((stock: any) => (
+                              <button
+                                key={stock.symbol}
+                                onClick={() => {
+                                  setSelectedStock({
+                                    symbol: stock.symbol,
+                                    name: stock.name,
+                                    current_price: stock.current_price,
+                                  });
+                                  setShares("");
+                                  setTradeMessage(null);
+                                }}
+                                className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden cursor-pointer"
+                              >
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0 mr-4">
+                                  <span className="font-bold text-primary">{stock.symbol.charAt(0)}</span>
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <p className="font-semibold truncate">{stock.symbol}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
+                                </div>
+                                <div className="text-right shrink-0 ml-4">
+                                  <p className="font-bold text-primary">${stock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                              </button>
+                            ))}
+                            {filteredStocks.length === 0 && (
+                              <p className="text-center text-muted-foreground py-8">No stocks found</p>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Selected stock info */}
+                          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
+                              <span className="font-bold text-primary">{selectedStock.symbol.charAt(0)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold truncate">{selectedStock.symbol}</p>
+                              <p className="text-xs text-muted-foreground truncate">{selectedStock.name}</p>
+                            </div>
+                            <div className="text-right shrink-0 ml-4">
+                              <p className="font-semibold">${selectedStock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                              <button
+                                className="text-xs text-primary hover:underline cursor-pointer"
+                                onClick={() => setSelectedStock(null)}
+                              >
+                                Change
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Shares Input */}
+                          <div>
+                            <label className="text-sm font-medium mb-1 block">Number of Shares</label>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={shares}
+                              onChange={(e) => setShares(e.target.value)}
+                              placeholder="Enter number of shares"
+                              className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+
+                          {/* Order Summary */}
+                          <div className="bg-muted/50 rounded-lg p-4 border space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Shares</span>
+                              <span className="font-medium">{shares || '0'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Price per share</span>
+                              <span className="font-medium">${selectedStock?.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
+                            </div>
+                            <div className="flex justify-between pt-2 border-t">
+                              <span className="font-semibold">Total</span>
+                              <span className="font-bold text-lg">${Number(calculateTotal()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                          </div>
+
+                          {/* Submit Button */}
+                          <Button
+                            className="w-full h-12 text-lg cursor-pointer"
+                            disabled={!shares || parseFloat(shares) <= 0 || isTradeLoading || summary?.is_completed}
+                            onClick={handleTrade}
+                          >
+                            {isTradeLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (tradeType === "buy" ? "Place Buy Order" : "Place Sell Order")}
+                          </Button>
+
+                          <p className="text-xs text-center text-muted-foreground">
+                            This is a simulated trade. Win the challenge if you reach $10,000!
+                          </p>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+                </TabsContent>
+
+                {/* Positions Tab */}
+                <TabsContent value="positions" className="space-y-4 mt-4">
+                  {holdings.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-20 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                          <TrendingUp className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">No Positions Yet</h3>
+                        <p className="text-muted-foreground mb-4">Start trading to build your simulated portfolio.</p>
+                        <Button className="cursor-pointer" onClick={() => setSelectedTab("trade")}>Go to Trade</Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    holdings.map((position: any, i: number) => (
+                      <Card key={i}>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            {/* Position Header */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
+                                  <span className="text-xl font-bold text-primary">{position.stock_symbol.charAt(0)}</span>
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-lg">${position.stock_symbol}</h3>
+                                  <p className="text-sm text-muted-foreground">{position.stock_name}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Position Stats */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Shares</p>
+                                <p className="font-semibold">{position.shares}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Avg Price</p>
+                                <p className="font-semibold">${position.avg_price}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Current</p>
+                                <p className="font-semibold">${position.current_price?.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Value</p>
+                                <p className="font-semibold">${position.total_value.toLocaleString()}</p>
+                              </div>
+                            </div>
+
+                            {/* P&L */}
+                            <div className="bg-muted/50 rounded-lg p-4 border">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm text-muted-foreground mb-1">Profit/Loss</p>
+                                  <p className={`text-2xl font-bold ${position.gain >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {position.gain >= 0 ? '+' : ''}${Math.abs(position.gain).toLocaleString()}
+                                  </p>
+                                </div>
+                                <div className={`flex items-center gap-1 ${position.gain_percentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {position.gain_percentage >= 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
+                                  <span className="text-2xl font-bold">{Math.abs(position.gain_percentage)}%</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 pt-2 border-t">
+                              <Button 
+                                variant="outline" 
+                                className="flex-1 cursor-pointer"
+                                onClick={() => {
+                                  setTradeType("buy");
+                                  const s = availableStocks.find((st: any) => st.symbol === position.stock_symbol);
+                                  if (s) setSelectedStock(s);
+                                  setSelectedTab("trade");
+                                }}
+                              >
+                                Buy More
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="flex-1 cursor-pointer"
+                                onClick={() => {
+                                  setTradeType("sell");
+                                  const s = availableStocks.find((st: any) => st.symbol === position.stock_symbol);
+                                  if (s) setSelectedStock(s);
+                                  setSelectedTab("trade");
+                                }}
+                              >
+                                Sell
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
