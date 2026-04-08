@@ -101,7 +101,14 @@ export function Portfolio({
   const [showSellModal, setShowSellModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [selectedStock, setSelectedStock] = useState<{ symbol: string; name: string; price: number } | null>(null);
+  const [selectedStock, setSelectedStock] = useState<{ 
+    symbol: string; 
+    name: string; 
+    price: number;
+    currency?: string;
+    currency_symbol?: string;
+    usd_price?: number;
+  } | null>(null);
   const [availableStocks, setAvailableStocks] = useState<AvailableStock[]>([]);
   const [tradeShares, setTradeShares] = useState("");
   const [buyPrice, setBuyPrice] = useState("");
@@ -677,15 +684,20 @@ export function Portfolio({
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Buy Price</p>
-                              <p className="font-semibold">${holding.avg_price}</p>
+                              <p className="font-semibold">
+                                {holding.currency_symbol || "$"}{holding.avg_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                {holding.currency && holding.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{holding.currency}</span>}
+                              </p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Current Price</p>
-                              <p className="font-semibold">${holding.current_price}</p>
+                              <p className="font-semibold">
+                                {holding.currency_symbol || "$"}{holding.current_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </p>
                             </div>
                             <div>
-                              <p className="text-xs text-muted-foreground mb-1">Total Value</p>
-                              <p className="font-semibold">${holding.total_value.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground mb-1">Total Value (USD)</p>
+                              <p className="font-bold text-primary">${holding.total_value.toLocaleString()}</p>
                             </div>
                           </div>
 
@@ -883,9 +895,12 @@ export function Portfolio({
                             symbol: stock.symbol,
                             name: stock.name,
                             price: stock.current_price,
+                            currency: stock.currency,
+                            currency_symbol: stock.currency_symbol,
+                            usd_price: stock.usd_price
                           })
                         }
-                        className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden"
+                        className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden cursor-pointer"
                       >
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0 mr-4">
                           <span className="font-bold text-primary">{stock.symbol.charAt(0)}</span>
@@ -895,7 +910,12 @@ export function Portfolio({
                           <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
                         </div>
                         <div className="text-right shrink-0 ml-4">
-                          <p className="font-bold text-primary">${stock.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                          <p className="font-bold text-primary">
+                            {stock.currency_symbol || "$"}{stock.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                          {stock.currency && stock.currency !== "USD" && (
+                             <p className="text-[10px] text-muted-foreground">≈ ${stock.usd_price?.toFixed(2)} USD</p>
+                          )}
                         </div>
                       </button>
                     ))}
@@ -916,9 +936,12 @@ export function Portfolio({
                       <p className="text-xs text-muted-foreground">{selectedStock.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${selectedStock.price.toLocaleString()}</p>
+                      <p className="font-semibold">
+                        {selectedStock.currency_symbol || "$"}{selectedStock.price.toLocaleString()}
+                        {selectedStock.currency && selectedStock.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{selectedStock.currency}</span>}
+                      </p>
                       <button
-                        className="text-xs text-primary hover:underline"
+                        className="text-xs text-primary hover:underline cursor-pointer"
                         onClick={() => setSelectedStock(null)}
                       >
                         Change
@@ -975,19 +998,23 @@ export function Portfolio({
                   {tradeShares && buyPrice && parseFloat(tradeShares) > 0 && parseFloat(buyPrice) > 0 && (
                     <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Investment</span>
+                        <span className="text-muted-foreground">Total ({selectedStock.currency || "USD"})</span>
                         <span className="font-semibold">
-                          ${(parseFloat(tradeShares) * parseFloat(buyPrice)).toLocaleString(undefined, {
+                          {selectedStock.currency_symbol || "$"}{(parseFloat(tradeShares) * parseFloat(buyPrice)).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                           })}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Current Market Price</span>
-                        <span className="font-semibold">
-                          ${selectedStock.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                      {selectedStock.currency && selectedStock.currency !== "USD" && (
+                        <div className="flex justify-between text-sm pt-1 border-t">
+                          <span className="font-semibold">Total (USD)</span>
+                          <span className="font-bold text-primary">
+                            ${(parseFloat(tradeShares) * parseFloat(buyPrice) * ((selectedStock.usd_price || 0) / (selectedStock.price || 1))).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 

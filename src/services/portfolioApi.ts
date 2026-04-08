@@ -28,6 +28,9 @@ export interface Holding {
     gain_percentage: number;
     allocation: number;
     day_change: number;
+    currency?: string;
+    currency_symbol?: string;
+    usd_price?: number;
 }
 
 export interface Transaction {
@@ -46,6 +49,9 @@ export interface AvailableStock {
     name: string;
     current_price: number;
     sector: string | null;
+    currency?: string;
+    currency_symbol?: string;
+    usd_price?: number;
 }
 
 export interface PerformancePoint {

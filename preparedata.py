@@ -56,7 +56,7 @@ HARDCODED_TICKERS = [
     "KFH.KW", "IQCD.QA" # Removed COMI.CA, FAB.AD, EMAAR.DU
 ]
 HARDCODED_START = "2018-01-01"
-HARDCODED_END = "2025-12-10" # Or datetime.today().strftime("%Y-%m-%d") for today
+HARDCODED_END = "2026-04-08" # Or datetime.today().strftime("%Y-%m-%d") for today
 
 # DATABASE_URL = "sqlite:///eyestock.db" # Use this for SQLite
 
@@ -225,42 +225,76 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame):
     df['boll_mid'] = middle
     df['boll_lower'] = lower
 
-    # Iterate rows and upsert PriceHistory and TechnicalIndicator
-    for _, row in df.iterrows():
-        d = pd.to_datetime(row['date']).date()
-        # PriceHistory upsert
-        ph = session.query(PriceHistory).filter(PriceHistory.stock_id==stock.stock_id, PriceHistory.date==d).one_or_none()
-        if not ph:
-            ph = PriceHistory(stock_id=stock.stock_id, date=d)
-            session.add(ph)
-        ph.open = decimal.Decimal('0') if pd.isna(row['open']) else decimal.Decimal(str(row['open']))
-        ph.high = decimal.Decimal('0') if pd.isna(row['high']) else decimal.Decimal(str(row['high']))
-        ph.low = decimal.Decimal('0') if pd.isna(row['low']) else decimal.Decimal(str(row['low']))
-        ph.close = decimal.Decimal('0') if pd.isna(row['close']) else decimal.Decimal(str(row['close']))
-        ph.volume = int(row['volume']) if not pd.isna(row['volume']) else None
+    # Determine if we need to check existence or just bulk insert
+    history_count = session.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id).count()
+    is_fresh = history_count == 0
 
-        # TechnicalIndicator upsert
-        ti = session.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id==stock.stock_id, TechnicalIndicator.date==d).one_or_none()
-        if not ti:
-            ti = TechnicalIndicator(stock_id=stock.stock_id, date=d)
-            session.add(ti)
-        # Use helper to safely convert numeric/pd.NaN to Decimal or None
-        def to_dec(x, prec=(20,6)):
-            if pd.isna(x):
-                return None
-            return decimal.Decimal(str(float(x)))
+    if is_fresh:
+        print(f"  Bulk inserting {len(df)} rows for {ticker}...")
+        ph_list = []
+        ti_list = []
+        for _, row in df.iterrows():
+            d = pd.to_datetime(row['date']).date()
+            ph_list.append(PriceHistory(
+                stock_id=stock.stock_id, 
+                date=d,
+                open=decimal.Decimal('0') if pd.isna(row['open']) else decimal.Decimal(str(row['open'])),
+                high=decimal.Decimal('0') if pd.isna(row['high']) else decimal.Decimal(str(row['high'])),
+                low=decimal.Decimal('0') if pd.isna(row['low']) else decimal.Decimal(str(row['low'])),
+                close=decimal.Decimal('0') if pd.isna(row['close']) else decimal.Decimal(str(row['close'])),
+                volume=int(row['volume']) if not pd.isna(row['volume']) else None
+            ))
+            
+            def to_dec(x):
+                if pd.isna(x): return None
+                return decimal.Decimal(str(float(x)))
 
-        ti.rsi = to_dec(row.get('rsi_14'))
-        ti.macd = to_dec(row.get('macd'))
-        ti.macd_signal = to_dec(row.get('macd_signal'))
-        ti.macd_histogram = to_dec(row.get('macd_hist'))
-        ti.sma_20 = to_dec(row.get('sma_20'))
-        ti.sma_50 = to_dec(row.get('sma_50'))
-        ti.ema_20 = to_dec(row.get('ema_20'))
-        ti.ema_50 = to_dec(row.get('ema_50'))
-        ti.bollinger_upper = to_dec(row.get('boll_upper'))
-        ti.bollinger_middle = to_dec(row.get('boll_mid'))
-        ti.bollinger_lower = to_dec(row.get('boll_lower'))
+            ti_list.append(TechnicalIndicator(
+                stock_id=stock.stock_id, 
+                date=d,
+                rsi=to_dec(row.get('rsi_14')),
+                macd=to_dec(row.get('macd')),
+                macd_signal=to_dec(row.get('macd_signal')),
+                macd_histogram=to_dec(row.get('macd_hist')),
+                sma_20=to_dec(row.get('sma_20')),
+                sma_50=to_dec(row.get('sma_50')),
+                ema_20=to_dec(row.get('ema_20')),
+                ema_50=to_dec(row.get('ema_50')),
+                bollinger_upper=to_dec(row.get('boll_upper')),
+                bollinger_middle=to_dec(row.get('boll_mid')),
+                bollinger_lower=to_dec(row.get('boll_lower'))
+            ))
+        
+        session.add_all(ph_list)
+        session.add_all(ti_list)
+    else:
+        # Fallback to row-by-row if some data exists (slower but safer)
+        for _, row in df.iterrows():
+            d = pd.to_datetime(row['date']).date()
+            ph = session.query(PriceHistory).filter(PriceHistory.stock_id==stock.stock_id, PriceHistory.date==d).one_or_none()
+            if not ph: ph = PriceHistory(stock_id=stock.stock_id, date=d); session.add(ph)
+            ph.open = decimal.Decimal('0') if pd.isna(row['open']) else decimal.Decimal(str(row['open']))
+            ph.high = decimal.Decimal('0') if pd.isna(row['high']) else decimal.Decimal(str(row['high']))
+            ph.low = decimal.Decimal('0') if pd.isna(row['low']) else decimal.Decimal(str(row['low']))
+            ph.close = decimal.Decimal('0') if pd.isna(row['close']) else decimal.Decimal(str(row['close']))
+            ph.volume = int(row['volume']) if not pd.isna(row['volume']) else None
+
+            ti = session.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id==stock.stock_id, TechnicalIndicator.date==d).one_or_none()
+            if not ti: ti = TechnicalIndicator(stock_id=stock.stock_id, date=d); session.add(ti)
+            def to_dec(x):
+                if pd.isna(x): return None
+                return decimal.Decimal(str(float(x)))
+            ti.rsi = to_dec(row.get('rsi_14'))
+            ti.macd = to_dec(row.get('macd'))
+            ti.macd_signal = to_dec(row.get('macd_signal'))
+            ti.macd_histogram = to_dec(row.get('macd_hist'))
+            ti.sma_20 = to_dec(row.get('sma_20'))
+            ti.sma_50 = to_dec(row.get('sma_50'))
+            ti.ema_20 = to_dec(row.get('ema_20'))
+            ti.ema_50 = to_dec(row.get('ema_50'))
+            ti.bollinger_upper = to_dec(row.get('boll_upper'))
+            ti.bollinger_middle = to_dec(row.get('boll_mid'))
+            ti.bollinger_lower = to_dec(row.get('boll_lower'))
 
     session.commit()
     print(f"Stored {len(df)} rows for {ticker} (stock_id={stock.stock_id})")

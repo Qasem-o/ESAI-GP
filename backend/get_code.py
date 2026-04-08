@@ -2,10 +2,10 @@ from sqlalchemy import create_engine, text
 
 # Database Config
 PG_USER = "postgres"
-PG_PASS = "123123"
-PG_HOST = "localhost"
+PG_PASS = "Esaiproject123%40"
+PG_HOST = "db.goajabsmxtgnnzvxqpyj.supabase.co"
 PG_PORT = "5432"
-PG_DB = "Stocksdata"
+PG_DB = "postgres"
 DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
 
 engine = create_engine(DATABASE_URL)
