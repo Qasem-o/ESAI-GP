@@ -1,14 +1,14 @@
-
-
 import os
+from typing import Optional
 try:
-    from pydantic_settings import BaseSettings
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:
     from pydantic import BaseSettings
-
+    SettingsConfigDict = None
 
 class Settings(BaseSettings):
     # Database
+    DATABASE_URL: Optional[str] = None
     PG_USER: str = "postgres"
     PG_PASS: str = "123123"
     PG_HOST: str = "localhost"
@@ -25,11 +25,20 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = "your-google-client-secret"
     TELEGRAM_BOT_TOKEN: str = "your-telegram-bot-token"
     
-    # Email Service (Resend)
-    RESEND_API_KEY: str = "your-resend-api-key"
+    # Email Service (Brevo SMTP)
+    SMTP_SERVER: str = "smtp-relay.brevo.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASS: Optional[str] = None
     FROM_EMAIL: str = "onboarding@resend.dev"
+    FROM_NAME: str = "EyeStocks AI"
 
-    class Config:
-        env_file = ".env"
+    # Support extra fields to prevent crashes when new env vars are added
+    if SettingsConfigDict:
+        model_config = SettingsConfigDict(env_file=".env", extra="allow")
+    else:
+        class Config:
+            env_file = ".env"
+            extra = "allow"
 
 settings = Settings()
