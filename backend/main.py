@@ -21,12 +21,21 @@ from simulator_routes import router as simulator_router
 from middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 # Database Config
-PG_USER = "postgres"
-PG_PASS = "123123"
-PG_HOST = "localhost"
-PG_PORT = "5432"
-PG_DB = "Stocksdata"
-DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fallback for local development
+if not DATABASE_URL:
+    PG_USER = os.getenv("PG_USER", "postgres")
+    PG_PASS = os.getenv("PG_PASS", "123123")
+    PG_HOST = os.getenv("PG_HOST", "localhost")
+    PG_PORT = os.getenv("PG_PORT", "5432")
+    PG_DB = os.getenv("PG_DB", "Stocksdata")
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+elif DATABASE_URL.startswith("postgres://"):
+    # Fix for hosting providers that use the old postgres:// prefix
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -64,6 +73,20 @@ def get_db():
         db.close()
 
 # Pydantic Models
+# Currency detection and conversion
+CURRENCY_MAP = {
+    ".SR": {"code": "SAR", "symbol": "﷼", "rate_to_usd": 0.2667},   # Saudi Riyal
+    ".KW": {"code": "KWD", "symbol": "د.ك", "rate_to_usd": 3.26},   # Kuwaiti Dinar
+    ".QA": {"code": "QAR", "symbol": "ر.ق", "rate_to_usd": 0.2747},  # Qatari Riyal
+}
+
+def get_stock_currency(symbol: str) -> dict:
+    """Detect currency from stock symbol suffix."""
+    for suffix, info in CURRENCY_MAP.items():
+        if symbol.upper().endswith(suffix):
+            return info
+    return {"code": "USD", "symbol": "$", "rate_to_usd": 1.0}
+
 class StockBase(BaseModel):
     symbol: str
     name: str
@@ -81,6 +104,9 @@ class StockBase(BaseModel):
     day_high: Optional[float] = None
     day_low: Optional[float] = None
     volume: Optional[int] = None
+    currency: Optional[str] = "USD"
+    currency_symbol: Optional[str] = "$"
+    usd_price: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -143,7 +169,6 @@ def get_stocks(db: Session = Depends(get_db)):
     stocks = db.query(Stock).all()
     
     # Enrich with latest volume from PriceHistory for each stock
-    # Note: For production with many stocks, optimize this with a JOIN or subquery
     enriched_stocks = []
     
     for stock in stocks:
@@ -154,7 +179,13 @@ def get_stocks(db: Session = Depends(get_db)):
         stock_dict = stock.__dict__.copy()
         if latest_history:
             stock_dict['volume'] = latest_history.volume
-            # Optional: ensure other dynamic fields if needed, e.g. day_high/low if we wanted them in list
+        
+        # Add currency info
+        curr_info = get_stock_currency(stock.symbol)
+        stock_dict['currency'] = curr_info['code']
+        stock_dict['currency_symbol'] = curr_info['symbol']
+        price = float(stock.current_price) if stock.current_price else 0.0
+        stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
         
         enriched_stocks.append(StockBase(**stock_dict))
         
