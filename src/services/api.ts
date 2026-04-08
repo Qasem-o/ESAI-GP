@@ -1,6 +1,6 @@
 // API service for EyeStocks AI
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://esai-backend.onrender.com';
 
 // Types
 export interface StockPrice {

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
 import { useAuth } from "../contexts/AuthContext";
@@ -65,14 +64,13 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
     if (!silent) setIsLoading(true);
     try {
+      // Fetch stocks separately so it doesn't block simulator data
       try {
         const stocksData = await portfolioAPI.getAvailableStocks();
         setAvailableStocks(stocksData);
-        // We do not auto-select the first stock, to match Portfolio's UI behavior
         setSelectedStock((prev: any) => {
           if (prev) {
             const updated = stocksData.find((s: any) => s.symbol === prev.symbol);
-            // Only update if price changed to avoid unnecessary re-renders
             if (updated && updated.current_price !== prev.current_price) return updated;
           }
           return prev;
@@ -81,12 +79,17 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
         console.error("Failed to fetch stocks", err);
       }
 
-      const [sumData, holdData] = await Promise.all([
-        simulatorAPI.getSummary(),
-        simulatorAPI.getHoldings()
-      ]);
-      setSummary(sumData);
-      setHoldings(holdData);
+      // Always fetch simulator data
+      try {
+        const [sumData, holdData] = await Promise.all([
+          simulatorAPI.getSummary(),
+          simulatorAPI.getHoldings()
+        ]);
+        setSummary(sumData);
+        setHoldings(holdData);
+      } catch (err) {
+        console.error("Failed to fetch simulator data", err);
+      }
       
     } catch (err: any) {
       console.error(err);
@@ -97,7 +100,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => fetchData(true), 15000); // 15s refresh
+    const interval = setInterval(() => fetchData(true), 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -114,7 +117,17 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       }
       setTradeMessage({ type: "success", text: res.message });
       setShares("");
-      await fetchData(true);
+      // Immediately refresh data after trade
+      try {
+        const [sumData, holdData] = await Promise.all([
+          simulatorAPI.getSummary(),
+          simulatorAPI.getHoldings()
+        ]);
+        setSummary(sumData);
+        setHoldings(holdData);
+      } catch (e) {
+        console.error("Refresh after trade failed", e);
+      }
     } catch (err: any) {
       setTradeMessage({ type: "error", text: err.message });
     } finally {
@@ -129,7 +142,17 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       await simulatorAPI.resetSimulator();
       setTradeMessage({ type: "success", text: "Simulation reset successfully." });
       setShares("");
-      await fetchData(true);
+      // Immediately refresh
+      try {
+        const [sumData, holdData] = await Promise.all([
+          simulatorAPI.getSummary(),
+          simulatorAPI.getHoldings()
+        ]);
+        setSummary(sumData);
+        setHoldings(holdData);
+      } catch (e) {
+        console.error("Refresh after reset failed", e);
+      }
     } catch (err: any) {
       setTradeMessage({ type: "error", text: err.message });
     } finally {
@@ -143,10 +166,22 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
     return (numShares * selectedStock.current_price).toFixed(2);
   };
 
+  const calculateTotalUsd = () => {
+    if (!selectedStock) return "0.00";
+    const numShares = parseFloat(shares) || 0;
+    const usdPrice = selectedStock.usd_price || selectedStock.current_price;
+    return (numShares * usdPrice).toFixed(2);
+  };
+
   const filteredStocks = availableStocks.filter(s => 
     s.symbol.toLowerCase().includes(search.toLowerCase()) || 
     s.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Dynamic progress calculation
+  const totalValue = summary?.total_value || 0;
+  const startBalance = summary?.starting_balance || 2000;
+  const progressPercent = Math.min(100, Math.max(0, ((totalValue - startBalance) / (10000 - startBalance)) * 100));
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,7 +217,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-yellow-600 dark:text-yellow-500 mb-2">Target Reached!</h2>
                     <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4">
-                      Congratulations! You successfully turned your $2,000 into $10,000.
+                      Congratulations! You successfully turned your ${startBalance.toLocaleString()} into ${totalValue.toLocaleString()}!
                     </p>
                     <Button onClick={handleReset} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white cursor-pointer">
                       Play Again
@@ -191,7 +226,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </Card>
               )}
 
-              {/* Virtual Portfolio Card */}
+              {/* Virtual Portfolio Card - ORIGINAL SIMPLE DESIGN */}
               <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -204,14 +239,14 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-4xl font-bold">${summary?.total_value?.toLocaleString()}</p>
+                    <p className="text-4xl font-bold">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={summary?.total_gain >= 0 ? "default" : "destructive"}>
-                        {summary?.total_gain >= 0 ? '+' : ''}${Math.abs(summary?.total_gain || 0).toLocaleString()}
+                        {summary?.total_gain >= 0 ? '+' : ''}${Math.abs(summary?.total_gain || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </Badge>
                       <span className={`flex items-center text-sm font-medium ${summary?.gain_percentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {summary?.gain_percentage >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        {Math.abs(summary?.gain_percentage || 0)}%
+                        {Math.abs(summary?.gain_percentage || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
@@ -219,26 +254,29 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   <div className="pt-3 border-t space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Available Cash</span>
-                      <span className="font-medium">${summary?.cash?.toLocaleString()}</span>
+                      <span className="font-medium">${summary?.cash?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Balance</span>
-                      <span className="font-medium">${summary?.starting_balance?.toLocaleString()}</span>
+                      <span className="font-medium">${startBalance.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Progress towards 10k! */}
+                  {/* Progress towards 10k — NOW DYNAMIC */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>$2,000</span>
+                      <span>${startBalance.toLocaleString()}</span>
                       <span>$10,000</span>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
-                        style={{ width: `${Math.min(100, Math.max(0, ((summary?.total_value - 2000) / 8000) * 100))}%` }}
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
                       ></div>
                     </div>
+                    <p className="text-xs text-muted-foreground text-right">
+                      {progressPercent > 0 ? `${progressPercent.toFixed(1)}% complete` : 'Start trading to make progress!'}
+                    </p>
                   </div>
 
                   <Button variant="outline" className="w-full cursor-pointer" onClick={handleReset} disabled={isTradeLoading}>
@@ -309,32 +347,42 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
                           {/* Stock List */}
                           <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            {filteredStocks.map((stock: any) => (
-                              <button
-                                key={stock.symbol}
-                                onClick={() => {
-                                  setSelectedStock({
-                                    symbol: stock.symbol,
-                                    name: stock.name,
-                                    current_price: stock.current_price,
-                                  });
-                                  setShares("");
-                                  setTradeMessage(null);
-                                }}
-                                className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden cursor-pointer"
-                              >
-                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0 mr-4">
-                                  <span className="font-bold text-primary">{stock.symbol.charAt(0)}</span>
-                                </div>
-                                <div className="flex-1 min-w-0 text-left">
-                                  <p className="font-semibold truncate">{stock.symbol}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
-                                </div>
-                                <div className="text-right shrink-0 ml-4">
-                                  <p className="font-bold text-primary">${stock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                </div>
-                              </button>
-                            ))}
+                            {filteredStocks.map((stock: any) => {
+                              const isUSD = stock.currency === 'USD' || !stock.currency;
+                              const currSymbol = stock.currency_symbol || '$';
+                              return (
+                                <button
+                                  key={stock.symbol}
+                                  onClick={() => {
+                                    setSelectedStock(stock);
+                                    setShares("");
+                                    setTradeMessage(null);
+                                  }}
+                                  className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden cursor-pointer"
+                                >
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0 mr-4">
+                                    <span className="font-bold text-primary">{stock.symbol.charAt(0)}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <p className="font-semibold truncate">{stock.symbol}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
+                                  </div>
+                                  <div className="text-right shrink-0 ml-4">
+                                    <p className="font-bold text-primary">
+                                      {currSymbol}{stock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
+                                    {!isUSD && (
+                                      <p className="text-xs text-muted-foreground">
+                                        ≈ ${stock.usd_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                      </p>
+                                    )}
+                                    {!isUSD && (
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5">{stock.currency}</Badge>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
                             {filteredStocks.length === 0 && (
                               <p className="text-center text-muted-foreground py-8">No stocks found</p>
                             )}
@@ -343,24 +391,38 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                       ) : (
                         <>
                           {/* Selected stock info */}
-                          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
-                              <span className="font-bold text-primary">{selectedStock.symbol.charAt(0)}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold truncate">{selectedStock.symbol}</p>
-                              <p className="text-xs text-muted-foreground truncate">{selectedStock.name}</p>
-                            </div>
-                            <div className="text-right shrink-0 ml-4">
-                              <p className="font-semibold">${selectedStock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                              <button
-                                className="text-xs text-primary hover:underline cursor-pointer"
-                                onClick={() => setSelectedStock(null)}
-                              >
-                                Change
-                              </button>
-                            </div>
-                          </div>
+                          {(() => {
+                            const isUSD = selectedStock.currency === 'USD' || !selectedStock.currency;
+                            const currSymbol = selectedStock.currency_symbol || '$';
+                            return (
+                              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
+                                  <span className="font-bold text-primary">{selectedStock.symbol.charAt(0)}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold truncate">{selectedStock.symbol}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{selectedStock.name}</p>
+                                </div>
+                                <div className="text-right shrink-0 ml-4">
+                                  <p className="font-semibold">
+                                    {currSymbol}{selectedStock.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {!isUSD && <span className="text-xs text-muted-foreground ml-1">{selectedStock.currency}</span>}
+                                  </p>
+                                  {!isUSD && (
+                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                      ≈ ${selectedStock.usd_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                    </p>
+                                  )}
+                                  <button
+                                    className="text-xs text-primary hover:underline cursor-pointer"
+                                    onClick={() => setSelectedStock(null)}
+                                  >
+                                    Change
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Shares Input */}
                           <div>
@@ -377,20 +439,37 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                           </div>
 
                           {/* Order Summary */}
-                          <div className="bg-muted/50 rounded-lg p-4 border space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">Shares</span>
-                              <span className="font-medium">{shares || '0'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">Price per share</span>
-                              <span className="font-medium">${selectedStock?.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
-                            </div>
-                            <div className="flex justify-between pt-2 border-t">
-                              <span className="font-semibold">Total</span>
-                              <span className="font-bold text-lg">${Number(calculateTotal()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                          </div>
+                          {(() => {
+                            const isUSD = selectedStock.currency === 'USD' || !selectedStock.currency;
+                            const currSymbol = selectedStock.currency_symbol || '$';
+                            return (
+                              <div className="bg-muted/50 rounded-lg p-4 border space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Shares</span>
+                                  <span className="font-medium">{shares || '0'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Price per share</span>
+                                  <span className="font-medium">
+                                    {currSymbol}{selectedStock?.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                    {!isUSD && <span className="text-xs text-muted-foreground ml-1">({selectedStock.currency})</span>}
+                                  </span>
+                                </div>
+                                {!isUSD && (
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Total ({selectedStock.currency})</span>
+                                    <span>{currSymbol}{Number(calculateTotal()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between pt-2 border-t">
+                                  <span className="font-semibold">Total (USD)</span>
+                                  <span className="font-bold text-lg">
+                                    ${Number(calculateTotalUsd()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           {/* Submit Button */}
                           <Button
@@ -402,7 +481,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                           </Button>
 
                           <p className="text-xs text-center text-muted-foreground">
-                            This is a simulated trade. Win the challenge if you reach $10,000!
+                            This is a simulated trade. All values tracked in USD. Win the challenge if you reach $10,000!
                           </p>
                         </>
                       )}
@@ -435,7 +514,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                                   <span className="text-xl font-bold text-primary">{position.stock_symbol.charAt(0)}</span>
                                 </div>
                                 <div>
-                                  <h3 className="font-bold text-lg">${position.stock_symbol}</h3>
+                                  <h3 className="font-bold text-lg">{position.stock_symbol}</h3>
                                   <p className="text-sm text-muted-foreground">{position.stock_name}</p>
                                 </div>
                               </div>

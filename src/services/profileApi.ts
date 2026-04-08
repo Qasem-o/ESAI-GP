@@ -3,7 +3,7 @@
  * Handles all profile-related API calls
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://esai-backend.onrender.com';
 
 export interface UserStats {
     followers_count: number;

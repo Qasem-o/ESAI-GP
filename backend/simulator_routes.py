@@ -11,6 +11,20 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from preparedata import Stock, PriceHistory
 
+# Currency conversion map (same as main.py)
+CURRENCY_MAP = {
+    ".SR": {"code": "SAR", "symbol": "﷼", "rate_to_usd": 0.2667},
+    ".KW": {"code": "KWD", "symbol": "د.ك", "rate_to_usd": 3.26},
+    ".QA": {"code": "QAR", "symbol": "ر.ق", "rate_to_usd": 0.2747},
+}
+
+def get_currency_rate(symbol: str) -> float:
+    """Get the USD conversion rate for a stock symbol."""
+    for suffix, info in CURRENCY_MAP.items():
+        if symbol.upper().endswith(suffix):
+            return info['rate_to_usd']
+    return 1.0
+
 router = APIRouter(prefix="/simulator", tags=["simulator"])
 
 def get_db():
@@ -50,10 +64,14 @@ def get_or_create_state(db: Session, user_id: int) -> SimulatorState:
     return state
 
 def get_current_price(db: Session, symbol: str) -> float:
+    """Get current price in USD."""
     stock = db.query(Stock).filter(Stock.symbol == symbol).first()
-    if stock and stock.current_price: return float(stock.current_price)
+    rate = get_currency_rate(symbol)
+    if stock and stock.current_price:
+        return float(stock.current_price) * rate
     latest = db.query(PriceHistory).join(Stock).filter(Stock.symbol == symbol).order_by(desc(PriceHistory.date)).first()
-    if latest: return float(latest.close)
+    if latest:
+        return float(latest.close) * rate
     return 0.0
 
 def check_win_condition(db: Session, state: SimulatorState, total_portfolio_value: float):
@@ -156,7 +174,10 @@ async def buy_stock(
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    total_cost = req.shares * req.price
+    # Convert price to USD for internal tracking
+    rate = get_currency_rate(req.symbol)
+    usd_price = req.price * rate
+    total_cost = req.shares * usd_price
     state = get_or_create_state(db, user_id)
     
     if state.is_completed:
@@ -171,19 +192,19 @@ async def buy_stock(
     holding = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id, SimulatorHolding.stock_symbol == req.symbol.upper()).first()
     if holding:
         total_shares = holding.shares + req.shares
-        holding.avg_price = ((holding.shares * holding.avg_price) + (req.shares * req.price)) / total_shares
+        holding.avg_price = ((holding.shares * holding.avg_price) + (req.shares * usd_price)) / total_shares
         holding.shares = total_shares
         holding.stock_name = stock_name
     else:
-        holding = SimulatorHolding(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, shares=req.shares, avg_price=req.price)
+        holding = SimulatorHolding(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, shares=req.shares, avg_price=usd_price)
         db.add(holding)
 
     state.balance -= total_cost
-    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="buy", shares=req.shares, price=req.price, total=total_cost)
+    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="buy", shares=req.shares, price=usd_price, total=total_cost)
     db.add(txn)
     db.commit()
 
-    return {"message": f"Successfully bought {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}"}
+    return {"message": f"Successfully bought {req.shares} shares of {req.symbol.upper()} at ${usd_price:.2f} (USD)"}
 
 @router.post("/sell")
 async def sell_stock(
@@ -199,7 +220,10 @@ async def sell_stock(
     if not holding: raise HTTPException(status_code=404, detail=f"You don't hold any shares of {req.symbol.upper()}")
     if holding.shares < req.shares: raise HTTPException(status_code=400, detail=f"Insufficient shares.")
 
-    total_proceeds = req.shares * req.price
+    # Convert price to USD for internal tracking
+    rate = get_currency_rate(req.symbol)
+    usd_price = req.price * rate
+    total_proceeds = req.shares * usd_price
     stock = db.query(Stock).filter(Stock.symbol == req.symbol.upper()).first()
     stock_name = stock.name if stock else req.symbol.upper()
 
@@ -207,11 +231,11 @@ async def sell_stock(
     if holding.shares <= 0.001: db.delete(holding)
 
     state.balance += total_proceeds
-    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="sell", shares=req.shares, price=req.price, total=total_proceeds)
+    txn = SimulatorTransaction(user_id=user_id, stock_symbol=req.symbol.upper(), stock_name=stock_name, transaction_type="sell", shares=req.shares, price=usd_price, total=total_proceeds)
     db.add(txn)
     db.commit()
 
-    return {"message": f"Successfully sold {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}"}
+    return {"message": f"Successfully sold {req.shares} shares of {req.symbol.upper()} at ${usd_price:.2f} (USD)"}
 
 
 @router.post("/reset")

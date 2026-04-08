@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://esai-backend.onrender.com';
 
 class SimulatorAPI {
     private getHeaders() {

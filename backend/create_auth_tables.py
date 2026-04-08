@@ -8,18 +8,29 @@ from sqlalchemy import create_engine, text
 from models import Base, User, OAuthProvider, EmailVerification
 
 # Database Config (same as main.py)
-PG_USER = "postgres"
-PG_PASS = "123123"
-PG_HOST = "localhost"
-PG_PORT = "5432"
-PG_DB = "Stocksdata"
-DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Database Config
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    PG_USER = "postgres"
+    PG_PASS = "123123"
+    PG_HOST = "localhost"
+    PG_PORT = "5432"
+    PG_DB = "Stocksdata"
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+elif DATABASE_URL.startswith("postgres://") and "+psycopg2" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 
 def create_auth_tables():
     """Create authentication tables in the database."""
     try:
         engine = create_engine(DATABASE_URL, echo=True)
-        print(f"Connecting to database: {PG_DB} at {PG_HOST}:{PG_PORT}")
+        print(f"Connecting to database via URL: {DATABASE_URL.split('@')[-1]}") # Print host only for security
         
         # Create all tables defined in models
         Base.metadata.create_all(engine)

@@ -14,6 +14,7 @@ import argparse
 import decimal
 from datetime import datetime
 import os
+from dotenv import load_dotenv
 
 import pandas as pd
 import yfinance as yf
@@ -27,12 +28,21 @@ from sqlalchemy.orm import Session, relationship, sessionmaker
 # Config / DB setup (MODIFIED TO USE HARDCODED VALUES)
 # ---------------------------
 
-# **** Hardcoded PostgreSQL Configuration (Based on your request) ****
-PG_USER = "postgres"       # اسم المستخدم
-PG_PASS = "123123"         # كلمة المرور
-PG_HOST = "localhost"      # المضيف
-PG_PORT = "5432"           # المنفذ
-PG_DB = "Stocksdata"           # اسم قاعدة البيانات (استخدمت 'webapp' كاسم افتراضي)
+# Load environment variables from backend/.env if it exists, otherwise from root .env
+load_dotenv(os.path.join(os.path.dirname(__file__), 'backend', '.env'))
+load_dotenv()
+
+# Database Config
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    PG_USER = os.getenv("PG_USER", "postgres")
+    PG_PASS = os.getenv("PG_PASS", "123123")
+    PG_HOST = os.getenv("PG_HOST", "localhost")
+    PG_PORT = os.getenv("PG_PORT", "5432")
+    PG_DB = os.getenv("PG_DB", "Stocksdata")
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+elif DATABASE_URL.startswith("postgres://") and "+psycopg2" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 
 # Hardcoded Tickers and Dates
 HARDCODED_TICKERS = [
@@ -48,8 +58,6 @@ HARDCODED_TICKERS = [
 HARDCODED_START = "2018-01-01"
 HARDCODED_END = "2025-12-10" # Or datetime.today().strftime("%Y-%m-%d") for today
 
-# Building the connection string for PostgreSQL
-DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
 # DATABASE_URL = "sqlite:///eyestock.db" # Use this for SQLite
 
 Base = declarative_base()
@@ -261,12 +269,12 @@ def main(): # Removed 'args' from main function signature
     # Attempt to create engine, will use the hardcoded DATABASE_URL
     try:
         engine = create_engine(DATABASE_URL, echo=False)
-        print(f"Connecting to database: {PG_DB} at {PG_HOST}:{PG_PORT} with user {PG_USER}")
+        print(f"Connecting to database via URL: {DATABASE_URL.split('@')[-1]}")
         Base.metadata.create_all(engine)
         SessionLocal = sessionmaker(bind=engine)
         session = SessionLocal()
     except Exception as e:
-        print(f"❌ Failed to connect to the database. Check your configuration values or ensure the database '{PG_DB}' exists.")
+        print(f"❌ Failed to connect to the database. Check your configuration values.")
         print(f"Error: {e}")
         return
 

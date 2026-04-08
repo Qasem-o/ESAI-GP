@@ -52,7 +52,7 @@ interface NavigationProps {
 
 interface ProfileProps extends NavigationProps { }
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://esai-backend.onrender.com';
 
 export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfolio, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: ProfileProps) {
     const { user, isAuthenticated, isLoading: authLoading, logout, updateProfile } = useAuth();
