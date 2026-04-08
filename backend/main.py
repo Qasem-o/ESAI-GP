@@ -169,6 +169,23 @@ class SentimentResponse(BaseModel):
 
 # Endpoints
 
+@app.get("/")
+def health_check(db: Session = Depends(get_db)):
+    try:
+        stock_count = db.query(Stock).count()
+        return {
+            "status": "healthy",
+            "message": "EyeStocks AI API is live",
+            "database": "connected",
+            "stock_count": stock_count
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "error",
+            "error_detail": str(e)
+        }
+
 @app.get("/stocks", response_model=List[StockBase])
 def get_stocks(db: Session = Depends(get_db)):
     stocks = db.query(Stock).all()
