@@ -1,152 +1,126 @@
 """
-Resend email service for sending verification codes.
+Email service for sending verification codes via Brevo SMTP.
 """
 
 import os
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Optional
+from dotenv import load_dotenv
 
-# Resend Configuration
-# TODO: Move these to environment variables in production
-RESEND_API_KEY = "re_fcjpKDft_842JykefdC59NsY534ftuzWh"  # Replace with your Resend API Key
+# Load environment variables
+load_dotenv()
 
-# Initialize Resend client
-try:
-    resend.api_key = RESEND_API_KEY
-except Exception as e:
-    print(f"Warning: Could not initialize Resend client: {e}")
+# SMTP Configuration
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+FROM_EMAIL = os.getenv("FROM_EMAIL")
+FROM_NAME = os.getenv("FROM_NAME", "EyeStocks AI")
 
+async def send_email(subject: str, recipient: str, html_content: str) -> bool:
+    """Generic helper to send email via SMTP."""
+    if not SMTP_USER or not SMTP_PASS:
+        print(f"⚠️ SMTP credentials not configured. Email suppressed for {recipient}")
+        return False
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_content, 'html'))
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+        
+        return True
+    except Exception as e:
+        print(f"❌ Error sending email to {recipient}: {e}")
+        return False
 
 async def send_verification_email(email: str, code: str, username: str) -> bool:
-    """
-    Send verification code email via Resend.
-    
-    Args:
-        email: Recipient email address
-        code: 6-digit verification code
-        username: User's username
-    
-    Returns:
-        bool: True if email sent successfully, False otherwise
-    """
-    if "your-resend-api-key" in RESEND_API_KEY:
-        print(f"Resend API Key not configured. Verification code for {email}: {code}")
-        return False
-    
-    try:
-        email_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-                .code-box {{ background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }}
-                .code {{ font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #667eea; }}
-                .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🔐 Email Verification</h1>
-                    <p>EyeStocks AI</p>
+    """Send verification code email via SMTP."""
+    subject = "Verify your email address - EyeStocks AI"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .code-box {{ background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }}
+            .code {{ font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #667eea; }}
+            .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🔐 Email Verification</h1>
+                <p>EyeStocks AI</p>
+            </div>
+            <div class="content">
+                <h2>Hello {username}!</h2>
+                <p>Thank you for signing up for EyeStocks AI. To complete your registration, please verify your email address using the code below:</p>
+                
+                <div class="code-box">
+                    <div class="code">{code}</div>
                 </div>
-                <div class="content">
-                    <h2>Hello {username}!</h2>
-                    <p>Thank you for signing up for EyeStocks AI. To complete your registration, please verify your email address using the code below:</p>
-                    
-                    <div class="code-box">
-                        <div class="code">{code}</div>
-                    </div>
-                    
-                    <p><strong>This code will expire in 10 minutes.</strong></p>
-                    
-                    <p>If you didn't create an account with EyeStocks AI, please ignore this email.</p>
-                    
-                    <div class="footer">
-                        <p>© 2025 EyeStocks AI. All rights reserved.</p>
-                    </div>
+                
+                <p><strong>This code will expire in 10 minutes.</strong></p>
+                
+                <p>If you didn't create an account with EyeStocks AI, please ignore this email.</p>
+                
+                <div class="footer">
+                    <p>© 2025 EyeStocks AI. All rights reserved.</p>
                 </div>
             </div>
-        </body>
-        </html>
-        """
-        
-        params = {
-            "from": "EyeStocks AI <onboarding@resend.dev>",
-            "to": [email],
-            "subject": "Verify your email address",
-            "html": email_html,
-        }
-
-        email_response = resend.Emails.send(params)
-        print(f"📧 Email sent to {email} with code: {code} (ID: {email_response.get('id')})")
-        return True
-        
-    except Exception as e:
-        print(f"Error sending verification email: {e}")
-        # Build reliability: print code to console as fallback during development
+        </div>
+    </body>
+    </html>
+    """
+    
+    success = await send_email(subject, email, html_content)
+    if success:
+        print(f"📧 Verification email sent to {email}")
+    else:
         print(f"FALLBACK: Verification code for {email}: {code}")
-        return False
-
+    return success
 
 async def send_welcome_email(email: str, username: str) -> bool:
-    """
-    Send welcome email after successful verification.
-    
-    Args:
-        email: Recipient email address
-        username: User's username
-    
-    Returns:
-        bool: True if email sent successfully, False otherwise
-    """
-    if "your-resend-api-key" in RESEND_API_KEY:
-        print(f"Resend API Key not configured. Would send welcome email to {email}")
-        return False
-    
-    try:
-        email_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🎉 Welcome to EyeStocks AI!</h1>
-                </div>
-                <div class="content">
-                    <h2>Hello {username}!</h2>
-                    <p>Your email has been successfully verified. Welcome to EyeStocks AI!</p>
-                    <p>You can now access all features of our AI-powered stock prediction platform.</p>
-                    <p>Happy trading!</p>
-                </div>
+    """Send welcome email after successful verification."""
+    subject = "Welcome to EyeStocks AI!"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Welcome to EyeStocks AI!</h1>
             </div>
-        </body>
-        </html>
-        """
-        
-        params = {
-            "from": "EyeStocks AI <onboarding@resend.dev>",
-            "to": [email],
-            "subject": "Welcome to EyeStocks AI!",
-            "html": email_html,
-        }
-
-        resend.Emails.send(params)
-        print(f"📧 Welcome email sent to {email}")
-        return True
-        
-    except Exception as e:
-        print(f"Error sending welcome email: {e}")
-        return False
+            <div class="content">
+                <h2>Hello {username}!</h2>
+                <p>Your email has been successfully verified. Welcome to EyeStocks AI!</p>
+                <p>You can now access all features of our AI-powered stock prediction platform.</p>
+                <p>Happy trading!</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return await send_email(subject, email, html_content)
