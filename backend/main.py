@@ -49,7 +49,12 @@ app.add_middleware(RateLimitMiddleware)
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for dev - restrict in production
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://gp-esai.netlify.app",
+        "https://esai-backend.onrender.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,8 +103,8 @@ class StockBase(BaseModel):
     pe_ratio: Optional[float]
     eps: Optional[float]
     dividend_yield: Optional[float]
-    fifty_two_week_high: Optional[float]
-    fifty_two_week_low: Optional[float]
+    fifty_two_week_high: Optional[float] = None
+    fifty_two_week_low: Optional[float] = None
     day_open: Optional[float] = None
     day_high: Optional[float] = None
     day_low: Optional[float] = None
