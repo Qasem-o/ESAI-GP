@@ -5,7 +5,7 @@ Simple script to create sample profile data
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User
-from profile_models import UserStats, Post
+from community_models import UserStats, Post
 
 # Database Config
 PG_USER = "postgres"

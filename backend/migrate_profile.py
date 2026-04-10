@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Import models
 from models import Base, User
-from profile_models import UserStats, UserFollow, Post, PostLike
+from community_models import UserStats, UserFollow, Post, PostLike
 
 # Database Config
 PG_USER = "postgres"

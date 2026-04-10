@@ -2,7 +2,7 @@
 Community models - Posts, Likes, Comments, Follows, UserStats
 """
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint, Index, Float
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 
@@ -19,6 +19,12 @@ class Post(Base):
     stock_symbol = Column(String(20), nullable=True)  # Optional attached stock
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Engagement metrics (cached)
+    likes_count = Column(Integer, default=0)
+    comments_count = Column(Integer, default=0)
+    shares_count = Column(Integer, default=0)
+    views_count = Column(Integer, default=0)
 
     # Relationships
     user = relationship("User", backref=backref("posts", cascade="all, delete-orphan"))
@@ -96,5 +102,20 @@ class UserStats(Base):
     followers_count = Column(Integer, default=0)
     following_count = Column(Integer, default=0)
     posts_count = Column(Integer, default=0)
+
+    # Trading stats
+    total_trades = Column(Integer, default=0)
+    winning_trades = Column(Integer, default=0)
+    losing_trades = Column(Integer, default=0)
+    win_rate = Column(Float, default=0.0)  # Percentage
+    avg_return = Column(Float, default=0.0)  # Percentage
+    best_trade = Column(Float, default=0.0)  # Percentage
+    worst_trade = Column(Float, default=0.0)  # Percentage
+    
+    # Portfolio stats
+    portfolio_value = Column(Float, default=0.0)
+    portfolio_change = Column(Float, default=0.0)  # Percentage
+    total_invested = Column(Float, default=0.0)
+    total_profit_loss = Column(Float, default=0.0)
 
     user = relationship("User", backref=backref("stats", uselist=False, cascade="all, delete-orphan"))

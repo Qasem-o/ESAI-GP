@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from models import User
-from profile_models import UserStats, UserFollow, Post, PostLike
+from community_models import UserStats, UserFollow, Post, PostLike
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/profile", tags=["profile"])

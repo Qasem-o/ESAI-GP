@@ -11,7 +11,7 @@ sys.path.append(parent_dir)
 
 from models import Base as AuthBase
 from portfolio_models import PortfolioHolding, PortfolioTransaction, PortfolioCash, Watchlist
-from profile_models import UserStats, UserFollow, Post, PostLike
+from community_models import UserStats, UserFollow, Post, PostLike
 from simulator_models import SimulatorHolding, SimulatorTransaction, SimulatorState
 from preparedata import Base as StockBase, Stock, PriceHistory, TechnicalIndicator, ModelMetric
 
