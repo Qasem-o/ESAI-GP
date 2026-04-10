@@ -3,7 +3,7 @@ Community models - Posts, Likes, Comments, Follows, UserStats
 """
 
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 
 from models import Base
@@ -21,7 +21,7 @@ class Post(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    user = relationship("User", back_populates="posts")
+    user = relationship("User", backref=backref("posts", cascade="all, delete-orphan"))
     likes = relationship("PostLike", back_populates="post", cascade="all, delete-orphan")
     comments = relationship("PostComment", back_populates="post", cascade="all, delete-orphan")
     bookmarks = relationship("PostBookmark", back_populates="post", cascade="all, delete-orphan")
@@ -97,4 +97,4 @@ class UserStats(Base):
     following_count = Column(Integer, default=0)
     posts_count = Column(Integer, default=0)
 
-    user = relationship("User", back_populates="stats")
+    user = relationship("User", backref=backref("stats", uselist=False, cascade="all, delete-orphan"))

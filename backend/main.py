@@ -43,13 +43,10 @@ from models import Base as AuthBase
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create tables for both databases automatically
+# Create tables for all models automatically
+import community_models  # noqa: ensure community tables are registered
 AuthBase.metadata.create_all(bind=engine)
 Base.metadata.create_all(bind=engine)
-
-# Create community tables
-import community_models
-community_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EyeStocks AI API", version="1.0.0")
 

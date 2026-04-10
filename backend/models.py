@@ -27,8 +27,6 @@ class User(Base):
     # Relationships
     oauth_providers = relationship("OAuthProvider", back_populates="user", cascade="all, delete-orphan")
     email_verifications = relationship("EmailVerification", back_populates="user", cascade="all, delete-orphan")
-    stats = relationship("UserStats", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
 
 
 class OAuthProvider(Base):
