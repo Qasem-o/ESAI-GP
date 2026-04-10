@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
+import { useAuth } from "../contexts/AuthContext";
+import { communityAPI, FeedPost, TopTrader, PostComment as CommentType } from "../services/communityApi";
+import { DefaultAvatar } from "./DefaultAvatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,7 +18,6 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
-  Image as ImageIcon,
   BarChart2,
   Clock,
   Flame,
@@ -22,102 +25,27 @@ import {
   Target,
   Zap,
   Users,
-  Eye
+  Loader2,
+  Send,
+  Trash2,
+  X
 } from "lucide-react";
 
-// Mock posts data
-const posts = [
-  {
-    id: 1,
-    author: "Sharidah Abdullah",
-    username: "sharidahabdullah",
-    badge: "Pro Trader",
-    content: "Just analyzed NVDA's latest earnings report. Revenue beat expectations by 15%, and their AI chip demand is through the roof. I'm bullish on this for Q2. What's your take?",
-    stock: { symbol: "NVDA", price: 875.30, change: 3.2 },
-    timeAgo: "2h ago",
-    likes: 247,
-    comments: 45,
-    shares: 12,
-    views: 3420,
-    isLiked: false,
-    isBookmarked: false
-  },
-  {
-    id: 2,
-    author: "Ali Samer",
-    username: "alisamer",
-    badge: "Verified",
-    content: "Portfolio update: Up 15% this quarter! My top performers:\n\n🚀 NVDA +22%\n📈 TSLA +18%\n💎 MSFT +12%\n\nKey lesson: Patience pays off in the AI revolution.",
-    stock: null,
-    timeAgo: "4h ago",
-    likes: 892,
-    comments: 134,
-    shares: 67,
-    views: 12450,
-    isLiked: true,
-    isBookmarked: true
-  },
-  {
-    id: 3,
-    author: "Qasem Sami",
-    username: "qasemsami",
-    badge: "Analyst",
-    content: "Market correction incoming? Here's what I'm watching:\n\n⚠️ VIX spiking\n⚠️ Treasury yields rising\n✅ Strong support at 515\n\nStaying cautious but not panicking. What indicators are you watching?",
-    stock: { symbol: "SPY", price: 518.42, change: -0.8 },
-    timeAgo: "6h ago",
-    likes: 456,
-    comments: 89,
-    shares: 34,
-    views: 8930,
-    isLiked: false,
-    isBookmarked: false
-  },
-  {
-    id: 4,
-    author: "Abdullah Majed",
-    username: "abdullahmajed",
-    badge: "Quant",
-    content: "Built a new algo that's showing 87% accuracy on short-term moves. Tested on 3 years of data. Sharing the strategy breakdown in my next post. Stay tuned! 📊",
-    stock: null,
-    timeAgo: "8h ago",
-    likes: 1234,
-    comments: 267,
-    shares: 156,
-    views: 18750,
-    isLiked: true,
-    isBookmarked: false
-  }
-];
-
-// Market overview data
-const marketOverview = [
-  { symbol: "S&P 500", value: "5,189.42", change: 1.2 },
-  { symbol: "NASDAQ", value: "16,274.94", change: 2.1 },
-  { symbol: "DOW", value: "38,834.86", change: 0.8 }
-];
-
-// Top movers
-const topMovers = [
-  { symbol: "NVDA", name: "NVIDIA", price: 875.30, change: 8.5 },
-  { symbol: "TSLA", name: "Tesla", price: 248.15, change: 5.8 },
-  { symbol: "AMD", name: "AMD", price: 165.42, change: 4.3 },
-  { symbol: "META", name: "Meta", price: 485.20, change: -3.2 }
-];
-
-// Trending topics
-const trendingTopics = [
-  { tag: "AI Stocks", posts: "12.5K" },
-  { tag: "Earnings Season", posts: "8.3K" },
-  { tag: "Fed Meeting", posts: "6.7K" },
-  { tag: "Tech Rally", posts: "5.2K" }
-];
-
-// Top traders
-const topTraders = [
-  { name: "Omar Khalid", username: "omarkhalid", badge: "Expert", followers: "125K" },
-  { name: "Layla Hassan", username: "laylahassan", badge: "Pro", followers: "89K" },
-  { name: "Rami Yasin", username: "ramiyasin", badge: "Verified", followers: "67K" }
-];
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 5) return "just now";
+  if (diffSecs < 60) return `${diffSecs}s ago`;
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
 
 interface NavigationProps {
   currentPage: string;
@@ -136,56 +64,228 @@ interface NavigationProps {
 interface CommunityProps extends NavigationProps { }
 
 export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: CommunityProps) {
-  const [postContent, setPostContent] = useState("");
-  const [postsState, setPostsState] = useState(posts);
+  const { user, isAuthenticated } = useAuth();
+
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [topTraders, setTopTraders] = useState<TopTrader[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPostLoading, setIsPostLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "trending" | "following">("all");
+
+  const [postContent, setPostContent] = useState("");
+  const [postStock, setPostStock] = useState("");
   const [isInputExpanded, setIsInputExpanded] = useState(false);
 
-  const handlePost = () => {
-    if (postContent.trim()) {
-      const newPost = {
-        id: postsState.length + 1,
-        author: "You",
-        username: "yourhandle",
-        badge: "Trader",
-        content: postContent,
-        stock: null,
-        timeAgo: "just now",
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-        isLiked: false,
-        isBookmarked: false
-      };
-      setPostsState([newPost, ...postsState]);
+  // Comments modal
+  const [commentsPostId, setCommentsPostId] = useState<number | null>(null);
+  const [comments, setComments] = useState<CommentType[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+
+  const fetchFeed = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      const [feedData, tradersData] = await Promise.all([
+        communityAPI.getFeed(1, 30, activeFilter),
+        communityAPI.getTopTraders().catch(() => []),
+      ]);
+      setPosts(feedData);
+      setTopTraders(tradersData);
+    } catch (err) {
+      console.error("Failed to load feed", err);
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [activeFilter]);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const interval = setInterval(() => fetchFeed(true), 30000);
+    return () => clearInterval(interval);
+  }, [fetchFeed]);
+
+  const handleCreatePost = async () => {
+    if (!postContent.trim() || !isAuthenticated) return;
+    setIsPostLoading(true);
+    try {
+      await communityAPI.createPost(postContent.trim(), postStock.trim() || undefined);
       setPostContent("");
+      setPostStock("");
+      setIsInputExpanded(false);
+      await fetchFeed(true);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setIsPostLoading(false);
     }
   };
 
-  const toggleLike = (postId: number) => {
-    setPostsState(postsState.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          isLiked: !post.isLiked,
-          likes: post.isLiked ? post.likes - 1 : post.likes + 1
-        };
-      }
-      return post;
-    }));
+  const handleToggleLike = async (postId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await communityAPI.toggleLike(postId);
+      setPosts(prev => prev.map(p =>
+        p.post_id === postId ? { ...p, is_liked: res.liked, likes_count: res.likes_count } : p
+      ));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleBookmark = (postId: number) => {
-    setPostsState(postsState.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          isBookmarked: !post.isBookmarked
-        };
-      }
-      return post;
-    }));
+  const handleToggleBookmark = async (postId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await communityAPI.toggleBookmark(postId);
+      setPosts(prev => prev.map(p =>
+        p.post_id === postId ? { ...p, is_bookmarked: res.bookmarked } : p
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeletePost = async (postId: number) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await communityAPI.deletePost(postId);
+      setPosts(prev => prev.filter(p => p.post_id !== postId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleFollow = async (targetUserId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await communityAPI.toggleFollow(targetUserId);
+      setTopTraders(prev => prev.map(t =>
+        t.user_id === targetUserId ? {
+          ...t,
+          is_following: res.following,
+          followers_count: res.following ? t.followers_count + 1 : Math.max(0, t.followers_count - 1)
+        } : t
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openComments = async (postId: number) => {
+    setCommentsPostId(postId);
+    setIsLoadingComments(true);
+    try {
+      const data = await communityAPI.getComments(postId);
+      setComments(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !commentsPostId || !isAuthenticated) return;
+    try {
+      const newComment = await communityAPI.createComment(commentsPostId, commentText.trim());
+      setComments(prev => [...prev, newComment]);
+      setCommentText("");
+      // Update comment count in feed
+      setPosts(prev => prev.map(p =>
+        p.post_id === commentsPostId ? { ...p, comments_count: p.comments_count + 1 } : p
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const renderPost = (post: FeedPost) => {
+    const isOwnPost = user && post.author.user_id === (user as any).user_id;
+    const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
+      ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
+      : post.author.profile_picture_url;
+
+    return (
+      <Card key={post.post_id} className="hover:shadow-md transition-shadow">
+        <CardContent className="pt-6">
+          {/* Post Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={profilePicUrl || ""} alt={post.author.username} />
+                <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                  <DefaultAvatar />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{post.author.username}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {timeAgo(post.created_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {isOwnPost && (
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDeletePost(post.post_id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Post Content */}
+          <div className="mb-4">
+            <p className="whitespace-pre-wrap mb-3">{post.content}</p>
+
+            {/* Stock Card if attached */}
+            {post.stock && (
+              <div className="bg-muted/50 rounded-lg p-4 border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-lg">{post.stock.symbol}</p>
+                    <p className="text-sm text-muted-foreground">{post.stock.name}</p>
+                  </div>
+                  <p className="text-2xl font-bold">${(post.stock.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Post Actions */}
+          <div className="flex items-center justify-between pt-3 border-t">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleToggleLike(post.post_id)}
+                className={`cursor-pointer ${post.is_liked ? "text-red-500" : ""}`}
+              >
+                <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                {post.likes_count}
+              </Button>
+              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => openComments(post.post_id)}>
+                <MessageSquare className="w-4 h-4 mr-1" />
+                {post.comments_count}
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleToggleBookmark(post.post_id)}
+              className={`cursor-pointer ${post.is_bookmarked ? "text-primary" : ""}`}
+            >
+              <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -204,70 +304,49 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       {/* Main Content */}
       <div className="container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Sidebar - Market Overview */}
+          {/* Left Sidebar */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Market Indices */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart2 className="w-5 h-5 text-primary" />
-                  Market Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {marketOverview.map((index, i) => (
-                  <div key={i} className="flex items-center justify-between hover:bg-muted/50 p-2 rounded-lg transition-colors cursor-pointer">
-                    <div>
-                      <p className="text-sm font-medium">{index.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{index.value}</p>
-                    </div>
-                    <div className={`flex items-center gap-1 ${index.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {index.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                      <span className="font-semibold">{Math.abs(index.change)}%</span>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Top Movers */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Flame className="w-5 h-5 text-orange-500" />
-                  Top Movers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {topMovers.map((stock, i) => (
-                  <div key={i} className="flex items-center justify-between hover:bg-muted/50 p-2 rounded-lg transition-colors cursor-pointer">
-                    <div>
-                      <p className="font-semibold text-sm">{stock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">${stock.price}</p>
-                    </div>
-                    <Badge variant={stock.change >= 0 ? "default" : "destructive"} className="text-xs">
-                      {stock.change >= 0 ? '+' : ''}{stock.change}%
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Trending Topics */}
-            <Card className="hidden xl:block">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Target className="w-5 h-5 text-blue-500" />
-                  Trending Topics
+                  <Zap className="w-5 h-5 text-primary" />
+                  Quick Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {trendingTopics.map((topic, i) => (
-                  <div key={i} className="flex items-center justify-between hover:bg-muted/50 p-2 rounded-lg transition-colors cursor-pointer">
-                    <span className="text-sm font-medium">#{topic.tag}</span>
-                    <span className="text-xs text-muted-foreground">{topic.posts}</span>
-                  </div>
-                ))}
+                <Button onClick={onGoToSimulator} variant="outline" className="w-full justify-start cursor-pointer">
+                  <Zap className="w-4 h-4 mr-2" />
+                  Practice Trading
+                </Button>
+                <Button onClick={onGoToStocks} variant="outline" className="w-full justify-start cursor-pointer">
+                  <Target className="w-4 h-4 mr-2" />
+                  Explore Stocks
+                </Button>
+                <Button onClick={onGoToPortfolio} variant="outline" className="w-full justify-start cursor-pointer">
+                  <BarChart2 className="w-4 h-4 mr-2" />
+                  View Portfolio
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Community Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5 text-blue-500" />
+                  Community
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Posts</span>
+                  <span className="font-semibold">{posts.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Active Traders</span>
+                  <span className="font-semibold">{topTraders.length}</span>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -275,358 +354,164 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           {/* Center Feed */}
           <div className="lg:col-span-6 space-y-4">
             {/* Post Composer */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <div
-                      className={`transition-all duration-300 ${isInputExpanded ? 'min-h-[140px]' : 'min-h-[40px]'}`}
-                    >
-                      {!isInputExpanded && !postContent ? (
-                        <button
-                          onClick={() => setIsInputExpanded(true)}
-                          className="w-full text-left text-muted-foreground bg-muted/30 px-3 py-2.5 rounded-md text-sm hover:bg-muted/50 transition-colors"
-                        >
-                          Share your trading idea or market analysis...
-                        </button>
-                      ) : (
-                        <div className="space-y-3">
-                          <Textarea
-                            placeholder="Share your trading idea or market analysis..."
-                            value={postContent}
-                            onChange={(e) => setPostContent(e.target.value)}
-                            autoFocus
-                            className="border-0 bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px] text-base"
-                          />
-                          <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
-                                <ImageIcon className="w-5 h-5" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
-                                <BarChart2 className="w-5 h-5" />
-                              </Button>
+            {isAuthenticated && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage
+                        src={user?.profile_picture_url?.startsWith('/')
+                          ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                          : (user?.profile_picture_url || "")}
+                        alt={user?.username}
+                      />
+                      <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                        <DefaultAvatar />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className={`transition-all duration-300 ${isInputExpanded ? 'min-h-[140px]' : 'min-h-[40px]'}`}>
+                        {!isInputExpanded && !postContent ? (
+                          <button
+                            onClick={() => setIsInputExpanded(true)}
+                            className="w-full text-left text-muted-foreground bg-muted/30 px-3 py-2.5 rounded-md text-sm hover:bg-muted/50 transition-colors cursor-pointer"
+                          >
+                            Share your trading idea or market analysis...
+                          </button>
+                        ) : (
+                          <div className="space-y-3">
+                            <Textarea
+                              placeholder="Share your trading idea or market analysis..."
+                              value={postContent}
+                              onChange={(e) => setPostContent(e.target.value)}
+                              autoFocus
+                              className="border-0 bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px] text-base"
+                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                placeholder="Attach stock symbol (optional, e.g. AAPL)"
+                                value={postStock}
+                                onChange={(e) => setPostStock(e.target.value.toUpperCase())}
+                                className="flex-1 px-3 py-1.5 rounded-md border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setIsInputExpanded(false);
-                                  setPostContent("");
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  handlePost();
-                                  setIsInputExpanded(false);
-                                }}
-                                disabled={!postContent.trim()}
-                                size="sm"
-                                className="px-6"
-                              >
-                                Post
-                              </Button>
+                            <div className="flex items-center justify-between pt-2">
+                              <div />
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    setIsInputExpanded(false);
+                                    setPostContent("");
+                                    setPostStock("");
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  onClick={handleCreatePost}
+                                  disabled={!postContent.trim() || isPostLoading}
+                                  size="sm"
+                                  className="px-6 cursor-pointer"
+                                >
+                                  {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Filter Tabs */}
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="w-full grid grid-cols-3">
-                <TabsTrigger value="all" onClick={() => setActiveFilter("all")}>
+                <TabsTrigger value="all" onClick={() => setActiveFilter("all")} className="cursor-pointer">
                   All Posts
                 </TabsTrigger>
-                <TabsTrigger value="trending" onClick={() => setActiveFilter("trending")}>
+                <TabsTrigger value="trending" onClick={() => setActiveFilter("trending")} className="cursor-pointer">
                   <Flame className="w-4 h-4 mr-1" />
                   Trending
                 </TabsTrigger>
-                <TabsTrigger value="following" onClick={() => setActiveFilter("following")}>
+                <TabsTrigger value="following" onClick={() => setActiveFilter("following")} className="cursor-pointer">
                   <Users className="w-4 h-4 mr-1" />
                   Following
                 </TabsTrigger>
               </TabsList>
 
+              {/* Posts Feed */}
               <TabsContent value="all" className="mt-4 space-y-4">
-                {postsState.map((post) => (
-                  <Card key={post.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-6">
-                      {/* Post Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                            <User className="w-7 h-7 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{post.author}</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {post.badge}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                              <span>@{post.username}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {post.timeAgo}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      {/* Post Content */}
-                      <div className="mb-4">
-                        <p className="whitespace-pre-wrap mb-3">{post.content}</p>
-
-                        {/* Stock Card if attached */}
-                        {post.stock && (
-                          <div className="bg-muted/50 rounded-lg p-4 border">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-bold text-lg">${post.stock.symbol}</p>
-                                <p className="text-2xl font-bold">${post.stock.price.toLocaleString()}</p>
-                              </div>
-                              <div className={`flex items-center gap-1 ${post.stock.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {post.stock.change >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                                <span className="font-bold text-lg">{Math.abs(post.stock.change)}%</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Post Stats */}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          {post.views.toLocaleString()} views
-                        </span>
-                        <span>{post.comments} comments</span>
-                      </div>
-
-                      {/* Post Actions */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleLike(post.id)}
-                            className={post.isLiked ? "text-red-500" : ""}
-                          >
-                            <Heart className={`w-4 h-4 mr-1 ${post.isLiked ? 'fill-red-500' : ''}`} />
-                            {post.likes}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-1" />
-                            {post.comments}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Share2 className="w-4 h-4 mr-1" />
-                            {post.shares}
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleBookmark(post.id)}
-                          className={post.isBookmarked ? "text-primary" : ""}
-                        >
-                          <Bookmark className={`w-4 h-4 ${post.isBookmarked ? 'fill-primary' : ''}`} />
-                        </Button>
-                      </div>
-                    </CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">No Posts Yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Be the first to share your trading insights!
+                    </p>
+                    {!isAuthenticated && (
+                      <Button onClick={onGoToLogin} className="cursor-pointer">Sign In to Post</Button>
+                    )}
                   </Card>
-                ))}
+                ) : (
+                  posts.map(post => renderPost(post))
+                )}
               </TabsContent>
 
               <TabsContent value="trending" className="mt-4 space-y-4">
-                {[...postsState].sort((a, b) => b.likes - a.likes).slice(0, 3).map((post) => (
-                  <Card key={post.id} className="hover:shadow-md transition-shadow border-orange-500/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center flex-shrink-0">
-                            <User className="w-7 h-7 text-orange-600" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{post.author}</span>
-                              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 hover:bg-orange-200">
-                                Trending
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                              <span>@{post.username}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {post.timeAgo}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="mb-4">
-                        <p className="whitespace-pre-wrap mb-3">{post.content}</p>
-                        {post.stock && (
-                          <div className="bg-muted/50 rounded-lg p-4 border">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-bold text-lg">${post.stock.symbol}</p>
-                                <p className="text-2xl font-bold">${post.stock.price.toLocaleString()}</p>
-                              </div>
-                              <div className={`flex items-center gap-1 ${post.stock.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {post.stock.change >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                                <span className="font-bold text-lg">{Math.abs(post.stock.change)}%</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleLike(post.id)}
-                            className={post.isLiked ? "text-red-500" : ""}
-                          >
-                            <Heart className={`w-4 h-4 mr-1 ${post.isLiked ? 'fill-red-500' : ''}`} />
-                            {post.likes}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-1" />
-                            {post.comments}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Share2 className="w-4 h-4 mr-1" />
-                            {post.shares}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500 opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">No Trending Posts</h3>
+                    <p className="text-muted-foreground">Start liking posts to see trends!</p>
                   </Card>
-                ))}
+                ) : (
+                  posts.map(post => renderPost(post))
+                )}
               </TabsContent>
 
               <TabsContent value="following" className="mt-4 space-y-4">
-                {[postsState[0], postsState[2]].map((post) => (
-                  <Card key={post.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <User className="w-7 h-7 text-blue-600" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{post.author}</span>
-                              <Badge variant="outline" className="text-xs border-blue-200 text-blue-600">
-                                Following
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                              <span>@{post.username}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {post.timeAgo}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="mb-4">
-                        <p className="whitespace-pre-wrap mb-3">{post.content}</p>
-                        {post.stock && (
-                          <div className="bg-muted/50 rounded-lg p-4 border">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-bold text-lg">${post.stock.symbol}</p>
-                                <p className="text-2xl font-bold">${post.stock.price.toLocaleString()}</p>
-                              </div>
-                              <div className={`flex items-center gap-1 ${post.stock.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {post.stock.change >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                                <span className="font-bold text-lg">{Math.abs(post.stock.change)}%</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleLike(post.id)}
-                            className={post.isLiked ? "text-red-500" : ""}
-                          >
-                            <Heart className={`w-4 h-4 mr-1 ${post.isLiked ? 'fill-red-500' : ''}`} />
-                            {post.likes}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="w-4 h-4 mr-1" />
-                            {post.comments}
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Share2 className="w-4 h-4 mr-1" />
-                            {post.shares}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
+                {!isAuthenticated ? (
+                  <Card className="p-8 text-center">
+                    <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">Sign In Required</h3>
+                    <p className="text-muted-foreground mb-4">Sign in to see posts from people you follow.</p>
+                    <Button onClick={onGoToLogin} className="cursor-pointer">Sign In</Button>
                   </Card>
-                ))}
+                ) : isLoading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">No Posts from Following</h3>
+                    <p className="text-muted-foreground">Follow traders to see their posts here!</p>
+                  </Card>
+                ) : (
+                  posts.map(post => renderPost(post))
+                )}
               </TabsContent>
             </Tabs>
           </div>
 
           {/* Right Sidebar - Top Traders */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button onClick={onGoToSimulator} variant="outline" className="w-full justify-start">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Practice Trading
-                </Button>
-                <Button onClick={onGoToStocks} variant="outline" className="w-full justify-start">
-                  <Target className="w-4 h-4 mr-2" />
-                  Explore Stocks
-                </Button>
-                <Button onClick={onGoToPortfolio} variant="outline" className="w-full justify-start">
-                  <BarChart2 className="w-4 h-4 mr-2" />
-                  View Portfolio
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Traders to Follow */}
+            {/* Top Traders */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -635,22 +520,44 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {topTraders.map((trader, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary" />
+                {topTraders.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No traders yet</p>
+                ) : (
+                  topTraders.map((trader) => {
+                    const traderPicUrl = trader.profile_picture_url?.startsWith('/')
+                      ? `https://esai-backend.onrender.com${trader.profile_picture_url}`
+                      : trader.profile_picture_url;
+
+                    return (
+                      <div key={trader.user_id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={traderPicUrl || ""} alt={trader.username} />
+                            <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                              <DefaultAvatar />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-sm">{trader.username}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {trader.followers_count} followers • {trader.posts_count} posts
+                            </p>
+                          </div>
+                        </div>
+                        {isAuthenticated && user && (user as any).user_id !== trader.user_id && (
+                          <Button
+                            size="sm"
+                            variant={trader.is_following ? "secondary" : "outline"}
+                            className="text-xs cursor-pointer"
+                            onClick={() => handleToggleFollow(trader.user_id)}
+                          >
+                            {trader.is_following ? "Following" : "Follow"}
+                          </Button>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm">{trader.name}</p>
-                        <p className="text-xs text-muted-foreground">{trader.followers} followers</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="text-xs">
-                      Follow
-                    </Button>
-                  </div>
-                ))}
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 
@@ -670,6 +577,72 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
         </div>
       </div>
+
+      {/* Comments Modal */}
+      {commentsPostId !== null && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Comments</h3>
+              <Button variant="ghost" size="icon" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-10">No comments yet. Be the first!</p>
+              ) : (
+                comments.map((c) => {
+                  const cPicUrl = c.author.profile_picture_url?.startsWith('/')
+                    ? `https://esai-backend.onrender.com${c.author.profile_picture_url}`
+                    : c.author.profile_picture_url;
+                  return (
+                    <div key={c.comment_id} className="flex gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={cPicUrl || ""} />
+                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                          <DefaultAvatar />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 bg-muted/50 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">{c.author.username}</span>
+                          <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
+                        </div>
+                        <p className="text-sm">{c.content}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Comment Input */}
+            {isAuthenticated && (
+              <div className="p-4 border-t flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                  className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button size="icon" onClick={handleAddComment} disabled={!commentText.trim()} className="cursor-pointer">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

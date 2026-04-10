@@ -18,6 +18,7 @@ from auth_routes import router as auth_router
 from profile_routes import router as profile_router
 from portfolio_routes import router as portfolio_router
 from simulator_routes import router as simulator_router
+from community_routes import router as community_router
 from middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
 # Database Config
@@ -45,6 +46,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create tables for both databases automatically
 AuthBase.metadata.create_all(bind=engine)
 Base.metadata.create_all(bind=engine)
+
+# Create community tables
+import community_models
+community_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EyeStocks AI API", version="1.0.0")
 
@@ -123,6 +128,7 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(portfolio_router)
 app.include_router(simulator_router)
+app.include_router(community_router)
 
 # Mount static files for uploaded avatars
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
