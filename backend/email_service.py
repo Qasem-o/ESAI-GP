@@ -7,18 +7,18 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
-from dotenv import load_dotenv
+from config import settings
 
-# Load environment variables
-load_dotenv()
+# SMTP Configuration from central settings
+SMTP_SERVER = settings.SMTP_SERVER or "smtp-relay.brevo.com"
+SMTP_PORT = settings.SMTP_PORT or 587
+SMTP_USER = settings.SMTP_USER
+SMTP_PASS = settings.SMTP_PASS
 
-# SMTP Configuration
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASS = os.getenv("SMTP_PASS")
-FROM_EMAIL = os.getenv("FROM_EMAIL")
-FROM_NAME = os.getenv("FROM_NAME", "EyeStocks AI")
+# If FROM_EMAIL is not specified, Brevo requires the sender to be a valid email. 
+# We'll default to the SMTP_USER or a fallback.
+FROM_EMAIL = settings.FROM_EMAIL or SMTP_USER or "noreply@ESA-AI.com"
+FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     """Generic helper to send email via SMTP."""
@@ -40,7 +40,7 @@ async def send_email(subject: str, recipient: str, html_content: str) -> bool:
         
         return True
     except Exception as e:
-        print(f"❌ Error sending email to {recipient}: {e}")
+        print(f"[ERROR] Error sending email to {recipient}: {e}")
         return False
 
 async def send_verification_email(email: str, code: str, username: str) -> bool:
@@ -89,7 +89,7 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     
     success = await send_email(subject, email, html_content)
     if success:
-        print(f"📧 Verification email sent to {email}")
+        print(f"[SUCCESS] Verification email sent to {email}")
     else:
         print(f"FALLBACK: Verification code for {email}: {code}")
     return success
