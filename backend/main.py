@@ -43,10 +43,10 @@ from models import Base as AuthBase
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create tables for all models automatically
-import community_models  # noqa: ensure community tables are registered
-AuthBase.metadata.create_all(bind=engine)
-Base.metadata.create_all(bind=engine)
+# Tables are created manually in Supabase DB to prevent Render deployment crashes
+import community_models  # noqa: ensure community tables are registered (models need to be imported)
+# AuthBase.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EyeStocks AI API", version="1.0.0")
 
