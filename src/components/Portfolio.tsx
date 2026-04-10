@@ -305,8 +305,8 @@ export function Portfolio({
 
   const filteredStocks = availableStocks.filter(
     (s) =>
-      s.symbol.toLowerCase().includes(stockSearch.toLowerCase()) ||
-      s.name.toLowerCase().includes(stockSearch.toLowerCase())
+      (s.symbol && s.symbol.toLowerCase().includes(stockSearch.toLowerCase())) ||
+      (s.name && s.name.toLowerCase().includes(stockSearch.toLowerCase()))
   );
 
   // Not authenticated state
