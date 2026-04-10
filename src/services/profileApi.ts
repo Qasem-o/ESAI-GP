@@ -128,6 +128,14 @@ class ProfileAPI {
             throw new Error('Failed to unfollow user');
         }
     }
+
+    async getUserById(userId: number): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/profile/user/${userId}`, {
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) throw new Error('User not found');
+        return response.json();
+    }
 }
 
 export const profileAPI = new ProfileAPI();

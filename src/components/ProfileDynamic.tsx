@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { profileAPI, UserStats, Post as PostType, Follower } from "../services/profileApi";
 import { Button } from "./ui/button";
@@ -55,14 +56,21 @@ interface ProfileProps extends NavigationProps { }
 const API_URL = 'https://esai-backend.onrender.com';
 
 export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfolio, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: ProfileProps) {
-    const { user, isAuthenticated, isLoading: authLoading, logout, updateProfile } = useAuth();
+    const { user: currentUser, isAuthenticated, isLoading: authLoading, logout, updateProfile } = useAuth();
+    const { userId: urlUserId } = useParams();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"posts" | "portfolio" | "followers">("posts");
+    
+    // If urlUserId is present, we are viewing someone else. Otherwise, we view the logged-in user.
+    const targetUserId = urlUserId ? parseInt(urlUserId) : currentUser?.user_id;
+    const isEditingOwnProfile = !urlUserId || (currentUser && parseInt(urlUserId) === currentUser.user_id);
 
     // Data states
     const [stats, setStats] = useState<UserStats | null>(null);
     const [posts, setPosts] = useState<PostType[]>([]);
     const [followers, setFollowers] = useState<Follower[]>([]);
     const [following, setFollowing] = useState<Follower[]>([]);
+    const [targetUser, setTargetUser] = useState<any>(null);
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     // Edit profile states
@@ -81,27 +89,36 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
     // Fetch user data
     useEffect(() => {
-        if (!authLoading && isAuthenticated && user) {
+        if (!authLoading && targetUserId) {
             fetchUserData();
         }
-    }, [authLoading, isAuthenticated, user]);
+    }, [authLoading, targetUserId]);
 
     const fetchUserData = async () => {
-        if (!user) return;
+        if (!targetUserId) return;
 
         setIsLoadingData(true);
         try {
-            const [statsData, postsData, followersData, followingData] = await Promise.all([
-                profileAPI.getUserStats(user.user_id),
-                profileAPI.getUserPosts(user.user_id),
-                profileAPI.getFollowers(user.user_id),
-                profileAPI.getFollowing(user.user_id)
+            const [statsData, postsData, followersData, followingData, userData] = await Promise.all([
+                profileAPI.getUserStats(targetUserId),
+                profileAPI.getUserPosts(targetUserId),
+                profileAPI.getFollowers(targetUserId),
+                profileAPI.getFollowing(targetUserId),
+                urlUserId ? profileAPI.getUserById(targetUserId).catch(() => null) : null
             ]);
 
             setStats(statsData);
             setPosts(postsData);
             setFollowers(followersData);
             setFollowing(followingData);
+            
+            // If viewing someone else, we might need their basic user info too
+            if (userData && urlUserId) {
+                // Combine into a display user object
+                setTargetUser(userData);
+            } else if (!urlUserId) {
+                setTargetUser(currentUser);
+            }
         } catch (error) {
             console.error("Error fetching profile data:", error);
         } finally {
@@ -349,31 +366,31 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             <CardContent className="pt-6">
                                 {/* Avatar */}
                                 <div className="flex flex-col items-center text-center mb-6">
-                                    {user.profile_picture_url ? (
+                                    {targetUser?.profile_picture_url ? (
                                         <img
-                                            src={user.profile_picture_url.startsWith('/') ? `${API_URL}${user.profile_picture_url}` : user.profile_picture_url}
-                                            alt={user.username}
+                                            src={targetUser.profile_picture_url.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
+                                            alt={targetUser.username}
                                             className="w-24 h-24 rounded-full mb-4 border-4 border-background shadow-lg object-cover"
                                         />
                                     ) : (
                                         <DefaultAvatar className="w-24 h-24 mb-4 border-4 border-background shadow-lg" />
                                     )}
-                                    <h2 className="text-2xl font-bold">{user.username}</h2>
+                                    <h2 className="text-2xl font-bold">{targetUser?.username || "Loading..."}</h2>
                                     <div className="flex items-center gap-2 text-muted-foreground mt-1">
                                         <Mail className="w-4 h-4" />
-                                        <p className="text-sm">{user.email}</p>
+                                        <p className="text-sm">{targetUser?.email}</p>
                                     </div>
-                                    {user.phone_number && (
+                                    {targetUser?.phone_number && (
                                         <div className="flex items-center gap-2 text-muted-foreground mt-1">
                                             <Phone className="w-4 h-4" />
-                                            <p className="text-sm">{user.phone_number}</p>
+                                            <p className="text-sm">{targetUser.phone_number}</p>
                                         </div>
                                     )}
                                     <div className="flex items-center gap-2 mt-2">
                                         <Badge variant="secondary">
-                                            {user.is_verified ? "Verified Trader" : "Trader"}
+                                            {targetUser?.is_verified ? "Verified Trader" : "Trader"}
                                         </Badge>
-                                        {user.is_verified && (
+                                        {targetUser?.is_verified && (
                                             <Badge variant="default" className="bg-green-500">
                                                 <CheckCircle className="w-3 h-3 mr-1" />
                                                 Verified
@@ -383,8 +400,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 </div>
 
                                 {/* Bio */}
-                                {user.bio && (
-                                    <p className="text-center mb-4 text-sm">{user.bio}</p>
+                                {targetUser?.bio && (
+                                    <p className="text-center mb-4 text-sm">{targetUser.bio}</p>
                                 )}
 
                                 {/* Stats */}
@@ -406,23 +423,34 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 {/* Joined Date */}
                                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
                                     <Calendar className="w-4 h-4" />
-                                    <span>Joined {formatJoinDate(user.created_at)}</span>
+                                    <span>Joined {targetUser?.created_at ? formatJoinDate(targetUser.created_at) : "Loading..."}</span>
                                 </div>
 
                                 {/* Last Login */}
-                                {user.last_login && (
+                                {targetUser?.last_login && (
                                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-4">
                                         <Eye className="w-3 h-3" />
-                                        <span>Last active: {new Date(user.last_login).toLocaleDateString()}</span>
+                                        <span>Last active: {new Date(targetUser.last_login).toLocaleDateString()}</span>
                                     </div>
                                 )}
 
                                 {/* Actions */}
                                 <div className="space-y-2">
-                                    <Button variant="outline" className="w-full" onClick={handleEditProfile}>
-                                        <Settings className="w-4 h-4 mr-2" />
-                                        Edit Profile
-                                    </Button>
+                                    {isEditingOwnProfile && (
+                                        <Button variant="outline" className="w-full" onClick={handleEditProfile}>
+                                            <Settings className="w-4 h-4 mr-2" />
+                                            Edit Profile
+                                        </Button>
+                                    )}
+                                    {!isEditingOwnProfile && (
+                                        <Button 
+                                            variant={followers.some(f => f.user_id === currentUser?.user_id) ? "outline" : "default"} 
+                                            className="w-full"
+                                            onClick={() => {/* handle follow */}}
+                                        >
+                                            {followers.some(f => f.user_id === currentUser?.user_id) ? "Unfollow" : "Follow"}
+                                        </Button>
+                                    )}
                                     <Button variant="outline" className="w-full">
                                         <Share2 className="w-4 h-4 mr-2" />
                                         Share Profile
@@ -502,10 +530,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                     {/* Post Header */}
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex items-start gap-3">
-                                                            {user.profile_picture_url ? (
+                                                            {targetUser?.profile_picture_url ? (
                                                                 <img
-                                                                    src={user.profile_picture_url.startsWith('/') ? `${API_URL}${user.profile_picture_url}` : user.profile_picture_url}
-                                                                    alt={user.username}
+                                                                    src={targetUser.profile_picture_url.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
+                                                                    alt={targetUser.username}
                                                                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                                                 />
                                                             ) : (
@@ -515,8 +543,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                             )}
                                                             <div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold">{user.username}</span>
-                                                                    {user.is_verified && (
+                                                                    <span className="font-semibold">{targetUser?.username}</span>
+                                                                    {targetUser?.is_verified && (
                                                                         <Badge variant="secondary" className="text-xs">
                                                                             <CheckCircle className="w-3 h-3 mr-1" />
                                                                             Verified
@@ -651,7 +679,11 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                                 <p className="text-xs text-muted-foreground">{follower.followers_count} followers</p>
                                                             </div>
                                                         </div>
-                                                        <Button size="sm" variant="outline">
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline"
+                                                            onClick={() => navigate(`/profile/${follower.user_id}`)}
+                                                        >
                                                             View Profile
                                                         </Button>
                                                     </div>

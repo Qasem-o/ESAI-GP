@@ -62,6 +62,7 @@ export default function App() {
             <Route path="/portfolio" element={<Portfolio {...navigationProps} />} />
             <Route path="/simulator" element={<Simulator {...navigationProps} />} />
             <Route path="/profile" element={<Profile {...navigationProps} />} />
+            <Route path="/profile/:userId" element={<Profile {...navigationProps} />} />
 
             {/* Dynamic Stock Detail Route - Standard Path */}
             <Route

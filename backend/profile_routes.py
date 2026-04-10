@@ -9,7 +9,10 @@ from typing import List, Optional
 from datetime import datetime
 
 from models import User
-from community_models import UserStats, UserFollow, Post, PostLike
+from community_models import UserStats, UserFollow, Post, PostLike, PostComment
+from portfolio_models import PortfolioHolding, PortfolioCash
+from auth_utils import verify_token
+from preparedata import Stock
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -22,6 +25,21 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@router.get("/user/{user_id}")
+async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "user_id": user.user_id,
+        "username": user.username,
+        "email": user.email,
+        "profile_picture_url": user.profile_picture_url,
+        "bio": user.bio,
+        "is_verified": user.is_verified,
+        "created_at": user.created_at
+    }
 
 # Pydantic schemas
 class UserStatsResponse(BaseModel):
@@ -68,21 +86,32 @@ class FollowerResponse(BaseModel):
 
 # Get current user from token (simplified - should use auth_utils)
 async def get_current_user_id(authorization: str = None) -> Optional[int]:
-    # For now, return None if no auth
-    # In production, decode JWT token
     if not authorization:
         return None
-    # TODO: Implement proper JWT verification
-    return None
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+    payload = verify_token(token)
+    return payload.get("user_id") if payload else None
 
 @router.get("/stats/{user_id}", response_model=UserStatsResponse)
 async def get_user_stats(user_id: int, db: Session = Depends(get_db)):
-    """Get user statistics"""
-    # Get or create user stats
+    """Get user statistics with real-time portfolio calculation"""
+    # 1. Calculate real portfolio value
+    holdings = db.query(PortfolioHolding).filter(PortfolioHolding.user_id == user_id).all()
+    total_holdings_value = 0.0
+    for h in holdings:
+        stock = db.query(Stock).filter(Stock.symbol == h.stock_symbol).first()
+        if stock and stock.current_price:
+            total_holdings_value += float(stock.current_price) * h.shares
+    
+    cash = db.query(PortfolioCash).filter(PortfolioCash.user_id == user_id).first()
+    cash_balance = cash.balance if cash else 10000.0  # Default $10k
+    
+    current_portfolio_value = total_holdings_value + cash_balance
+
+    # 2. Get or create user stats record
     stats = db.query(UserStats).filter(UserStats.user_id == user_id).first()
     
     if not stats:
-        # Create default stats for user
         stats = UserStats(
             user_id=user_id,
             followers_count=0,
@@ -92,12 +121,20 @@ async def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             win_rate=0.0,
             avg_return=0.0,
             best_trade=0.0,
-            portfolio_value=0.0,
+            portfolio_value=current_portfolio_value,
             portfolio_change=0.0
         )
         db.add(stats)
-        db.commit()
-        db.refresh(stats)
+    else:
+        # Update dynamic fields
+        stats.portfolio_value = current_portfolio_value
+        # Real counts might have gone out of sync
+        stats.followers_count = db.query(func.count(UserFollow.follow_id)).filter(UserFollow.following_id == user_id).scalar()
+        stats.following_count = db.query(func.count(UserFollow.follow_id)).filter(UserFollow.follower_id == user_id).scalar()
+        stats.posts_count = db.query(func.count(Post.post_id)).filter(Post.user_id == user_id).scalar()
+
+    db.commit()
+    db.refresh(stats)
     
     return stats
 
@@ -131,14 +168,18 @@ async def get_user_posts(
     # Format response
     result = []
     for post in posts:
+        # Get real counts
+        post_likes = db.query(func.count(PostLike.like_id)).filter(PostLike.post_id == post.post_id).scalar()
+        post_comments = db.query(func.count(PostComment.comment_id)).filter(PostComment.post_id == post.post_id).scalar()
+        
         result.append(PostResponse(
             post_id=post.post_id,
             user_id=post.user_id,
             username=user.username,
             content=post.content,
             stock_symbol=post.stock_symbol,
-            likes_count=post.likes_count,
-            comments_count=post.comments_count,
+            likes_count=post_likes,
+            comments_count=post_comments,
             shares_count=post.shares_count,
             views_count=post.views_count,
             created_at=post.created_at,

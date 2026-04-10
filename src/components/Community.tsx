@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -65,6 +66,7 @@ interface CommunityProps extends NavigationProps { }
 
 export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: CommunityProps) {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [topTraders, setTopTraders] = useState<TopTrader[]>([]);
@@ -222,7 +224,12 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">{post.author.username}</span>
+                  <span 
+                    className="font-semibold cursor-pointer hover:underline hover:text-primary transition-colors"
+                    onClick={() => navigate(`/profile/${post.author.user_id}`)}
+                  >
+                    {post.author.username}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-1">
@@ -431,16 +438,16 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
             )}
 
             {/* Filter Tabs */}
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full">
               <TabsList className="w-full grid grid-cols-3">
-                <TabsTrigger value="all" onClick={() => setActiveFilter("all")} className="cursor-pointer">
+                <TabsTrigger value="all" className="cursor-pointer">
                   All Posts
                 </TabsTrigger>
-                <TabsTrigger value="trending" onClick={() => setActiveFilter("trending")} className="cursor-pointer">
+                <TabsTrigger value="trending" className="cursor-pointer">
                   <Flame className="w-4 h-4 mr-1" />
                   Trending
                 </TabsTrigger>
-                <TabsTrigger value="following" onClick={() => setActiveFilter("following")} className="cursor-pointer">
+                <TabsTrigger value="following" className="cursor-pointer">
                   <Users className="w-4 h-4 mr-1" />
                   Following
                 </TabsTrigger>
