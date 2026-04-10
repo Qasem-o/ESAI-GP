@@ -239,7 +239,8 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-4xl font-bold">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Available Cash</p>
+                    <p className="text-4xl font-bold">${(summary?.cash ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={summary?.total_gain >= 0 ? "default" : "destructive"}>
                         {summary?.total_gain >= 0 ? '+' : ''}${Math.abs(summary?.total_gain || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -253,8 +254,12 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
                   <div className="pt-3 border-t space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Cash</span>
-                      <span className="font-medium">${summary?.cash?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                      <span className="text-muted-foreground">Total Portfolio Value</span>
+                      <span className="font-medium">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">In Stocks</span>
+                      <span className="font-medium">${(totalValue - (summary?.cash || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Starting Balance</span>
