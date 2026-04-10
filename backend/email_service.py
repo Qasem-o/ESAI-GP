@@ -15,9 +15,8 @@ SMTP_PORT = settings.SMTP_PORT or 587
 SMTP_USER = settings.SMTP_USER
 SMTP_PASS = settings.SMTP_PASS
 
-# If FROM_EMAIL is not specified, Brevo requires the sender to be a valid email. 
-# We'll default to the SMTP_USER or a fallback.
-FROM_EMAIL = settings.FROM_EMAIL or SMTP_USER or "noreply@ESA-AI.com"
+# If FROM_EMAIL is missing from env, use the verified Brevo sender email
+FROM_EMAIL = settings.FROM_EMAIL or "shareedh777.com@gmail.com"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:

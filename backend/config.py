@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASS: Optional[str] = None
-    FROM_EMAIL: str = "onboarding@resend.dev"
+    FROM_EMAIL: str = "shareedh777.com@gmail.com"
     FROM_NAME: str = "EyeStocks AI"
 
     # Support extra fields to prevent crashes when new env vars are added
