@@ -46,19 +46,69 @@ app = FastAPI(title="EyeStocks AI API", version="1.0.0")
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
-# CORS
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import Request
+
+# CORS Configuration
+# We include variations with/without trailing slashes and 127.0.0.1 just in case
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "https://gp-esai.netlify.app",
+    "https://gp-esai.netlify.app/",
+    "https://esai-backend.onrender.com",
+    "https://esai-backend.onrender.com/"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://gp-esai.netlify.app",
-        "https://esai-backend.onrender.com"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Fix for BaseHTTPMiddleware dropping CORS headers on exceptions
+def _get_cors_headers(request: Request):
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin and (origin in allowed_origins or origin + "/" in allowed_origins or origin.rstrip("/") in allowed_origins):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return headers
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    headers = getattr(exc, "headers", None) or {}
+    headers.update(_get_cors_headers(request))
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=headers
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    headers = _get_cors_headers(request)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+        headers=headers
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    headers = _get_cors_headers(request)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+        headers=headers
+    )
 
 # Register routers
 app.include_router(auth_router)
