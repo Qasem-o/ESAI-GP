@@ -212,14 +212,20 @@ def verify_google_token(token: str) -> Optional[dict]:
         
         req = urllib.request.Request(
             'https://www.googleapis.com/oauth2/v3/userinfo',
-            headers={'Authorization': f'Bearer {token}'}
+            headers={
+                'Authorization': f'Bearer {token}',
+                'User-Agent': 'EyeStocks/1.0 (FastAPI Backend)'
+            }
         )
         with urllib.request.urlopen(req) as response:
-            user_info = json_module.loads(response.read().decode())
+            user_info = json_module.loads(response.read().decode('utf-8'))
+            print(f"Successfully verified Google access token for email: {user_info.get('email')}")
             return user_info
             
     except Exception as e:
+        import traceback
         print(f"Access token verification also failed: {e}")
+        traceback.print_exc()
         return None
 
 def verify_telegram_auth(data: dict) -> bool:

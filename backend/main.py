@@ -37,8 +37,14 @@ elif DATABASE_URL.startswith("postgres://"):
 elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
+from models import Base as AuthBase
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create tables for both databases automatically
+AuthBase.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EyeStocks AI API", version="1.0.0")
 

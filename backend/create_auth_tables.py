@@ -35,7 +35,7 @@ def create_auth_tables():
         # Create all tables defined in models
         Base.metadata.create_all(engine)
         
-        print("\n✅ Successfully created authentication tables:")
+        print("\n[SUCCESS] Successfully created authentication tables:")
         print("   - users")
         print("   - oauth_providers")
         print("   - email_verifications")
@@ -51,15 +51,15 @@ def create_auth_tables():
             """))
             
             tables = [row[0] for row in result]
-            print(f"\n✅ Verified tables in database: {tables}")
+            print(f"\n[OK] Verified tables in database: {tables}")
             
             if len(tables) == 3:
-                print("\n🎉 All authentication tables created successfully!")
+                print("\n[SUCCESS] All authentication tables created successfully!")
             else:
-                print(f"\n⚠️  Warning: Expected 3 tables, found {len(tables)}")
+                print(f"\n[WARNING] Expected 3 tables, found {len(tables)}")
                 
     except Exception as e:
-        print(f"\n❌ Error creating authentication tables: {e}")
+        print(f"\n[ERROR] Error creating authentication tables: {e}")
         raise
 
 if __name__ == "__main__":
