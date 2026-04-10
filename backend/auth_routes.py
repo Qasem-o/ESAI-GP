@@ -117,8 +117,8 @@ async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
     db.add(verification)
     db.commit()
     
-    # Send verification email
-    await send_verification_email(new_user.email, code, new_user.username)
+    # Send verification email safely using request data to avoid DetachedInstanceError
+    await send_verification_email(user_data.email, code, user_data.username)
     
     return MessageResponse(
         message=f"Account created successfully. Please check your email ({user_data.email}) for the verification code.",

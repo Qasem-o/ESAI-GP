@@ -109,10 +109,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
     headers = _get_cors_headers(request)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error"},
+        content={"detail": f"Internal Server Error: {str(exc)}"},
         headers=headers
     )
 
