@@ -127,17 +127,17 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     };
 
     const handleEditProfile = () => {
-        setEditUsername(user?.username || "");
-        setEditPhone(user?.phone_number || "");
-        setEditBio(user?.bio || "");
-        setAvatarPreview(user?.profile_picture_url || "");
+        setEditUsername(currentUser?.username || "");
+        setEditPhone(currentUser?.phone_number || "");
+        setEditBio(currentUser?.bio || "");
+        setAvatarPreview(currentUser?.profile_picture_url || "");
         setEditAvatarFile(null);
         setUsernameError("");
         setIsEditDialogOpen(true);
     };
 
     const checkUsernameAvailability = async (username: string) => {
-        if (!username || username === user?.username) {
+        if (!username || username === currentUser?.username) {
             setUsernameError("");
             return;
         }
@@ -231,7 +231,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     };
 
     const handleSaveProfile = async () => {
-        if (!user) return;
+        if (!currentUser) return;
 
         if (usernameError) {
             alert("Please fix errors before saving");
@@ -240,7 +240,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
         setIsSaving(true);
         try {
-            let avatarUrl = user.profile_picture_url;
+            let avatarUrl = currentUser.profile_picture_url;
 
             // Upload avatar if file selected
             if (editAvatarFile) {
@@ -249,7 +249,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             // Update profile using AuthContext (updates user state globally)
             await updateProfile({
-                username: editUsername !== user.username ? editUsername : undefined,
+                username: editUsername !== currentUser.username ? editUsername : undefined,
                 phone_number: editPhone || null,
                 bio: editBio || null,
                 profile_picture_url: avatarUrl
@@ -318,7 +318,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     }
 
     // Show login prompt if not authenticated
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !currentUser) {
         return (
             <div className="bg-background min-h-screen flex items-center justify-center">
                 <Card className="w-full max-w-md mx-4">
@@ -369,7 +369,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     {targetUser?.profile_picture_url ? (
                                         <img
                                             src={targetUser.profile_picture_url.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
-                                            alt={targetUser.username}
+                                            alt={targetUser?.username || "Avatar"}
                                             className="w-24 h-24 rounded-full mb-4 border-4 border-background shadow-lg object-cover"
                                         />
                                     ) : (
@@ -532,8 +532,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                         <div className="flex items-start gap-3">
                                                             {targetUser?.profile_picture_url ? (
                                                                 <img
-                                                                    src={targetUser.profile_picture_url.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
-                                                                    alt={targetUser.username}
+                                                                    src={targetUser?.profile_picture_url?.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
+                                                                    alt={targetUser?.username || "Avatar"}
                                                                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                                                 />
                                                             ) : (
@@ -766,7 +766,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             {usernameError && (
                                 <p className="text-xs text-red-500">{usernameError}</p>
                             )}
-                            {!usernameError && editUsername && editUsername !== user?.username && !usernameChecking && (
+                            {!usernameError && editUsername && editUsername !== currentUser?.username && !usernameChecking && (
                                 <p className="text-xs text-green-500">✓ Username available</p>
                             )}
                         </div>
