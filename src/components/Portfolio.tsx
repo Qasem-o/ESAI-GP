@@ -911,7 +911,7 @@ export function Portfolio({
                         </div>
                         <div className="text-right shrink-0 ml-4">
                           <p className="font-bold text-primary">
-                            {stock.currency_symbol || "$"}{stock.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {stock.currency_symbol || "$"}{(stock.current_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           {stock.currency && stock.currency !== "USD" && (
                              <p className="text-[10px] text-muted-foreground">≈ ${stock.usd_price?.toFixed(2)} USD</p>
@@ -937,7 +937,7 @@ export function Portfolio({
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">
-                        {selectedStock.currency_symbol || "$"}{selectedStock.price.toLocaleString()}
+                        {selectedStock.currency_symbol || "$"}{(selectedStock.price || 0).toLocaleString()}
                         {selectedStock.currency && selectedStock.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{selectedStock.currency}</span>}
                       </p>
                       <button
@@ -1082,7 +1082,7 @@ export function Portfolio({
                   <p className="font-semibold">{selectedStock.symbol}</p>
                   <p className="text-xs text-muted-foreground">{selectedStock.name}</p>
                 </div>
-                <p className="font-semibold">${selectedStock.price.toLocaleString()}</p>
+                <p className="font-semibold">${(selectedStock.price || 0).toLocaleString()}</p>
               </div>
 
               {(() => {
@@ -1113,7 +1113,7 @@ export function Portfolio({
                     <span className="text-muted-foreground">Estimated Proceeds</span>
                     <span className="font-semibold text-green-500">
                       +$
-                      {(parseFloat(tradeShares) * selectedStock.price).toLocaleString(undefined, {
+                      {(parseFloat(tradeShares) * (selectedStock.price || 0)).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
                     </span>
@@ -1182,7 +1182,7 @@ export function Portfolio({
                   <p className="font-semibold">{editHolding.stock_symbol}</p>
                   <p className="text-xs text-muted-foreground">{editHolding.stock_name}</p>
                 </div>
-                <p className="font-semibold">${editHolding.current_price.toLocaleString()}</p>
+                <p className="font-semibold">${(editHolding.current_price || 0).toLocaleString()}</p>
               </div>
 
               <div>
@@ -1222,7 +1222,7 @@ export function Portfolio({
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Current Value</span>
                     <span className="font-semibold">
-                      ${(parseFloat(editShares) * editHolding.current_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ${(parseFloat(editShares) * (editHolding.current_price || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
