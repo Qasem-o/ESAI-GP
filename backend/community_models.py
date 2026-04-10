@@ -97,7 +97,7 @@ class UserStats(Base):
     """Cached user statistics for performance."""
     __tablename__ = "user_stats"
 
-    stats_id = Column(Integer, primary_key=True, autoincrement=True)
+    stat_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), unique=True, nullable=False)
     followers_count = Column(Integer, default=0)
     following_count = Column(Integer, default=0)
