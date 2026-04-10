@@ -58,6 +58,8 @@ interface NavigationProps {
   onGoToSimulator: () => void;
   onGoToProfile: () => void;
   onGoToStockDetails: (symbol: string) => void;
+  onGoToSignup?: () => void;
+  onGoToLogin?: () => void;
 }
 
 const containerVariants = {
@@ -94,7 +96,7 @@ interface StocksProps extends NavigationProps { }
 
 
 
-export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToStockDetails }: StocksProps) {
+export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin }: StocksProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSector, setSelectedSector] = useState("All");
   const [stocks, setStocks] = useState<StockPrice[]>([]);
@@ -149,8 +151,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
   const filteredStocks = stocks.filter(stock => {
     const matchesSearch =
-      stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      stock.name.toLowerCase().includes(searchQuery.toLowerCase());
+      (stock.symbol && stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (stock.name && stock.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesSector = selectedSector === "All" || (stock.sector && stock.sector === selectedSector);
     return matchesSearch && matchesSector;
   });
@@ -165,6 +167,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
         onGoToPortfolio={onGoToPortfolio}
         onGoToSimulator={onGoToSimulator}
         onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
       />
 
       {/* Main Content */}

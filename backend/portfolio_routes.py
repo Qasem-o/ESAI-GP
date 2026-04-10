@@ -31,6 +31,14 @@ def get_currency_rate(symbol: str) -> float:
             return info['rate_to_usd']
     return 1.0
 
+def get_stock_currency_info(symbol: str) -> dict:
+    """Get full currency info dict for a stock symbol."""
+    for suffix, info in CURRENCY_MAP.items():
+        if symbol.upper().endswith(suffix):
+            return info
+    return {"code": "USD", "symbol": "$", "rate_to_usd": 1.0}
+
+
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 
@@ -538,3 +546,104 @@ async def reset_portfolio(
     db.commit()
 
     return {"message": "Portfolio has been successfully reset."}
+
+
+# =============== WATCHLIST ENDPOINTS ===============
+
+@router.get("/watchlist")
+async def get_watchlist(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Get user's watchlist with live prices."""
+    items = db.query(Watchlist).filter(Watchlist.user_id == user_id).order_by(desc(Watchlist.created_at)).all()
+
+    result = []
+    for item in items:
+        stock = db.query(Stock).filter(Stock.symbol == item.stock_symbol).first()
+        current_price = float(stock.current_price) if stock and stock.current_price else 0
+        currency_info = get_stock_currency_info(item.stock_symbol)
+
+        result.append({
+            "watchlist_id": item.watchlist_id,
+            "stock_symbol": item.stock_symbol,
+            "stock_name": item.stock_name or (stock.name if stock else item.stock_symbol),
+            "current_price": round(current_price, 2),
+            "currency": currency_info["code"],
+            "currency_symbol": currency_info["symbol"],
+            "sector": stock.sector if stock else None,
+            "added_at": item.created_at.isoformat() if item.created_at else None,
+        })
+
+    return result
+
+
+@router.post("/watchlist/add")
+async def add_to_watchlist(
+    request: dict,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Add a stock to user's watchlist."""
+    symbol = request.get("symbol")
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol is required")
+
+    # Check if already in watchlist
+    existing = db.query(Watchlist).filter(
+        Watchlist.user_id == user_id,
+        Watchlist.stock_symbol == symbol
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Stock already in watchlist")
+
+    # Get stock name from DB
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    stock_name = request.get("name") or (stock.name if stock else symbol)
+
+    item = Watchlist(
+        user_id=user_id,
+        stock_symbol=symbol,
+        stock_name=stock_name,
+    )
+    db.add(item)
+    db.commit()
+
+    return {"message": f"{symbol} added to watchlist"}
+
+
+@router.delete("/watchlist/{symbol}")
+async def remove_from_watchlist(
+    symbol: str,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Remove a stock from user's watchlist."""
+    item = db.query(Watchlist).filter(
+        Watchlist.user_id == user_id,
+        Watchlist.stock_symbol == symbol
+    ).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Stock not in watchlist")
+
+    db.delete(item)
+    db.commit()
+
+    return {"message": f"{symbol} removed from watchlist"}
+
+
+@router.get("/watchlist/check/{symbol}")
+async def check_watchlist(
+    symbol: str,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Check if a stock is in user's watchlist."""
+    exists = db.query(Watchlist).filter(
+        Watchlist.user_id == user_id,
+        Watchlist.stock_symbol == symbol
+    ).first()
+
+    return {"is_watchlisted": exists is not None}

@@ -13,6 +13,7 @@ import {
   Transaction,
   AvailableStock,
   PerformancePoint,
+  WatchlistItem,
 } from "../services/portfolioApi";
 import {
   TrendingUp,
@@ -61,8 +62,10 @@ function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 5) return "just now";
+  if (diffSecs < 60) return `${diffSecs}s ago`;
+  const diffMins = Math.floor(diffSecs / 60);
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
@@ -86,7 +89,7 @@ export function Portfolio({
   onGoToLogin,
 }: PortfolioProps) {
   const { isAuthenticated } = useAuth();
-  const [selectedTab, setSelectedTab] = useState<"holdings" | "transactions" | "analysis">("holdings");
+  const [selectedTab, setSelectedTab] = useState<"holdings" | "transactions" | "watchlist">("holdings");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +98,7 @@ export function Portfolio({
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [performance, setPerformance] = useState<PerformancePoint[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
 
   // Modal states
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -133,17 +137,19 @@ export function Portfolio({
     setError(null);
 
     try {
-      const [summaryData, holdingsData, transactionsData, perfData] = await Promise.all([
+      const [summaryData, holdingsData, transactionsData, perfData, watchlistData] = await Promise.all([
         portfolioAPI.getSummary(),
         portfolioAPI.getHoldings(),
         portfolioAPI.getTransactions(),
         portfolioAPI.getPerformance(),
+        portfolioAPI.getWatchlist().catch(() => []),
       ]);
 
       setSummary(summaryData);
       setHoldings(holdingsData);
       setTransactions(transactionsData);
       setPerformance(perfData);
+      setWatchlist(watchlistData);
     } catch (err: any) {
       if (err.message && !err.message.toLowerCase().includes("session expired") && !err.message.toLowerCase().includes("authenticated")) {
         setError(err.message || "Failed to load portfolio data");
@@ -573,7 +579,7 @@ export function Portfolio({
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="holdings">Holdings</TabsTrigger>
                 <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               </TabsList>
 
               {/* Holdings Tab */}
@@ -831,16 +837,92 @@ export function Portfolio({
                 )}
               </TabsContent>
 
-              {/* Analysis Tab */}
-              <TabsContent value="analysis" className="mt-4">
-                <Card className="p-8 text-center">
-                  <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-xl font-semibold mb-2">Advanced Analytics</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Detailed performance metrics, risk analysis, and portfolio optimization suggestions
-                  </p>
-                  <Button>Coming Soon</Button>
-                </Card>
+              {/* Watchlist Tab */}
+              <TabsContent value="watchlist" className="space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold">My Watchlist</h2>
+                  <p className="text-sm text-muted-foreground">{watchlist.length} stock{watchlist.length !== 1 ? 's' : ''}</p>
+                </div>
+
+                {watchlist.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-xl font-semibold mb-2">No Watchlist Items</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Click the star icon on any stock page to add it to your watchlist.
+                    </p>
+                    <Button onClick={onGoToStocks}>
+                      <Search className="w-4 h-4 mr-2" />
+                      Explore Stocks
+                    </Button>
+                  </Card>
+                ) : (
+                  watchlist.map((item) => (
+                    <Card key={item.watchlist_id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
+                              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-lg">{item.stock_symbol}</h3>
+                              <p className="text-sm text-muted-foreground">{item.stock_name}</p>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <p className="text-lg font-bold">
+                                {item.currency_symbol || '$'}{(item.current_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </p>
+                              {item.sector && (
+                                <Badge variant="outline" className="text-xs">{item.sector}</Badge>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                              onClick={async () => {
+                                try {
+                                  await portfolioAPI.removeFromWatchlist(item.stock_symbol);
+                                  setWatchlist(prev => prev.filter(w => w.watchlist_id !== item.watchlist_id));
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-3 mt-3 border-t">
+                          <Button variant="outline" className="flex-1" size="sm" onClick={() => onGoToStockDetails(item.stock_symbol)}>
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                          <Button className="flex-1" size="sm" onClick={() => {
+                            setSelectedStock({
+                              symbol: item.stock_symbol,
+                              name: item.stock_name,
+                              price: item.current_price,
+                              currency: item.currency,
+                              currency_symbol: item.currency_symbol,
+                            });
+                            setTradeShares("");
+                            setBuyPrice("");
+                            setPurchaseDate("");
+                            setTradeMessage(null);
+                            setShowBuyModal(true);
+                          }}>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Buy
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </TabsContent>
             </Tabs>
           </div>

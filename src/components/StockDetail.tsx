@@ -15,6 +15,8 @@ import {
   StockSentiment,
   ChartData
 } from "../services/api";
+import { portfolioAPI } from "../services/portfolioApi";
+import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
 
 interface CustomPost {
@@ -202,6 +204,7 @@ interface StockDetailProps {
 
 export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoToSimulator }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
+  const { isAuthenticated } = useAuth();
   const currentSymbol = paramSymbol || propSymbol || "NVDA";
 
   const formatLargeNumber = (num: number | undefined | string) => {
@@ -235,6 +238,15 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentSymbol]);
+
+  // Check watchlist status on load
+  useEffect(() => {
+    if (isAuthenticated && currentSymbol) {
+      portfolioAPI.checkWatchlist(currentSymbol)
+        .then(res => setIsWatchlisted(res.is_watchlisted))
+        .catch(() => setIsWatchlisted(false));
+    }
+  }, [currentSymbol, isAuthenticated]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -417,7 +429,20 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsWatchlisted(!isWatchlisted)}
+                onClick={async () => {
+                  if (!isAuthenticated) return;
+                  try {
+                    if (isWatchlisted) {
+                      await portfolioAPI.removeFromWatchlist(currentSymbol);
+                      setIsWatchlisted(false);
+                    } else {
+                      await portfolioAPI.addToWatchlist(currentSymbol, displayStockData.name);
+                      setIsWatchlisted(true);
+                    }
+                  } catch (err) {
+                    console.error('Watchlist toggle failed', err);
+                  }
+                }}
               >
                 <Star className={`w-5 h-5 ${isWatchlisted ? 'fill-yellow-500 text-yellow-500' : ''}`} />
               </Button>

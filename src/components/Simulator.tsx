@@ -174,8 +174,8 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   const filteredStocks = availableStocks.filter(s => 
-    s.symbol.toLowerCase().includes(search.toLowerCase()) || 
-    s.name.toLowerCase().includes(search.toLowerCase())
+    (s.symbol && s.symbol.toLowerCase().includes(search.toLowerCase())) || 
+    (s.name && s.name.toLowerCase().includes(search.toLowerCase()))
   );
 
   // Dynamic progress calculation
@@ -285,6 +285,55 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Asset Allocation */}
+              {holdings.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Asset Allocation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {holdings.map((h: any, i: number) => {
+                      const allocation = totalValue > 0 ? ((h.total_value / totalValue) * 100) : 0;
+                      return (
+                        <div key={i}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium">{h.stock_symbol}</span>
+                            <span className="text-muted-foreground">{allocation.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                              style={{ width: `${allocation}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Cash portion */}
+                    {(() => {
+                      const cashAlloc = totalValue > 0 ? (((summary?.cash || 0) / totalValue) * 100) : (summary?.cash > 0 ? 100 : 0);
+                      return cashAlloc > 0 ? (
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium">Cash</span>
+                            <span className="text-muted-foreground">{cashAlloc.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+                              style={{ width: `${cashAlloc}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Center - Trading Interface */}

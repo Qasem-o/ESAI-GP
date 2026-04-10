@@ -223,6 +223,65 @@ class PortfolioAPI {
 
         return response.json();
     }
+
+    // ====== Watchlist ======
+
+    async getWatchlist(): Promise<WatchlistItem[]> {
+        const response = await fetch(`${API_BASE_URL}/portfolio/watchlist`, {
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Session expired');
+            throw new Error('Failed to fetch watchlist');
+        }
+        return response.json();
+    }
+
+    async addToWatchlist(symbol: string, name?: string): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/portfolio/watchlist/add`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ symbol, name }),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to add to watchlist');
+        }
+        return response.json();
+    }
+
+    async removeFromWatchlist(symbol: string): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/portfolio/watchlist/${symbol}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to remove from watchlist');
+        }
+        return response.json();
+    }
+
+    async checkWatchlist(symbol: string): Promise<{ is_watchlisted: boolean }> {
+        const response = await fetch(`${API_BASE_URL}/portfolio/watchlist/check/${symbol}`, {
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) {
+            return { is_watchlisted: false };
+        }
+        return response.json();
+    }
+}
+
+export interface WatchlistItem {
+    watchlist_id: number;
+    stock_symbol: string;
+    stock_name: string;
+    current_price: number;
+    currency: string;
+    currency_symbol: string;
+    sector: string | null;
+    added_at: string | null;
 }
 
 export const portfolioAPI = new PortfolioAPI();
