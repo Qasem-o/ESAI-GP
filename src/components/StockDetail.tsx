@@ -209,27 +209,27 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   }, [currentSymbol, activeTimeRange]);
 
   // Fallback to mock if loading or null (while transitioning)
-  const displayStockData = stockDetails ? {
-    ...stockData,
-    symbol: stockDetails.symbol,
-    name: stockDetails.name,
-    price: stockDetails.price,
-    change: prediction?.tomorrow_price ? prediction.tomorrow_price - stockDetails.price : stockData.change,
-    changePercent: prediction?.change_percent || stockData.changePercent,
-    sector: stockDetails.sector || "Unknown Sector",
-    industry: stockDetails.industry || "Unknown Industry",
-    about: stockDetails.description || "No description available for this company.",
-    marketCap: stockDetails.marketCap || "N/A",
-    peRatio: stockDetails.peRatio || "N/A",
-    eps: stockDetails.eps || "N/A",
-    dividendYield: stockDetails.dividendYield || "N/A",
-    week52High: stockDetails.week52High || "N/A",
-    week52Low: stockDetails.week52Low || "N/A",
-    open: stockDetails.dayOpen || stockData.open,
-    high: stockDetails.dayHigh || stockData.high,
-    low: stockDetails.dayLow || stockData.low,
-    volume: stockDetails.volume || stockData.volume
-  } : stockData;
+  // Construct display data from API or defaults
+  const displayStockData = {
+    symbol: stockDetails?.symbol || currentSymbol,
+    name: stockDetails?.name || "Loading...",
+    price: stockDetails?.price || 0,
+    change: (stockDetails && prediction?.tomorrow_price) ? prediction.tomorrow_price - stockDetails.price : 0,
+    changePercent: prediction?.change_percent || 0,
+    sector: stockDetails?.sector || "N/A",
+    industry: stockDetails?.industry || "N/A",
+    about: stockDetails?.description || "No description available.",
+    marketCap: stockDetails?.marketCap || 0,
+    peRatio: stockDetails?.peRatio || 0,
+    eps: stockDetails?.eps || 0,
+    dividendYield: stockDetails?.dividendYield || 0,
+    week52High: stockDetails?.week52High || 0,
+    week52Low: stockDetails?.week52Low || 0,
+    open: stockDetails?.dayOpen || 0,
+    high: stockDetails?.dayHigh || 0,
+    low: stockDetails?.dayLow || 0,
+    volume: stockDetails?.volume || 0
+  };
 
   const handleCreatePost = async () => {
     if (!postContent.trim() || !isAuthenticated) return;
