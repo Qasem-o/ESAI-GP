@@ -251,11 +251,14 @@ def health_check(db: Session = Depends(get_db)):
             "error_detail": str(e)
         }
 
+from community_models import Post
+from sqlalchemy import func
+
 @app.get("/stocks", response_model=List[StockBase])
 def get_stocks(db: Session = Depends(get_db)):
     stocks = db.query(Stock).all()
     
-    # Enrich with latest volume from PriceHistory for each stock
+    # Enrich with latest volume and real mentions
     enriched_stocks = []
     
     for stock in stocks:
@@ -274,9 +277,14 @@ def get_stocks(db: Session = Depends(get_db)):
         price = float(stock.current_price) if stock.current_price else 0.0
         stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
         
-        # Add social stats (mentions and sentiment) - deterministic for now
+        # Real mentions from Community posts
+        mentions_count = db.query(func.count(Post.post_id))\
+            .filter(func.upper(Post.stock_symbol) == func.upper(stock.symbol))\
+            .scalar()
+        stock_dict['mentions'] = mentions_count
+        
+        # Add sentiment (deterministic for now, but mentions are real)
         val = sum(ord(c) for c in stock.symbol)
-        stock_dict['mentions'] = (val * 7) % 1500 + 50
         stock_dict['sentiment'] = (val % 30) + 40 # 40-70%
         
         # Calculate day change %
@@ -326,9 +334,13 @@ def get_stock_details(symbol: str, db: Session = Depends(get_db)):
     price = float(stock.current_price) if stock.current_price else 0.0
     stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
     
-    # Add social stats
+    # Real mentions from Community posts
+    mentions_count = db.query(func.count(Post.post_id))\
+        .filter(func.upper(Post.stock_symbol) == func.upper(symbol))\
+        .scalar()
+    stock_dict['mentions'] = mentions_count
+    
     val = sum(ord(c) for c in stock.symbol)
-    stock_dict['mentions'] = (val * 7) % 1500 + 50
     stock_dict['sentiment'] = (val % 30) + 40
     
     # Manually construct Pydantic model to mix ORM and extra data
@@ -449,6 +461,11 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
 
 @app.get("/stocks/{symbol}/sentiment", response_model=SentimentResponse)
 def get_stock_sentiment(symbol: str, db: Session = Depends(get_db)):
+    # Real discussion count from Community posts
+    total_discussions = db.query(func.count(Post.post_id))\
+        .filter(func.upper(Post.stock_symbol) == func.upper(symbol))\
+        .scalar()
+
     # Mock dynamic sentiment based on symbol hash to be deterministic but varied
     val = sum(ord(c) for c in symbol) 
     base_bullish = (val % 40) + 40 # 40-80%
@@ -458,5 +475,5 @@ def get_stock_sentiment(symbol: str, db: Session = Depends(get_db)):
         "bullish_percent": base_bullish,
         "bearish_percent": base_bearish,
         "neutral_percent": 5,
-        "total_discussions": (val * 12) % 3000
+        "total_discussions": total_discussions
     }
