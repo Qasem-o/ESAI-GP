@@ -876,9 +876,12 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                               >
                                 <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
                               </motion.button>
-                      </Card>
-                    </motion.div>
-                  ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               </TabsContent>
 
