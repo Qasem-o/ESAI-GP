@@ -681,6 +681,9 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       }
                     }
                   }}
+                  initial="hidden"
+                  animate="show"
+                >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-primary" />
@@ -813,7 +816,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                     ))}
                   </div>
                 )}
-              </TabsContent>
+              </motion.div>
+            </TabsContent>
 
               {/* Analytics Tab */}
               <TabsContent value="analytics" className="mt-4 space-y-6">
