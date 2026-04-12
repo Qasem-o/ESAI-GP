@@ -1,14 +1,7 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {
-  fetchStockNews,
-  NewsItem,
-  fetchStockPrice,
-  fetchChartData,
-  fetchStockTechnicals,
-  fetchStockPrediction,
 import { DefaultAvatar } from "./DefaultAvatar";
-import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData } from "../services/api";
+import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData, fetchChartData } from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
