@@ -1,25 +1,38 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import {
+  fetchStockNews,
+  NewsItem,
+  fetchStockPrice,
+  fetchChartData,
+  fetchStockTechnicals,
+  fetchStockPrediction,
 import { DefaultAvatar } from "./DefaultAvatar";
-import { 
-  fetchStockPrice, 
-  fetchStocks, 
-  fetchStockTechnicals, 
-  fetchStockPrediction, 
-  fetchStockSentiment, 
-  fetchStockNews, 
-  StockPrice, 
-  StockTechnical, 
-  StockPrediction, 
-  StockSentiment, 
-  NewsItem, 
-  ChartData 
-} from "../services/api";
+import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData } from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Loader2 } from "lucide-react";
+
+interface CustomPost {
+  id: number;
+  author: string;
+  username: string;
+  badge: string;
+  content: string;
+  timeAgo: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  views: number;
+  isLiked: boolean;
+  isBookmarked: boolean;
+  position?: string;
+}
+
+// ... existing code ...
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -57,10 +70,117 @@ import {
   TrendingUpDown,
   ChevronUp,
   ChevronDown,
-  FileText,
-  Trash2,
-  Loader2
+  FileText
 } from "lucide-react";
+
+// Mock stock data
+const stockData = {
+  symbol: "NVDA",
+  name: "NVIDIA Corporation",
+  price: 875.30,
+  yesterdayPrice: 846.90,
+  change: 28.40,
+  changePercent: 3.35,
+  open: 850.20,
+  high: 882.50,
+  low: 848.90,
+  volume: "38.7M",
+  marketCap: "2.16T",
+  peRatio: 68.5,
+  eps: 12.78,
+  week52High: 892.50,
+  week52Low: 412.30,
+  dividendYield: 0.0004,
+  avgVolume: "42.3M",
+  sector: "Technology",
+  industry: "Semiconductors",
+  about: "NVIDIA Corporation is a leading designer of graphics processing units (GPUs) for gaming, professional visualization, data centers, and automotive markets. The company has become a dominant force in AI and machine learning hardware."
+};
+
+// AI Prediction Data
+const aiPrediction = {
+  tomorrowPrice: 892.40,
+  confidence: 87,
+  direction: "bullish" as const,
+  priceChange: 17.10,
+  changePercent: 1.95,
+  reasoning: [
+    "Strong momentum based on recent earnings beat (+15% vs expectations)",
+    "Technical indicators showing continued bullish trend with RSI at 72",
+    "Institutional buying pressure increased by 23% in the last 5 days",
+    "Positive sentiment from analyst upgrades (28 Strong Buy ratings)"
+  ],
+  recommendation: "BUY",
+  targetPrice: 950.00,
+  stopLoss: 840.00,
+  riskLevel: "Medium" as const
+};
+
+// Community posts about this stock
+// types for internal post structure if needed
+interface CustomPost extends FeedPost {}
+const stockPosts = [
+  {
+    id: 1,
+    author: "Sarah Chen",
+    username: "sarahtrader",
+    badge: "Pro Trader",
+    content: "Just analyzed NVDA's latest earnings report. Revenue beat expectations by 15%, and their AI chip demand is through the roof. The data center segment alone grew 217% YoY. I'm extremely bullish on this for Q2. What's your take?",
+    timeAgo: "2h ago",
+    likes: 456,
+    comments: 67,
+    shares: 23,
+    views: 5420,
+    isLiked: true,
+    isBookmarked: false,
+    position: "Long 150 shares @ $820"
+  },
+  {
+    id: 2,
+    author: "Mike Rodriguez",
+    username: "miketrading",
+    badge: "Verified",
+    content: "Technical analysis update:\n\n📈 RSI: 72 (overbought territory)\n📊 MACD: Bullish crossover\n🎯 Support: $850\n🎯 Resistance: $900\n\nShort-term pullback possible, but trend remains bullish. Looking to add on dips.",
+    timeAgo: "4h ago",
+    likes: 289,
+    comments: 45,
+    shares: 12,
+    views: 3840,
+    isLiked: false,
+    isBookmarked: true,
+    position: "Long 200 shares @ $765"
+  },
+  {
+    id: 3,
+    author: "Emma Watson",
+    username: "emmainvests",
+    badge: "Analyst",
+    content: "NVIDIA's moat in AI chips is incredible. The CUDA ecosystem creates massive switching costs. Even with AMD competition, NVDA maintains 80%+ market share in data center GPUs. Long-term hold for me.",
+    timeAgo: "6h ago",
+    likes: 178,
+    comments: 34,
+    shares: 8,
+    views: 2340,
+    isLiked: false,
+    isBookmarked: false,
+    position: "Long 75 shares @ $692"
+  },
+  {
+    id: 4,
+    author: "Alex Kim",
+    username: "alexquant",
+    badge: "Quant",
+    content: "Valuation check: Forward P/E of 45 vs sector avg of 28. Premium justified by growth, but watching for mean reversion. My model suggests fair value around $820-850 range. Current price reflects high growth expectations.",
+    timeAgo: "8h ago",
+    likes: 234,
+    comments: 56,
+    shares: 15,
+    views: 4120,
+    isLiked: true,
+    isBookmarked: false,
+    position: "Neutral - Watching"
+  }
+];
 
 
 
@@ -145,16 +265,13 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
         setPrediction(predData);
         setSentiment(sentData);
         setNews(newsData);
-
+        
         // Fetch posts for this stock
-        setIsPostLoading(true);
         try {
           const postData = await communityAPI.getStockPosts(currentSymbol);
           setPosts(postData);
         } catch (e) {
           console.error("Failed to load stock posts", e);
-        } finally {
-          setIsPostLoading(false);
         }
 
         // Fetch related stocks (same sector)
@@ -209,27 +326,27 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   }, [currentSymbol, activeTimeRange]);
 
   // Fallback to mock if loading or null (while transitioning)
-  // Construct display data from API or defaults
-  const displayStockData = {
-    symbol: stockDetails?.symbol || currentSymbol,
-    name: stockDetails?.name || "Loading...",
-    price: stockDetails?.price || 0,
-    change: (stockDetails && prediction?.tomorrow_price) ? prediction.tomorrow_price - stockDetails.price : 0,
-    changePercent: prediction?.change_percent || 0,
-    sector: stockDetails?.sector || "N/A",
-    industry: stockDetails?.industry || "N/A",
-    about: stockDetails?.description || "No description available.",
-    marketCap: stockDetails?.marketCap || 0,
-    peRatio: stockDetails?.peRatio || 0,
-    eps: stockDetails?.eps || 0,
-    dividendYield: stockDetails?.dividendYield || 0,
-    week52High: stockDetails?.week52High || 0,
-    week52Low: stockDetails?.week52Low || 0,
-    open: stockDetails?.dayOpen || 0,
-    high: stockDetails?.dayHigh || 0,
-    low: stockDetails?.dayLow || 0,
-    volume: stockDetails?.volume || 0
-  };
+  const displayStockData = stockDetails ? {
+    ...stockData,
+    symbol: stockDetails.symbol,
+    name: stockDetails.name,
+    price: stockDetails.price,
+    change: prediction?.tomorrow_price ? prediction.tomorrow_price - stockDetails.price : stockData.change,
+    changePercent: prediction?.change_percent || stockData.changePercent,
+    sector: stockDetails.sector || "Unknown Sector",
+    industry: stockDetails.industry || "Unknown Industry",
+    about: stockDetails.description || "No description available for this company.",
+    marketCap: stockDetails.marketCap || "N/A",
+    peRatio: stockDetails.peRatio || "N/A",
+    eps: stockDetails.eps || "N/A",
+    dividendYield: stockDetails.dividendYield || "N/A",
+    week52High: stockDetails.week52High || "N/A",
+    week52Low: stockDetails.week52Low || "N/A",
+    open: stockDetails.dayOpen || stockData.open,
+    high: stockDetails.dayHigh || stockData.high,
+    low: stockDetails.dayLow || stockData.low,
+    volume: stockDetails.volume || stockData.volume
+  } : stockData;
 
   const handleCreatePost = async () => {
     if (!postContent.trim() || !isAuthenticated) return;
@@ -391,26 +508,15 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                 </div>
               </div>
 
-              <div className="w-full mt-4 bg-black/5 rounded-xl border border-white/5 relative overflow-hidden" style={{ height: '350px' }}>
-                {!history ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
-                    <p className="text-sm text-muted-foreground animate-pulse">Loading market data...</p>
-                  </div>
-                ) : history.data.length === 0 ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center space-y-2">
-                    <BarChart2 className="w-10 h-10 text-muted-foreground/20" />
-                    <p className="text-sm text-muted-foreground">Historical data unavailable for this period.</p>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={history.data}>
-                      <defs>
-                        <linearGradient id="colorPriceMain" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
+              <div className="w-full mt-4" style={{ height: '350px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history?.data || []}>
+                    <defs>
+                      <linearGradient id="colorPriceMain" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <XAxis
                       dataKey="time"
                       stroke="#888888"
@@ -443,9 +549,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       strokeWidth={3}
                       fill="url(#colorPriceMain)"
                     />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </Card>
 
@@ -695,65 +800,28 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                   }}
                   initial="hidden"
                   animate="show"
+                  className="space-y-4"
                 >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    Community Discussions ({posts.length})
-                  </h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={async () => {
-                      setIsPostLoading(true);
-                      try {
-                        const postData = await communityAPI.getStockPosts(currentSymbol);
-                        setPosts(postData);
-                      } finally {
-                        setIsPostLoading(false);
-                      }
-                    }}
-                    disabled={isPostLoading}
-                  >
-                    {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Activity className="w-4 h-4 mr-2" />}
-                    Refresh
-                  </Button>
-                </div>
-                
-                {isPostLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-xl border border-white/10">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                    <p className="text-muted-foreground animate-pulse">Fetching latest discussions...</p>
-                  </div>
-                ) : posts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-xl border border-white/10 text-center px-4">
-                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                      <MessageSquare className="w-8 h-8 text-muted-foreground opacity-50" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">No discussions yet for ${currentSymbol}</h3>
-                    <p className="text-muted-foreground max-w-sm">
-                      Be the first to share your insights, technical analysis, or news about this stock with the EyeStocks community.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {posts.map((post) => (
+                  {posts.map((post: FeedPost) => {
+                    return (
                       <motion.div
                         key={post.post_id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        variants={{
+                          hidden: { opacity: 0, y: 20 },
+                          show: { opacity: 1, y: 0 }
+                        }}
                       >
-                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm overflow-hidden border-l-4 border-l-primary/30">
+                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm">
                           <CardContent className="pt-6">
                             {/* Post Header */}
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex items-start gap-3">
-                                <Avatar className="h-12 w-12 flex-shrink-0 border-2 border-white/5">
+                                <Avatar className="h-12 w-12 flex-shrink-0">
                                   <AvatarImage
-                                    src={post.author?.profile_picture_url?.startsWith('/')
+                                    src={post.author.profile_picture_url?.startsWith('/')
                                       ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
-                                      : (post.author?.profile_picture_url || "")}
-                                    alt={post.author?.username || "Trader"}
+                                      : (post.author.profile_picture_url || "")}
+                                    alt={post.author.username}
                                   />
                                   <AvatarFallback className="w-full h-full bg-transparent" asChild>
                                     <DefaultAvatar />
@@ -761,75 +829,65 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                 </Avatar>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-white hover:text-primary transition-colors cursor-pointer">{post.author?.username || "Anonymous"}</span>
-                                    <Badge variant="secondary" className="text-[10px] py-0 h-4 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">Trader</Badge>
+                                    <span className="font-semibold">{post.author.username}</span>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    <Clock className="w-3 h-3" />
-                                    <span>{new Date(post.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {new Date(post.created_at).toLocaleDateString()}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
-                              {user && Number(post.author.user_id) === Number((user as any).user_id) ? (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                  onClick={() => handleDeletePost(post.post_id)}
-                                  disabled={deletingPostId === post.post_id}
-                                >
-                                  {deletingPostId === post.post_id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              ) : (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              )}
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
                             </div>
 
                             {/* Post Content */}
                             <div className="mb-4">
-                              <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                              <p className="whitespace-pre-wrap">{post.content}</p>
+                            </div>
+
+                            {/* Post Stats */}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b border-white/10">
+                              <span className="flex items-center gap-1">
+                                <Heart className="w-4 h-4" />
+                                {post.likes_count} likes
+                              </span>
+                              <span>{post.comments_count} comments</span>
                             </div>
 
                             {/* Post Actions */}
-                            <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                              <div className="flex items-center gap-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
                                 <motion.button
                                   whileTap={{ scale: 0.8 }}
                                   onClick={() => toggleLike(post.post_id)}
-                                  className={`flex items-center gap-2 text-xs font-semibold transition-all px-3 py-1.5 rounded-full ${post.is_liked ? "bg-red-500/10 text-red-500" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
-                                    } cursor-pointer`}
+                                  className={`flex items-center gap-1 text-sm font-medium transition-all p-2 rounded-md hover:bg-white/10 cursor-pointer ${post.is_liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                                    }`}
                                 >
-                                  <Heart className={`w-3.5 h-3.5 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                  <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
                                   {post.likes_count}
                                 </motion.button>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0 h-auto py-1.5 px-3 rounded-full hover:bg-primary/5 text-xs font-semibold">
-                                  <MessageSquare className="w-3.5 h-3.5 mr-2" />
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0">
+                                  <MessageSquare className="w-4 h-4 mr-1" />
                                   {post.comments_count}
                                 </Button>
                               </div>
                               <motion.button
                                 whileTap={{ scale: 0.8 }}
                                 onClick={() => toggleBookmark(post.post_id)}
-                                className={`p-2 rounded-full transition-all cursor-pointer ${post.is_bookmarked ? "bg-primary/10 text-primary" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                                className={`p-2 rounded-md hover:bg-white/10 transition-all cursor-pointer ${post.is_bookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
                                   }`}
                               >
-                                <Bookmark className={`w-3.5 h-3.5 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
+                                <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
                               </motion.button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </TabsContent>
 
               {/* Analytics Tab */}
               <TabsContent value="analytics" className="mt-4 space-y-6">
@@ -842,37 +900,34 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       <CardTitle className="text-lg">Technical Indicators (Latest)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {technicals && technicals.length > 0 ? (
+                      {technicals.length > 0 ? (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">RSI (14)</p>
-                            <p className="font-semibold">{technicals[0].rsi ? technicals[0].rsi.toFixed(2) : "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].rsi?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">MACD</p>
-                            <p className="font-semibold">{technicals[0].macd ? technicals[0].macd.toFixed(4) : "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].macd?.toFixed(4) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">SMA 20</p>
-                            <p className="font-semibold">{technicals[0].sma_20 ? technicals[0].sma_20.toFixed(2) : "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].sma_20?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">EMA 50</p>
-                            <p className="font-semibold">{technicals[0].ema_50 ? technicals[0].ema_50.toFixed(2) : "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].ema_50?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="col-span-2 space-y-1">
                             <p className="text-xs text-muted-foreground">Bollinger Bands</p>
                             <p className="text-sm">
-                              Upper: {technicals[0].bollinger_upper ? technicals[0].bollinger_upper.toFixed(2) : "N/A"} /
-                              Lower: {technicals[0].bollinger_lower ? technicals[0].bollinger_lower.toFixed(2) : "N/A"}
+                              Upper: {technicals[0].bollinger_upper?.toFixed(2) || "N/A"} /
+                              Lower: {technicals[0].bollinger_lower?.toFixed(2) || "N/A"}
                             </p>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center py-6 text-center">
-                          <Activity className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                          <p className="text-sm text-muted-foreground">No technical data available.</p>
-                        </div>
+                        <p className="text-sm text-muted-foreground">No technical data available.</p>
                       )}
                     </CardContent>
                   </Card>
