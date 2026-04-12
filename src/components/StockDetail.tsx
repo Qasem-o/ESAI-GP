@@ -391,15 +391,26 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                 </div>
               </div>
 
-              <div className="w-full mt-4" style={{ height: '350px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={history?.data || []}>
-                    <defs>
-                      <linearGradient id="colorPriceMain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+              <div className="w-full mt-4 bg-black/5 rounded-xl border border-white/5 relative overflow-hidden" style={{ height: '350px' }}>
+                {!history ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
+                    <p className="text-sm text-muted-foreground animate-pulse">Loading market data...</p>
+                  </div>
+                ) : history.data.length === 0 ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center space-y-2">
+                    <BarChart2 className="w-10 h-10 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground">Historical data unavailable for this period.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={history.data}>
+                      <defs>
+                        <linearGradient id="colorPriceMain" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                     <XAxis
                       dataKey="time"
                       stroke="#888888"
@@ -738,10 +749,10 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                               <div className="flex items-start gap-3">
                                 <Avatar className="h-12 w-12 flex-shrink-0 border-2 border-white/5">
                                   <AvatarImage
-                                    src={post.author.profile_picture_url?.startsWith('/')
+                                    src={post.author?.profile_picture_url?.startsWith('/')
                                       ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
-                                      : (post.author.profile_picture_url || "")}
-                                    alt={post.author.username}
+                                      : (post.author?.profile_picture_url || "")}
+                                    alt={post.author?.username || "Trader"}
                                   />
                                   <AvatarFallback className="w-full h-full bg-transparent" asChild>
                                     <DefaultAvatar />
@@ -749,7 +760,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                 </Avatar>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-white hover:text-primary transition-colors cursor-pointer">{post.author.username}</span>
+                                    <span className="font-bold text-white hover:text-primary transition-colors cursor-pointer">{post.author?.username || "Anonymous"}</span>
                                     <Badge variant="secondary" className="text-[10px] py-0 h-4 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">Trader</Badge>
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
@@ -830,34 +841,37 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       <CardTitle className="text-lg">Technical Indicators (Latest)</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {technicals.length > 0 ? (
+                      {technicals && technicals.length > 0 ? (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">RSI (14)</p>
-                            <p className="font-semibold">{technicals[0].rsi?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].rsi ? technicals[0].rsi.toFixed(2) : "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">MACD</p>
-                            <p className="font-semibold">{technicals[0].macd?.toFixed(4) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].macd ? technicals[0].macd.toFixed(4) : "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">SMA 20</p>
-                            <p className="font-semibold">{technicals[0].sma_20?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].sma_20 ? technicals[0].sma_20.toFixed(2) : "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">EMA 50</p>
-                            <p className="font-semibold">{technicals[0].ema_50?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[0].ema_50 ? technicals[0].ema_50.toFixed(2) : "N/A"}</p>
                           </div>
                           <div className="col-span-2 space-y-1">
                             <p className="text-xs text-muted-foreground">Bollinger Bands</p>
                             <p className="text-sm">
-                              Upper: {technicals[0].bollinger_upper?.toFixed(2) || "N/A"} /
-                              Lower: {technicals[0].bollinger_lower?.toFixed(2) || "N/A"}
+                              Upper: {technicals[0].bollinger_upper ? technicals[0].bollinger_upper.toFixed(2) : "N/A"} /
+                              Lower: {technicals[0].bollinger_lower ? technicals[0].bollinger_lower.toFixed(2) : "N/A"}
                             </p>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No technical data available.</p>
+                        <div className="flex flex-col items-center justify-center py-6 text-center">
+                          <Activity className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">No technical data available.</p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
