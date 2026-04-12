@@ -443,8 +443,9 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       strokeWidth={3}
                       fill="url(#colorPriceMain)"
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </Card>
 
