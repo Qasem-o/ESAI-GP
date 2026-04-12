@@ -1,38 +1,25 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {
-  fetchStockNews,
-  NewsItem,
-  fetchStockPrice,
-  fetchChartData,
-  fetchStockTechnicals,
-  fetchStockPrediction,
 import { DefaultAvatar } from "./DefaultAvatar";
-import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData } from "../services/api";
+import { 
+  fetchStockPrice, 
+  fetchStocks, 
+  fetchStockTechnicals, 
+  fetchStockPrediction, 
+  fetchStockSentiment, 
+  fetchStockNews, 
+  StockPrice, 
+  StockTechnical, 
+  StockPrediction, 
+  StockSentiment, 
+  NewsItem, 
+  ChartData 
+} from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Loader2 } from "lucide-react";
-
-interface CustomPost {
-  id: number;
-  author: string;
-  username: string;
-  badge: string;
-  content: string;
-  timeAgo: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  views: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
-  position?: string;
-}
-
-// ... existing code ...
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -70,117 +57,10 @@ import {
   TrendingUpDown,
   ChevronUp,
   ChevronDown,
-  FileText
+  FileText,
+  Trash2,
+  Loader2
 } from "lucide-react";
-
-// Mock stock data
-const stockData = {
-  symbol: "NVDA",
-  name: "NVIDIA Corporation",
-  price: 875.30,
-  yesterdayPrice: 846.90,
-  change: 28.40,
-  changePercent: 3.35,
-  open: 850.20,
-  high: 882.50,
-  low: 848.90,
-  volume: "38.7M",
-  marketCap: "2.16T",
-  peRatio: 68.5,
-  eps: 12.78,
-  week52High: 892.50,
-  week52Low: 412.30,
-  dividendYield: 0.0004,
-  avgVolume: "42.3M",
-  sector: "Technology",
-  industry: "Semiconductors",
-  about: "NVIDIA Corporation is a leading designer of graphics processing units (GPUs) for gaming, professional visualization, data centers, and automotive markets. The company has become a dominant force in AI and machine learning hardware."
-};
-
-// AI Prediction Data
-const aiPrediction = {
-  tomorrowPrice: 892.40,
-  confidence: 87,
-  direction: "bullish" as const,
-  priceChange: 17.10,
-  changePercent: 1.95,
-  reasoning: [
-    "Strong momentum based on recent earnings beat (+15% vs expectations)",
-    "Technical indicators showing continued bullish trend with RSI at 72",
-    "Institutional buying pressure increased by 23% in the last 5 days",
-    "Positive sentiment from analyst upgrades (28 Strong Buy ratings)"
-  ],
-  recommendation: "BUY",
-  targetPrice: 950.00,
-  stopLoss: 840.00,
-  riskLevel: "Medium" as const
-};
-
-// Community posts about this stock
-// types for internal post structure if needed
-interface CustomPost extends FeedPost { }
-const stockPosts = [
-  {
-    id: 1,
-    author: "Sarah Chen",
-    username: "sarahtrader",
-    badge: "Pro Trader",
-    content: "Just analyzed NVDA's latest earnings report. Revenue beat expectations by 15%, and their AI chip demand is through the roof. The data center segment alone grew 217% YoY. I'm extremely bullish on this for Q2. What's your take?",
-    timeAgo: "2h ago",
-    likes: 456,
-    comments: 67,
-    shares: 23,
-    views: 5420,
-    isLiked: true,
-    isBookmarked: false,
-    position: "Long 150 shares @ $820"
-  },
-  {
-    id: 2,
-    author: "Mike Rodriguez",
-    username: "miketrading",
-    badge: "Verified",
-    content: "Technical analysis update:\n\n📈 RSI: 72 (overbought territory)\n📊 MACD: Bullish crossover\n🎯 Support: $850\n🎯 Resistance: $900\n\nShort-term pullback possible, but trend remains bullish. Looking to add on dips.",
-    timeAgo: "4h ago",
-    likes: 289,
-    comments: 45,
-    shares: 12,
-    views: 3840,
-    isLiked: false,
-    isBookmarked: true,
-    position: "Long 200 shares @ $765"
-  },
-  {
-    id: 3,
-    author: "Emma Watson",
-    username: "emmainvests",
-    badge: "Analyst",
-    content: "NVIDIA's moat in AI chips is incredible. The CUDA ecosystem creates massive switching costs. Even with AMD competition, NVDA maintains 80%+ market share in data center GPUs. Long-term hold for me.",
-    timeAgo: "6h ago",
-    likes: 178,
-    comments: 34,
-    shares: 8,
-    views: 2340,
-    isLiked: false,
-    isBookmarked: false,
-    position: "Long 75 shares @ $692"
-  },
-  {
-    id: 4,
-    author: "Alex Kim",
-    username: "alexquant",
-    badge: "Quant",
-    content: "Valuation check: Forward P/E of 45 vs sector avg of 28. Premium justified by growth, but watching for mean reversion. My model suggests fair value around $820-850 range. Current price reflects high growth expectations.",
-    timeAgo: "8h ago",
-    likes: 234,
-    comments: 56,
-    shares: 15,
-    views: 4120,
-    isLiked: true,
-    isBookmarked: false,
-    position: "Neutral - Watching"
-  }
-];
 
 
 
