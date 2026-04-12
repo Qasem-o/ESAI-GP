@@ -118,7 +118,7 @@ const aiPrediction = {
 
 // Community posts about this stock
 // types for internal post structure if needed
-interface CustomPost extends FeedPost {}
+interface CustomPost extends FeedPost { }
 const stockPosts = [
   {
     id: 1,
@@ -265,7 +265,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
         setPrediction(predData);
         setSentiment(sentData);
         setNews(newsData);
-        
+
         // Fetch posts for this stock
         try {
           const postData = await communityAPI.getStockPosts(currentSymbol);
@@ -883,10 +883,10 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                               >
                                 <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
                               </motion.button>
-                      </Card>
-                    </motion.div>
+                            </Card>
+                          </motion.div>
                   ))}
-                </motion.div>
+                      </motion.div>
               </TabsContent>
 
               {/* Analytics Tab */}

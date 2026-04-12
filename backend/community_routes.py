@@ -123,7 +123,7 @@ async def get_stock_posts(
     user_id = get_optional_user_id(authorization)
     offset = (page - 1) * limit
 
-    posts = db.query(Post).filter(Post.stock_symbol == symbol) \
+    posts = db.query(Post).filter(func.upper(Post.stock_symbol) == func.upper(symbol)) \
         .order_by(desc(Post.created_at)) \
         .offset(offset).limit(limit).all()
 
