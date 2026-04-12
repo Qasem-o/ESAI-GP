@@ -108,6 +108,30 @@ async def get_feed(
 
     posts = query.offset(offset).limit(limit).all()
 
+    return _enrich_posts(posts, user_id, db)
+
+
+@router.get("/stocks/{symbol}/posts")
+async def get_stock_posts(
+    symbol: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=50),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Get posts associated with a specific stock symbol."""
+    user_id = get_optional_user_id(authorization)
+    offset = (page - 1) * limit
+
+    posts = db.query(Post).filter(Post.stock_symbol == symbol) \
+        .order_by(desc(Post.created_at)) \
+        .offset(offset).limit(limit).all()
+
+    return _enrich_posts(posts, user_id, db)
+
+
+def _enrich_posts(posts, user_id, db):
+    """Helper to add author and engagement info to post models."""
     result = []
     for post in posts:
         author = db.query(User).filter(User.user_id == post.user_id).first()
@@ -154,7 +178,6 @@ async def get_feed(
             "is_liked": is_liked,
             "is_bookmarked": is_bookmarked,
         })
-
     return result
 
 

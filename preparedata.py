@@ -20,7 +20,7 @@ import pandas as pd
 import yfinance as yf
 from sqlalchemy import (Column, Date, DateTime, Enum, ForeignKey, Integer,
                         Numeric, String, Text, BigInteger, create_engine,
-                        UniqueConstraint)
+                        UniqueConstraint, desc)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, sessionmaker
 
@@ -56,7 +56,7 @@ HARDCODED_TICKERS = [
     "KFH.KW", "IQCD.QA" # Removed COMI.CA, FAB.AD, EMAAR.DU
 ]
 HARDCODED_START = "2018-01-01"
-HARDCODED_END = "2026-04-08" # Or datetime.today().strftime("%Y-%m-%d") for today
+HARDCODED_END = datetime.today().strftime("%Y-%m-%d")
 
 # DATABASE_URL = "sqlite:///eyestock.db" # Use this for SQLite
 
@@ -395,18 +395,21 @@ def main(): # Removed 'args' from main function signature
             session.rollback()
             continue
 
-        # --- Conditional Price History & Technical Indicators ---
-        # Check if we have history for this stock
-        history_count = session.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id).count()
+        # --- Incremental Price History & Technical Indicators ---
+        # Get the latest date we have in the database for this stock
+        latest_history = session.query(PriceHistory.date).filter(PriceHistory.stock_id == stock.stock_id)\
+            .order_by(desc(PriceHistory.date)).first()
         
-        if history_count > 0:
-            print(f"  Skipping price history for {t} (Found {history_count} records).")
-            continue
+        current_fetch_start = start
+        if latest_history:
+            current_fetch_start = latest_history[0].strftime("%Y-%m-%d")
+            print(f"  Existing data found (latest: {current_fetch_start}). Fetching updates...")
+        else:
+            print(f"  No existing data. Fetching NEW price history for {t} from {start} to {end} ...")
             
-        print(f"  Fetching NEW price history for {t} from {start} to {end} ...")
-        df = fetch_prices(t, start, end)
+        df = fetch_prices(t, current_fetch_start, end)
         if df.empty:
-            print(f"  No data for {t}. Skipping.")
+            print(f"  No new data for {t}. Continuing.")
             continue
         if 'close' not in df.columns:
             print(f"  Warning: 'close' column not found for {t}. Skipping.")

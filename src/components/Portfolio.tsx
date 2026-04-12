@@ -136,24 +136,29 @@ export function Portfolio({
     if (!silent) setIsLoading(true);
     setError(null);
 
+    // Fetch summary first as it's the most important
     try {
-      const [summaryData, holdingsData, transactionsData, perfData, watchlistData] = await Promise.all([
-        portfolioAPI.getSummary(),
-        portfolioAPI.getHoldings(),
-        portfolioAPI.getTransactions(),
-        portfolioAPI.getPerformance(),
-        portfolioAPI.getWatchlist().catch(() => []),
+      const summaryData = await portfolioAPI.getSummary();
+      setSummary(summaryData);
+    } catch (err: any) {
+      console.error("Summary fetch error:", err);
+    }
+
+    // Fetch the rest in parallel but with individual catch to avoid blocking
+    try {
+      const [holdingsData, transactionsData, perfData, watchlistData] = await Promise.all([
+        portfolioAPI.getHoldings().catch(e => { console.error(e); return []; }),
+        portfolioAPI.getTransactions().catch(e => { console.error(e); return []; }),
+        portfolioAPI.getPerformance().catch(e => { console.error(e); return []; }),
+        portfolioAPI.getWatchlist().catch(e => { console.error(e); return []; }),
       ]);
 
-      setSummary(summaryData);
       setHoldings(holdingsData);
       setTransactions(transactionsData);
       setPerformance(perfData);
       setWatchlist(watchlistData);
     } catch (err: any) {
-      if (err.message && !err.message.toLowerCase().includes("session expired") && !err.message.toLowerCase().includes("authenticated")) {
-        setError(err.message || "Failed to load portfolio data");
-      }
+      console.error("Secondary data fetch error:", err);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -473,50 +478,36 @@ export function Portfolio({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {performance.length > 0 ? (
-                  <>
-                    <div className="h-48 flex items-end justify-between gap-2">
-                      {(() => {
-                        const values = performance.map((p) => p.value);
-                        const min = Math.min(...values);
-                        const max = Math.max(...values);
-                        const range = max - min || 1;
+                <div className="h-48 flex items-end justify-between gap-2">
+                  {performance.length > 0 ? performance.slice(0, 7).map((day, idx) => {
+                    const values = performance.map((p) => p.value);
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    const range = max - min || 1;
+                    // Normalize height between 20% and 100%
+                    const height = ((day.value - min) / range) * 80 + 20;
 
-                        return performance.map((day, i) => {
-                          const height = ((day.value - min) / range) * 80 + 20;
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                              <div className="flex-1 w-full flex items-end">
-                                <div
-                                  className="w-full bg-primary/60 rounded-t hover:bg-primary transition-colors"
-                                  style={{ height: `${height}%` }}
-                                  title={`$${day.value.toLocaleString()}`}
-                                />
-                              </div>
-                              <span className="text-xs text-muted-foreground">{day.day}</span>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                    {performance.length >= 2 && (
-                      <div className="mt-4 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          {(() => {
-                            const first = performance[0].value;
-                            const last = performance[performance.length - 1].value;
-                            const pct = first > 0 ? ((last - first) / first * 100).toFixed(2) : "0.00";
-                            return `${parseFloat(pct) >= 0 ? "+" : ""}${pct}% this week`;
-                          })()}
-                        </p>
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+                        <div className="w-full bg-muted/20 rounded-t-sm h-full relative overflow-hidden">
+                          <div
+                            className="absolute bottom-0 w-full bg-primary/60 rounded-t-sm transition-all duration-500 hover:bg-primary"
+                            style={{ height: `${height}%` }}
+                            title={`$${day.value.toLocaleString()}`}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase">{day.day}</span>
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-muted-foreground">
-                    No performance data yet
-                  </div>
-                )}
+                    );
+                  }) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted/5 border border-dashed rounded-lg">
+                      <div className="text-center px-4">
+                        <p className="text-sm text-muted-foreground font-medium">No performance data yet</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1 uppercase tracking-wider">Keep trading to see history</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

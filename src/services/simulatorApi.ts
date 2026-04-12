@@ -1,12 +1,8 @@
-const API_BASE_URL = 'https://esai-backend.onrender.com';
+import { API_BASE_URL, getHeaders } from './apiConfig';
 
 class SimulatorAPI {
     private getHeaders() {
-        const token = localStorage.getItem('access_token');
-        return {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        };
+        return getHeaders(true);
     }
 
     async getSummary(): Promise<any> {

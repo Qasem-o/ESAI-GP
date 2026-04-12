@@ -1,6 +1,4 @@
-const API_BASE_URL = 'https://esai-backend.onrender.com';
-
-// ====== Types ======
+import { API_BASE_URL, getHeaders } from './apiConfig';
 
 export interface PostAuthor {
     user_id: number;
@@ -41,19 +39,11 @@ export interface TopTrader {
     posts_count: number;
     is_following: boolean;
 }
-
 // ====== API Class ======
 
 class CommunityAPI {
     private getHeaders(requireAuth = true) {
-        const token = localStorage.getItem('access_token');
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        return headers;
+        return getHeaders(requireAuth);
     }
 
     // --- Feed ---
@@ -63,6 +53,15 @@ class CommunityAPI {
             { headers: this.getHeaders(false) }
         );
         if (!response.ok) throw new Error('Failed to fetch feed');
+        return response.json();
+    }
+
+    async getStockPosts(symbol: string, page = 1, limit = 20): Promise<FeedPost[]> {
+        const response = await fetch(
+            `${API_BASE_URL}/community/stocks/${symbol}/posts?page=${page}&limit=${limit}`,
+            { headers: this.getHeaders(false) }
+        );
+        if (!response.ok) throw new Error('Failed to fetch stock posts');
         return response.json();
     }
 

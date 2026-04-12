@@ -10,8 +10,10 @@ import re
 import random
 import string
 
-# JWT Configuration
-SECRET_KEY = "your-secret-key-change-this-in-production-use-env-variable"  # TODO: Move to environment variable
+# JWT Configuration — load from config/env, with a safe fallback
+import os as _os
+_env_secret = _os.getenv("SECRET_KEY", "")
+SECRET_KEY = _env_secret if _env_secret else "9a589a8c2f1d44111222333444555666777888999aaabbbcccdddeeefff000"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -68,17 +70,19 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token with expiration."""
     to_encode = data.copy()
-    to_encode.update({"type": "access"})
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"type": "access", "exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def create_refresh_token(data: dict) -> str:
-    """Create a JWT refresh token."""
+    """Create a JWT refresh token with expiration."""
     to_encode = data.copy()
-    to_encode.update({"type": "refresh"})
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"type": "refresh", "exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -95,7 +99,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
         dict: Decoded token payload or None if invalid
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
         # Verify token type
         if payload.get("type") != token_type:

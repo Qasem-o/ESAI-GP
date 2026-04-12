@@ -1,9 +1,4 @@
-/**
- * Authentication API service
- * Handles all authentication-related API calls
- */
-
-const API_BASE_URL = 'https://esai-backend.onrender.com';
+import { API_BASE_URL, getHeaders } from './apiConfig';
 
 export interface SignupData {
     email: string;
@@ -48,18 +43,7 @@ export interface MessageResponse {
 
 class AuthAPI {
     private getHeaders(includeAuth: boolean = false): HeadersInit {
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
-
-        if (includeAuth) {
-            const token = localStorage.getItem('access_token');
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-        }
-
-        return headers;
+        return getHeaders(includeAuth);
     }
 
     async signup(data: SignupData): Promise<MessageResponse> {

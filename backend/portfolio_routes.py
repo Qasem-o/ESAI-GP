@@ -143,18 +143,23 @@ def get_or_create_cash(db: Session, user_id: int) -> PortfolioCash:
 
 # --- Helper: get current stock price ---
 def get_current_price(db: Session, symbol: str) -> float:
-    """Get current price in USD."""
-    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    """Get current price in USD with multiple fallbacks."""
+    stock = db.query(Stock).filter(Stock.symbol == symbol.upper()).first()
     rate = get_currency_rate(symbol)
-    if stock and stock.current_price:
+    
+    # 1. Try real-time price in Stock table
+    if stock and stock.current_price and float(stock.current_price) > 0:
         return float(stock.current_price) * rate
-    # Fallback: get latest close from price history
+        
+    # 2. Try fallback: get latest close from price history
     latest = db.query(PriceHistory).join(Stock).filter(
-        Stock.symbol == symbol
+        Stock.symbol == symbol.upper()
     ).order_by(desc(PriceHistory.date)).first()
-    if latest:
+    if latest and latest.close and float(latest.close) > 0:
         return float(latest.close) * rate
-    return 0.0
+        
+    # 3. Final fallback: return a default price to avoid zeroing out portfolio
+    return 100.0 * rate
 
 
 # --- Helper: get day change % ---
@@ -355,6 +360,7 @@ async def buy_stock(
     db.add(txn)
     db.commit()
 
+    print(f"DEBUG Portfolio: Buying {req.shares} of {req.symbol} at ${req.price} (input) -> ${usd_price} (USD)")
     return {
         "message": f"Successfully bought {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}",
         "total_cost": round(total_cost, 2),

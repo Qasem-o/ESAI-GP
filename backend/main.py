@@ -173,6 +173,10 @@ class StockBase(BaseModel):
     currency: Optional[str] = "USD"
     currency_symbol: Optional[str] = "$"
     usd_price: Optional[float] = None
+    change_percent: Optional[float] = 0.0
+    day_change: Optional[float] = 0.0
+    mentions: Optional[int] = 0
+    sentiment: Optional[int] = 50
 
     class Config:
         from_attributes = True
@@ -270,6 +274,20 @@ def get_stocks(db: Session = Depends(get_db)):
         price = float(stock.current_price) if stock.current_price else 0.0
         stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
         
+        # Add social stats (mentions and sentiment) - deterministic for now
+        val = sum(ord(c) for c in stock.symbol)
+        stock_dict['mentions'] = (val * 7) % 1500 + 50
+        stock_dict['sentiment'] = (val % 30) + 40 # 40-70%
+        
+        # Calculate day change %
+        if latest_history and stock.current_price:
+            prev_close = float(latest_history.close)
+            curr_price = float(stock.current_price)
+            if prev_close > 0:
+                day_change = curr_price - prev_close
+                stock_dict['day_change'] = round(day_change, 2)
+                stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
+
         enriched_stocks.append(StockBase(**stock_dict))
         
     return enriched_stocks
@@ -292,6 +310,27 @@ def get_stock_details(symbol: str, db: Session = Depends(get_db)):
         stock_dict['day_low'] = float(latest_history.low) if latest_history.low else None
         stock_dict['volume'] = latest_history.volume
         
+        # Calculate change if price exists
+        if stock.current_price:
+            prev_close = float(latest_history.close)
+            curr_price = float(stock.current_price)
+            if prev_close > 0:
+                day_change = curr_price - prev_close
+                stock_dict['day_change'] = round(day_change, 2)
+                stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
+
+    # Add currency info
+    curr_info = get_stock_currency(stock.symbol)
+    stock_dict['currency'] = curr_info['code']
+    stock_dict['currency_symbol'] = curr_info['symbol']
+    price = float(stock.current_price) if stock.current_price else 0.0
+    stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
+    
+    # Add social stats
+    val = sum(ord(c) for c in stock.symbol)
+    stock_dict['mentions'] = (val * 7) % 1500 + 50
+    stock_dict['sentiment'] = (val % 30) + 40
+    
     # Manually construct Pydantic model to mix ORM and extra data
     return StockBase(**stock_dict)
 

@@ -1,6 +1,4 @@
-// API service for EyeStocks AI
-
-const API_BASE_URL = 'https://esai-backend.onrender.com';
+import { API_BASE_URL } from './apiConfig';
 
 // Types
 export interface StockPrice {
@@ -98,8 +96,9 @@ export const fetchStocks = async (): Promise<StockPrice[]> => {
       price: item.current_price || 0,
       sector: item.sector,
       description: item.description,
-      // Calculate change? Backend doesn't provide it yet, defaulting to 0 or we can calculate from history if mapped
-      change: 0,
+      change: item.change_percent || 0,
+      mentions: item.mentions || 0,
+      sentiment: item.sentiment || 0,
       volume: item.volume || "N/A",
       marketCap: item.market_cap || "N/A"
     }));

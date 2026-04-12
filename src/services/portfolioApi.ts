@@ -1,9 +1,4 @@
-/**
- * Portfolio API service
- * Handles all portfolio-related API calls (holdings, transactions, buy/sell)
- */
-
-const API_BASE_URL = 'https://esai-backend.onrender.com';
+import { API_BASE_URL, getHeaders } from './apiConfig';
 
 export interface PortfolioSummary {
     total_value: number;
@@ -61,18 +56,7 @@ export interface PerformancePoint {
 
 class PortfolioAPI {
     private getHeaders(includeAuth: boolean = true): HeadersInit {
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
-
-        if (includeAuth) {
-            const token = localStorage.getItem('access_token');
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-        }
-
-        return headers;
+        return getHeaders(includeAuth);
     }
 
     async getSummary(): Promise<PortfolioSummary> {

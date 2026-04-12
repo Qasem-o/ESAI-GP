@@ -77,6 +77,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   const [postContent, setPostContent] = useState("");
   const [postStock, setPostStock] = useState("");
   const [isInputExpanded, setIsInputExpanded] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
 
   // Comments modal
   const [commentsPostId, setCommentsPostId] = useState<number | null>(null);
@@ -152,11 +153,15 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
   const handleDeletePost = async (postId: number) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
+    setDeletingPostId(postId);
     try {
       await communityAPI.deletePost(postId);
       setPosts(prev => prev.filter(p => p.post_id !== postId));
     } catch (err) {
-      console.error(err);
+      console.error("Delete failed:", err);
+      alert("Failed to delete post. Make sure you are the author.");
+    } finally {
+      setDeletingPostId(null);
     }
   };
 
@@ -205,10 +210,12 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   const renderPost = (post: FeedPost) => {
-    const isOwnPost = user && post.author.user_id === (user as any).user_id;
+    const isOwnPost = user && Number(post.author.user_id) === Number((user as any).user_id);
     const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
       ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
       : post.author.profile_picture_url;
+    
+    const isDeleting = deletingPostId === post.post_id;
 
     return (
       <Card key={post.post_id} className="hover:shadow-md transition-shadow">
@@ -240,8 +247,14 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               </div>
             </div>
             {isOwnPost && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDeletePost(post.post_id)}>
-                <Trash2 className="w-4 h-4" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors" 
+                onClick={() => handleDeletePost(post.post_id)}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </Button>
             )}
           </div>
@@ -252,13 +265,27 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
             {/* Stock Card if attached */}
             {post.stock && (
-              <div className="bg-muted/50 rounded-lg p-4 border">
+              <div 
+                className="bg-primary/5 hover:bg-primary/10 rounded-xl p-4 border border-primary/10 transition-all cursor-pointer group"
+                onClick={() => navigate(`/stock/${post.stock?.symbol}`)}
+              >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-lg">{post.stock.symbol}</p>
-                    <p className="text-sm text-muted-foreground">{post.stock.name}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border font-bold text-primary">
+                      {post.stock.symbol[0]}
+                    </div>
+                    <div>
+                      <p className="font-bold group-hover:text-primary transition-colors">{post.stock.symbol}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{post.stock.name}</p>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold">${(post.stock.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">${(post.stock.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xs text-primary flex items-center justify-end gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      View Analytics
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

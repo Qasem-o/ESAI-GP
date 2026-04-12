@@ -7,17 +7,14 @@ import {
   fetchChartData,
   fetchStockTechnicals,
   fetchStockPrediction,
-  fetchStockSentiment,
-  fetchStocks,
-  StockPrice,
-  StockTechnical,
-  StockPrediction,
-  StockSentiment,
-  ChartData
-} from "../services/api";
+import { DefaultAvatar } from "./DefaultAvatar";
+import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData } from "../services/api";
+import { communityAPI, FeedPost } from "../services/communityApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Loader2 } from "lucide-react";
 
 interface CustomPost {
   id: number;
@@ -120,6 +117,8 @@ const aiPrediction = {
 };
 
 // Community posts about this stock
+// types for internal post structure if needed
+interface CustomPost extends FeedPost {}
 const stockPosts = [
   {
     id: 1,
@@ -204,7 +203,7 @@ interface StockDetailProps {
 
 export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoToSimulator }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const currentSymbol = paramSymbol || propSymbol || "NVDA";
 
   const formatLargeNumber = (num: number | undefined | string) => {
@@ -229,7 +228,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [postContent, setPostContent] = useState("");
-  const [posts, setPosts] = useState<CustomPost[]>(stockPosts);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [isPostLoading, setIsPostLoading] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [activeTimeRange, setActiveTimeRange] = useState("1W");
   const [isInputExpanded, setIsInputExpanded] = useState(false);
@@ -252,17 +252,27 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     const loadData = async () => {
       setLoading(true);
       try {
-        const [priceData, techData, predData, sentData] = await Promise.all([
+        const [priceData, techData, predData, sentData, newsData] = await Promise.all([
           fetchStockPrice(currentSymbol),
           fetchStockTechnicals(currentSymbol),
           fetchStockPrediction(currentSymbol),
-          fetchStockSentiment(currentSymbol)
+          fetchStockSentiment(currentSymbol),
+          fetchStockNews(currentSymbol)
         ]);
 
         setStockDetails(priceData);
         setTechnicals(techData);
         setPrediction(predData);
         setSentiment(sentData);
+        setNews(newsData);
+        
+        // Fetch posts for this stock
+        try {
+          const postData = await communityAPI.getStockPosts(currentSymbol);
+          setPosts(postData);
+        } catch (e) {
+          console.error("Failed to load stock posts", e);
+        }
 
         // Fetch related stocks (same sector)
         try {
@@ -338,50 +348,44 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     volume: stockDetails.volume || stockData.volume
   } : stockData;
 
-  const toggleLike = (postId: number) => {
-    setPosts(posts.map((post: CustomPost) => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          isLiked: !post.isLiked,
-          likes: post.isLiked ? post.likes - 1 : post.likes + 1
-        };
-      }
-      return post;
-    }));
-  };
-
-  const toggleBookmark = (postId: number) => {
-    setPosts(posts.map((post: CustomPost) => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          isBookmarked: !post.isBookmarked
-        };
-      }
-      return post;
-    }));
-  };
-
-  const handlePost = () => {
-    if (postContent.trim()) {
-      const newPost = {
-        id: posts.length + 1,
-        author: "You",
-        username: "yourhandle",
-        badge: "Trader",
-        content: postContent,
-        timeAgo: "just now",
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-        isLiked: false,
-        isBookmarked: false,
-        position: "Your position"
-      };
-      setPosts([newPost, ...posts]);
+  const handleCreatePost = async () => {
+    if (!postContent.trim() || !isAuthenticated) return;
+    setIsPostLoading(true);
+    try {
+      await communityAPI.createPost(postContent.trim(), currentSymbol);
       setPostContent("");
+      setIsInputExpanded(false);
+      // Refresh posts
+      const postData = await communityAPI.getStockPosts(currentSymbol);
+      setPosts(postData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsPostLoading(false);
+    }
+  };
+
+  const toggleLike = async (postId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await communityAPI.toggleLike(postId);
+      setPosts(prev => prev.map(p =>
+        p.post_id === postId ? { ...p, is_liked: res.liked, likes_count: res.likes_count } : p
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleBookmark = async (postId: number) => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await communityAPI.toggleBookmark(postId);
+      setPosts(prev => prev.map(p =>
+        p.post_id === postId ? { ...p, is_bookmarked: res.bookmarked } : p
+      ));
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -683,16 +687,15 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {posts.slice(0, 3).map((post: CustomPost) => (
-                      <div key={post.id} className="bg-muted/50 rounded-lg p-4 border">
+                    {posts.slice(0, 3).map((post: FeedPost) => (
+                      <div key={post.post_id} className="bg-muted/50 rounded-lg p-4 border">
                         <div className="flex items-start gap-3 mb-2">
                           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                             <User className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{post.author}</span>
-                              <Badge variant="secondary" className="text-xs">{post.badge}</Badge>
+                              <span className="font-semibold text-sm">{post.author.username}</span>
                             </div>
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{post.content}</p>
                           </div>
@@ -700,15 +703,15 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Heart className="w-3 h-3" />
-                            {post.likes}
+                            {post.likes_count}
                           </span>
                           <span className="flex items-center gap-1">
                             <MessageSquare className="w-3 h-3" />
-                            {post.comments}
+                            {post.comments_count}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {post.timeAgo}
+                            {new Date(post.created_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
@@ -723,39 +726,42 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <User className="w-6 h-6 text-muted-foreground" />
-                      </div>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage
+                          src={user?.profile_picture_url?.startsWith('/')
+                            ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                            : (user?.profile_picture_url || "")}
+                          alt={user?.username}
+                        />
+                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                          <DefaultAvatar />
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex-1">
-                        <div
-                          className={`transition-all duration-300 ${isInputExpanded ? 'min-h-[140px]' : 'min-h-[40px]'}`}
-                        >
+                        <div className={`transition-all duration-300 ${isInputExpanded ? 'min-h-[120px]' : 'min-h-[40px]'}`}>
                           {!isInputExpanded && !postContent ? (
                             <button
                               onClick={() => setIsInputExpanded(true)}
-                              className="w-full text-left text-muted-foreground bg-muted/30 px-3 py-2.5 rounded-md text-sm hover:bg-muted/50 transition-colors"
+                              className="w-full text-left text-muted-foreground bg-white/5 border border-white/10 px-3 py-2.5 rounded-md text-sm hover:bg-white/10 transition-colors cursor-pointer"
                             >
-                              Share your thoughts on {displayStockData.symbol}...
+                              What are your thoughts on ${currentSymbol}?
                             </button>
                           ) : (
                             <div className="space-y-3">
                               <Textarea
-                                placeholder={`Share your thoughts on ${displayStockData.symbol}...`}
+                                placeholder={`What are your thoughts on \$${currentSymbol}?`}
                                 value={postContent}
-                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPostContent(e.target.value)}
+                                onChange={(e) => setPostContent(e.target.value)}
                                 autoFocus
-                                className="border-0 bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px]"
+                                className="border-white/10 bg-white/5 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px] text-base"
                               />
                               <div className="flex items-center justify-between pt-2">
-                                <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
-                                    <BarChart2 className="w-5 h-5" />
-                                  </Button>
-                                </div>
+                                <div />
                                 <div className="flex gap-2">
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="cursor-pointer"
                                     onClick={() => {
                                       setIsInputExpanded(false);
                                       setPostContent("");
@@ -764,14 +770,12 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                     Cancel
                                   </Button>
                                   <Button
-                                    onClick={() => {
-                                      handlePost();
-                                      setIsInputExpanded(false);
-                                    }}
-                                    disabled={!postContent.trim()}
+                                    onClick={handleCreatePost}
+                                    disabled={!postContent.trim() || isPostLoading}
                                     size="sm"
+                                    className="px-6 cursor-pointer"
                                   >
-                                    Post
+                                    {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
                                   </Button>
                                 </div>
                               </div>
@@ -798,94 +802,87 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                   animate="show"
                   className="space-y-4"
                 >
-                  {posts.map((post: CustomPost) => (
-                    <motion.div
-                      key={post.id}
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        show: { opacity: 1, y: 0 }
-                      }}
-                    >
-                      <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm">
-                        <CardContent className="pt-6">
-                          {/* Post Header */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                <User className="w-7 h-7 text-primary" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold">{post.author}</span>
-                                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                                    {post.badge}
-                                  </Badge>
+                  {posts.map((post: FeedPost) => {
+                    return (
+                      <motion.div
+                        key={post.post_id}
+                        variants={{
+                          hidden: { opacity: 0, y: 20 },
+                          show: { opacity: 1, y: 0 }
+                        }}
+                      >
+                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm">
+                          <CardContent className="pt-6">
+                            {/* Post Header */}
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-start gap-3">
+                                <Avatar className="h-12 w-12 flex-shrink-0">
+                                  <AvatarImage
+                                    src={post.author.profile_picture_url?.startsWith('/')
+                                      ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
+                                      : (post.author.profile_picture_url || "")}
+                                    alt={post.author.username}
+                                  />
+                                  <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                                    <DefaultAvatar />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{post.author.username}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {new Date(post.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                                  <span>@{post.username}</span>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {post.timeAgo}
-                                  </span>
-                                </div>
-                                {post.position && (
-                                  <Badge variant="outline" className="text-xs mt-2">
-                                    {post.position}
-                                  </Badge>
-                                )}
                               </div>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </div>
 
-                          {/* Post Content */}
-                          <div className="mb-4">
-                            <p className="whitespace-pre-wrap">{post.content}</p>
-                          </div>
+                            {/* Post Content */}
+                            <div className="mb-4">
+                              <p className="whitespace-pre-wrap">{post.content}</p>
+                            </div>
 
-                          {/* Post Stats */}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b">
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
-                              {post.views.toLocaleString()} views
-                            </span>
-                            <span>{post.comments} comments</span>
-                          </div>
+                            {/* Post Stats */}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b border-white/10">
+                              <span className="flex items-center gap-1">
+                                <Heart className="w-4 h-4" />
+                                {post.likes_count} likes
+                              </span>
+                              <span>{post.comments_count} comments</span>
+                            </div>
 
-                          {/* Post Actions */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            {/* Post Actions */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <motion.button
+                                  whileTap={{ scale: 0.8 }}
+                                  onClick={() => toggleLike(post.post_id)}
+                                  className={`flex items-center gap-1 text-sm font-medium transition-all p-2 rounded-md hover:bg-white/10 cursor-pointer ${post.is_liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                                    }`}
+                                >
+                                  <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                  {post.likes_count}
+                                </motion.button>
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0">
+                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  {post.comments_count}
+                                </Button>
+                              </div>
                               <motion.button
                                 whileTap={{ scale: 0.8 }}
-                                onClick={() => toggleLike(post.id)}
-                                className={`flex items-center gap-1 text-sm font-medium transition-colors p-2 rounded-md hover:bg-muted cursor-pointer ${post.isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                                onClick={() => toggleBookmark(post.post_id)}
+                                className={`p-2 rounded-md hover:bg-white/10 transition-all cursor-pointer ${post.is_bookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
                                   }`}
                               >
-                                <Heart className={`w-4 h-4 mr-1 ${post.isLiked ? 'fill-red-500' : ''}`} />
-                                {post.likes}
+                                <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
                               </motion.button>
-                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer">
-                                <MessageSquare className="w-4 h-4 mr-1" />
-                                {post.comments}
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer">
-                                <Share2 className="w-4 h-4 mr-1" />
-                                {post.shares}
-                              </Button>
-                            </div>
-                            <motion.button
-                              whileTap={{ scale: 0.8 }}
-                              onClick={() => toggleBookmark(post.id)}
-                              className={`p-2 rounded-md hover:bg-muted transition-colors cursor-pointer ${post.isBookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
-                                }`}
-                            >
-                              <Bookmark className={`w-4 h-4 ${post.isBookmarked ? 'fill-primary' : ''}`} />
-                            </motion.button>
-                          </div>
-                        </CardContent>
                       </Card>
                     </motion.div>
                   ))}

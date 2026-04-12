@@ -1,9 +1,4 @@
-/**
- * Profile API service
- * Handles all profile-related API calls
- */
-
-const API_BASE_URL = 'https://esai-backend.onrender.com';
+import { API_BASE_URL, getHeaders } from './apiConfig';
 
 export interface UserStats {
     followers_count: number;
@@ -42,10 +37,8 @@ export interface Follower {
 }
 
 class ProfileAPI {
-    private getHeaders(): HeadersInit {
-        return {
-            'Content-Type': 'application/json',
-        };
+    private getHeaders(includeAuth: boolean = true): HeadersInit {
+        return getHeaders(includeAuth);
     }
 
     async getUserStats(userId: number): Promise<UserStats> {
