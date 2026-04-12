@@ -267,11 +267,14 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
         setNews(newsData);
 
         // Fetch posts for this stock
+        setIsPostLoading(true);
         try {
           const postData = await communityAPI.getStockPosts(currentSymbol);
           setPosts(postData);
         } catch (e) {
           console.error("Failed to load stock posts", e);
+        } finally {
+          setIsPostLoading(false);
         }
 
         // Fetch related stocks (same sector)
@@ -798,25 +801,59 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       }
                     }
                   }}
-                  initial="hidden"
-                  animate="show"
-                  className="space-y-4"
-                >
-                  {posts.map((post: FeedPost) => {
-                    return (
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    Community Discussions ({posts.length})
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={async () => {
+                      setIsPostLoading(true);
+                      try {
+                        const postData = await communityAPI.getStockPosts(currentSymbol);
+                        setPosts(postData);
+                      } finally {
+                        setIsPostLoading(false);
+                      }
+                    }}
+                    disabled={isPostLoading}
+                  >
+                    {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Activity className="w-4 h-4 mr-2" />}
+                    Refresh
+                  </Button>
+                </div>
+                
+                {isPostLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-xl border border-white/10">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                    <p className="text-muted-foreground animate-pulse">Fetching latest discussions...</p>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-xl border border-white/10 text-center px-4">
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                      <MessageSquare className="w-8 h-8 text-muted-foreground opacity-50" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">No discussions yet for ${currentSymbol}</h3>
+                    <p className="text-muted-foreground max-w-sm">
+                      Be the first to share your insights, technical analysis, or news about this stock with the EyeStocks community.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {posts.map((post) => (
                       <motion.div
                         key={post.post_id}
-                        variants={{
-                          hidden: { opacity: 0, y: 20 },
-                          show: { opacity: 1, y: 0 }
-                        }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                       >
-                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm">
+                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm overflow-hidden border-l-4 border-l-primary/30">
                           <CardContent className="pt-6">
                             {/* Post Header */}
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex items-start gap-3">
-                                <Avatar className="h-12 w-12 flex-shrink-0">
+                                <Avatar className="h-12 w-12 flex-shrink-0 border-2 border-white/5">
                                   <AvatarImage
                                     src={post.author.profile_picture_url?.startsWith('/')
                                       ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
@@ -829,64 +866,73 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                 </Avatar>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{post.author.username}</span>
+                                    <span className="font-bold text-white hover:text-primary transition-colors cursor-pointer">{post.author.username}</span>
+                                    <Badge variant="secondary" className="text-[10px] py-0 h-4 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">Trader</Badge>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      {new Date(post.created_at).toLocaleDateString()}
-                                    </span>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{new Date(post.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                   </div>
                                 </div>
                               </div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
+                              {user && Number(post.author.user_id) === Number((user as any).user_id) ? (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                  onClick={() => handleDeletePost(post.post_id)}
+                                  disabled={deletingPostId === post.post_id}
+                                >
+                                  {deletingPostId === post.post_id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              ) : (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
 
                             {/* Post Content */}
                             <div className="mb-4">
-                              <p className="whitespace-pre-wrap">{post.content}</p>
-                            </div>
-
-                            {/* Post Stats */}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b border-white/10">
-                              <span className="flex items-center gap-1">
-                                <Heart className="w-4 h-4" />
-                                {post.likes_count} likes
-                              </span>
-                              <span>{post.comments_count} comments</span>
+                              <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{post.content}</p>
                             </div>
 
                             {/* Post Actions */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                              <div className="flex items-center gap-1">
                                 <motion.button
                                   whileTap={{ scale: 0.8 }}
                                   onClick={() => toggleLike(post.post_id)}
-                                  className={`flex items-center gap-1 text-sm font-medium transition-all p-2 rounded-md hover:bg-white/10 cursor-pointer ${post.is_liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
-                                    }`}
+                                  className={`flex items-center gap-2 text-xs font-semibold transition-all px-3 py-1.5 rounded-full ${post.is_liked ? "bg-red-500/10 text-red-500" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                                    } cursor-pointer`}
                                 >
-                                  <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                  <Heart className={`w-3.5 h-3.5 ${post.is_liked ? 'fill-red-500' : ''}`} />
                                   {post.likes_count}
                                 </motion.button>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0">
-                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0 h-auto py-1.5 px-3 rounded-full hover:bg-primary/5 text-xs font-semibold">
+                                  <MessageSquare className="w-3.5 h-3.5 mr-2" />
                                   {post.comments_count}
                                 </Button>
                               </div>
                               <motion.button
                                 whileTap={{ scale: 0.8 }}
                                 onClick={() => toggleBookmark(post.post_id)}
-                                className={`p-2 rounded-md hover:bg-white/10 transition-all cursor-pointer ${post.is_bookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
+                                className={`p-2 rounded-full transition-all cursor-pointer ${post.is_bookmarked ? "bg-primary/10 text-primary" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
                                   }`}
                               >
-                                <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
+                                <Bookmark className={`w-3.5 h-3.5 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
                               </motion.button>
-                            </Card>
-                          </motion.div>
-                  ))}
+                            </div>
+                          </CardContent>
+                        </Card>
                       </motion.div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               {/* Analytics Tab */}
