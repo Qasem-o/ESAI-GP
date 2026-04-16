@@ -86,11 +86,12 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     </html>
     """
     
+    # Always print code to logs for fallback/debugging
+    print(f"\n[EMAIL_LOG] Verification code for {email}: {code}\n")
+    
     success = await send_email(subject, email, html_content)
     if success:
         print(f"[SUCCESS] Verification email sent to {email}")
-    else:
-        print(f"FALLBACK: Verification code for {email}: {code}")
     return success
 
 async def send_welcome_email(email: str, username: str) -> bool:
