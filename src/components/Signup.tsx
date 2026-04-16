@@ -76,6 +76,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
   const handleVerificationSuccess = () => {
     // Verification successful, tokens are stored by AuthContext
     // Navigate to dashboard
+    localStorage.setItem('show_disclaimer', 'true');
     onGoToDashboard();
   };
 
