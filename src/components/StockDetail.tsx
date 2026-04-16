@@ -389,8 +389,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
       setIsLoadingNews(true);
       try {
         const newsData = await fetchStockNews(displayStockData.symbol);
-        // Filter > 61 days and Sort Desc
-        const cutoff = Date.now() - (61 * 24 * 60 * 60 * 1000);
+        // Filter > 90 days and Sort Desc
+        const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
         const filtered = newsData
           .filter(n => n.timestamp >= cutoff)
           .sort((a, b) => b.timestamp - a.timestamp);
@@ -992,7 +992,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                 ) : news.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                     <FileText className="w-12 h-12 mb-2 opacity-50" />
-                    <p>No recent news found (last 61 days).</p>
+                    <p>No recent news found (last 90 days).</p>
                   </div>
                 ) : (
                   <motion.div
