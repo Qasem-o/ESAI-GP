@@ -403,6 +403,26 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     };
     loadNews();
   }, [displayStockData.symbol]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center"
+        >
+          <div className="w-20 h-20 relative mb-6">
+             <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+             <Activity className="absolute inset-0 m-auto w-8 h-8 text-primary animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Analyzing {currentSymbol}</h2>
+          <p className="text-muted-foreground animate-pulse">Fetching real-time market insights...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
