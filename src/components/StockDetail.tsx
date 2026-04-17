@@ -339,7 +339,14 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     high: stockDetails.dayHigh || stockData.high,
     low: stockDetails.dayLow || stockData.low,
     volume: stockDetails.volume || stockData.volume
-  } : stockData;
+  } : {
+    ...stockData,
+    symbol: currentSymbol,
+    name: "Loading...",
+    price: 0,
+    change: 0,
+    changePercent: 0
+  };
 
   const handleCreatePost = async () => {
     if (!postContent.trim() || !isAuthenticated) return;
