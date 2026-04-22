@@ -133,8 +133,13 @@ app.include_router(portfolio_router)
 app.include_router(simulator_router)
 app.include_router(community_router)
 
+# Ensure uploads directory exists
+uploads_dir = os.path.join(current_dir, "uploads")
+if not os.path.exists(uploads_dir):
+    os.makedirs(uploads_dir, exist_ok=True)
+
 # Mount static files for uploaded avatars
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Dependency
 def get_db():
