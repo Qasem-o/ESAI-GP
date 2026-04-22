@@ -226,7 +226,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   const renderPost = (post: FeedPost) => {
     const isOwnPost = user && Number(post.author.user_id) === Number((user as any).user_id);
     const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
-      ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
+      ? `https://esai-firstdraft.onrender.com${post.author.profile_picture_url}`
       : post.author.profile_picture_url;
     
     const isDeleting = deletingPostId === post.post_id;
@@ -409,7 +409,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <Avatar className="h-10 w-10">
                       <AvatarImage
                         src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                          ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
                           : (user?.profile_picture_url || "")}
                         alt={user?.username}
                       />
@@ -573,7 +573,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : (
                   topTraders.map((trader) => {
                     const traderPicUrl = trader.profile_picture_url?.startsWith('/')
-                      ? `https://esai-backend.onrender.com${trader.profile_picture_url}`
+                      ? `https://esai-firstdraft.onrender.com${trader.profile_picture_url}`
                       : trader.profile_picture_url;
 
                     return (
@@ -649,7 +649,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               ) : (
                 comments.map((c) => {
                   const cPicUrl = c.author.profile_picture_url?.startsWith('/')
-                    ? `https://esai-backend.onrender.com${c.author.profile_picture_url}`
+                    ? `https://esai-firstdraft.onrender.com${c.author.profile_picture_url}`
                     : c.author.profile_picture_url;
                   return (
                     <div key={c.comment_id} className="flex gap-3">

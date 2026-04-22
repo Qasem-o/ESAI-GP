@@ -74,8 +74,8 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "https://gp-esai.netlify.app",
     "https://gp-esai.netlify.app/",
-    "https://esai-backend.onrender.com",
-    "https://esai-backend.onrender.com/"
+    "https://esai-firstdraft.onrender.com",
+    "https://esai-firstdraft.onrender.com/"
 ]
 
 app.add_middleware(

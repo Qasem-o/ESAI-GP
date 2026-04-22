@@ -129,7 +129,7 @@ export function Header({
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={user?.profile_picture_url?.startsWith('/')
-                        ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                        ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
                         : (user?.profile_picture_url || "")}
                       alt={user?.username}
                     />
@@ -275,7 +275,7 @@ function MobileNav({
                     <Avatar className="h-8 w-8">
                       <AvatarImage
                         src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                          ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
                           : (user?.profile_picture_url || "")}
                         alt={user?.username}
                       />

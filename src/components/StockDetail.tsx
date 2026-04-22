@@ -749,7 +749,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       <Avatar className="h-10 w-10">
                         <AvatarImage
                           src={user?.profile_picture_url?.startsWith('/')
-                            ? `https://esai-backend.onrender.com${user.profile_picture_url}`
+                            ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
                             : (user?.profile_picture_url || "")}
                           alt={user?.username}
                         />
@@ -839,7 +839,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                 <Avatar className="h-12 w-12 flex-shrink-0">
                                   <AvatarImage
                                     src={post.author.profile_picture_url?.startsWith('/')
-                                      ? `https://esai-backend.onrender.com${post.author.profile_picture_url}`
+                                      ? `https://esai-firstdraft.onrender.com${post.author.profile_picture_url}`
                                       : (post.author.profile_picture_url || "")}
                                     alt={post.author.username}
                                   />
