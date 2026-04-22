@@ -13,8 +13,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Add root directory to path to import from preparedata
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add backend and root directory to path to ensure imports work when running from root
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+sys.path.append(os.path.dirname(current_dir))
 from preparedata import Base, Stock, PriceHistory, TechnicalIndicator, ModelMetric
 
 # Import authentication router and middleware
