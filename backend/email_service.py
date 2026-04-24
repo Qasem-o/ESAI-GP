@@ -18,7 +18,7 @@ SMTP_PASS = settings.SMTP_PASS
 # If FROM_EMAIL is missing from env, use the verified Brevo sender email
 FROM_EMAIL = settings.FROM_EMAIL or "shareedh777.com@gmail.com"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
-LOGO_URL = settings.LOGO_URL
+LOGO_URL = settings.LOGO_URL or "https://gp-esai.netlify.app/logo.png"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     """Generic helper to send email via SMTP."""
@@ -46,55 +46,54 @@ async def send_email(subject: str, recipient: str, html_content: str) -> bool:
 async def send_verification_email(email: str, code: str, username: str) -> bool:
     """Send verification code email via SMTP."""
     subject = "Verify your email address - EyeStocks AI"
+    
+    # Use standard strings and join to avoid f-string escaping issues with CSS
     html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
         <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
-            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-            .code-box {{ background: white; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }}
-            .code {{ font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #667eea; }}
-            .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+            .email-body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333333; background-color: #f4f7f9; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+            .header {{ background-color: #6366f1; color: #ffffff; padding: 40px 20px; text-align: center; }}
+            .content {{ padding: 40px 30px; }}
+            .code-box {{ background-color: #f8fafc; border: 2px dashed #6366f1; padding: 30px; text-align: center; margin: 30px 0; border-radius: 12px; }}
+            .code {{ font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #6366f1; margin: 0; }}
+            .footer {{ text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; }}
+            .logo {{ width: 80px; height: 80px; background: white; border-radius: 20px; padding: 5px; margin-bottom: 20px; }}
         </style>
     </head>
-    <body>
+    <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 16px; object-fit: contain; background: white; padding: 5px;" onerror="this.style.display='none'">
-                <h1>🔐 Email Verification</h1>
-                <p>EyeStocks AI</p>
+                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo" width="80" height="80">
+                <h1 style="margin:0; font-size: 24px;">Security Verification</h1>
             </div>
             <div class="content">
-                <h2>Hello {username}!</h2>
-                <p>Thank you for signing up for EyeStocks AI. To complete your registration, please verify your email address using the code below:</p>
+                <h2 style="margin-top:0; color: #1e293b;">Hello, {username}!</h2>
+                <p>Welcome to EyeStocks AI. Please use the following security code to verify your email address and complete your registration:</p>
                 
                 <div class="code-box">
-                    <div class="code">{code}</div>
+                    <p class="code">{code}</p>
                 </div>
                 
-                <p><strong>This code will expire in 10 minutes.</strong></p>
+                <p style="color: #64748b; font-size: 14px;"><strong>Note:</strong> This code is valid for 10 minutes. If you did not request this code, please ignore this email.</p>
                 
-                <p>If you didn't create an account with EyeStocks AI, please ignore this email.</p>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
                 
-                <div class="footer">
-                    <p>© 2025 EyeStocks AI. All rights reserved.</p>
-                </div>
+                <p style="margin-bottom:0;">Best regards,<br><strong>The EyeStocks AI Team</strong></p>
+            </div>
+            <div class="footer">
+                <p>&copy; 2025 EyeStocks AI. All rights reserved.</p>
             </div>
         </div>
     </body>
     </html>
     """
     
-    # Always print code to logs for fallback/debugging
     print(f"\n[EMAIL_LOG] Verification code for {email}: {code}\n")
-    
-    success = await send_email(subject, email, html_content)
-    if success:
-        print(f"[SUCCESS] Verification email sent to {email}")
-    return success
+    return await send_email(subject, email, html_content)
 
 async def send_welcome_email(email: str, username: str) -> bool:
     """Send welcome email after successful verification."""
@@ -103,24 +102,35 @@ async def send_welcome_email(email: str, username: str) -> bool:
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
         <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
-            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .email-body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333333; background-color: #f4f7f9; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+            .header {{ background-color: #10b981; color: #ffffff; padding: 40px 20px; text-align: center; }}
+            .content {{ padding: 40px 30px; }}
+            .footer {{ text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; }}
+            .logo {{ width: 80px; height: 80px; background: white; border-radius: 20px; padding: 5px; margin-bottom: 20px; }}
         </style>
     </head>
-    <body>
+    <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 16px; object-fit: contain; background: white; padding: 5px;" onerror="this.style.display='none'">
-                <h1>🎉 Welcome to EyeStocks AI!</h1>
+                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo" width="80" height="80">
+                <h1 style="margin:0; font-size: 24px;">Welcome Aboard!</h1>
             </div>
             <div class="content">
-                <h2>Hello {username}!</h2>
-                <p>Your email has been successfully verified. Welcome to EyeStocks AI!</p>
-                <p>You can now access all features of our AI-powered stock prediction platform.</p>
-                <p>Happy trading!</p>
+                <h2 style="margin-top:0; color: #1e293b;">Welcome, {username}!</h2>
+                <p>Your email has been successfully verified. You now have full access to EyeStocks AI, the most advanced AI-powered stock prediction platform.</p>
+                <p>We are excited to help you make smarter investment decisions.</p>
+                
+                <div style="margin-top: 30px;">
+                    <a href="https://gp-esai.netlify.app" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Get Started Now</a>
+                </div>
+                
+                <p style="margin-top: 30px; margin-bottom:0;">Happy Trading,<br><strong>The EyeStocks AI Team</strong></p>
+            </div>
+            <div class="footer">
+                <p>&copy; 2025 EyeStocks AI. All rights reserved.</p>
             </div>
         </div>
     </body>
