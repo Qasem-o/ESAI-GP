@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     SMTP_PASS: Optional[str] = None
     FROM_EMAIL: str = "shareedh777.com@gmail.com"
     FROM_NAME: str = "EyeStocks AI"
+    LOGO_URL: str = "https://gp-esai.netlify.app/logo.png"
 
     # Support extra fields to prevent crashes when new env vars are added
     if SettingsConfigDict:

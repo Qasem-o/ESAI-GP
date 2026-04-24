@@ -30,6 +30,8 @@ export function SocialLogin({ mode }: SocialLoginProps) {
             setIsGoogleLoading(true);
             try {
                 await loginWithGoogle(tokenResponse.access_token);
+                // Trigger disclaimer for social login as well
+                localStorage.setItem('show_disclaimer', 'true');
                 navigate('/');
             } catch (error) {
                 console.error('Google login failed:', error);
@@ -65,6 +67,8 @@ export function SocialLogin({ mode }: SocialLoginProps) {
         (window as any).onTelegramAuth = async (user: any) => {
             try {
                 await loginWithTelegram(user);
+                // Trigger disclaimer for social login as well
+                localStorage.setItem('show_disclaimer', 'true');
                 navigate('/');
             } catch (error) {
                 console.error('Telegram login failed:', error);

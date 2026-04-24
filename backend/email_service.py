@@ -18,6 +18,7 @@ SMTP_PASS = settings.SMTP_PASS
 # If FROM_EMAIL is missing from env, use the verified Brevo sender email
 FROM_EMAIL = settings.FROM_EMAIL or "shareedh777.com@gmail.com"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
+LOGO_URL = settings.LOGO_URL
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     """Generic helper to send email via SMTP."""
@@ -62,6 +63,7 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     <body>
         <div class="container">
             <div class="header">
+                <img src="{LOGO_URL}" alt="EyeStocks AI Logo" style="width: 80px; height: auto; margin-bottom: 15px; border-radius: 12px;">
                 <h1>🔐 Email Verification</h1>
                 <p>EyeStocks AI</p>
             </div>
@@ -111,6 +113,7 @@ async def send_welcome_email(email: str, username: str) -> bool:
     <body>
         <div class="container">
             <div class="header">
+                <img src="{LOGO_URL}" alt="EyeStocks AI Logo" style="width: 80px; height: auto; margin-bottom: 15px; border-radius: 12px;">
                 <h1>🎉 Welcome to EyeStocks AI!</h1>
             </div>
             <div class="content">

@@ -10,6 +10,7 @@ import { StockDetail } from "./components/StockDetail";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { DisclaimerModal } from "./components/DisclaimerModal";
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
 
@@ -53,6 +54,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <DisclaimerModal />
         <Routes>
           <Route path="/" element={<Community {...navigationProps} />} />
           <Route path="/explore" element={<Stocks {...navigationProps} />} />

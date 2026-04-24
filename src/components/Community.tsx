@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -85,19 +86,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   const [comments, setComments] = useState<CommentType[]>([]);
   const [commentText, setCommentText] = useState("");
   const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  useEffect(() => {
-    const shouldShow = localStorage.getItem('show_disclaimer');
-    if (shouldShow === 'true' && isAuthenticated) {
-      setShowDisclaimer(true);
-    }
-  }, [isAuthenticated]);
-
-  const closeDisclaimer = () => {
-    setShowDisclaimer(false);
-    localStorage.removeItem('show_disclaimer');
-  };
 
   const fetchFeed = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -692,49 +681,6 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
         </div>
       )}
 
-      {/* Disclaimer Modal */}
-      {showDisclaimer && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-background rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-primary/20"
-          >
-            <div className="bg-gradient-to-r from-primary/20 to-blue-600/20 p-6 text-center border-b border-primary/10">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-10 h-10 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold">براءة ذمة وإخلاء مسؤولية</h2>
-            </div>
-            
-            <div className="p-8 space-y-6 text-right" dir="rtl">
-              <div className="space-y-4">
-                <p className="text-lg font-medium text-foreground">
-                  مرحباً بك في EyeStocks AI!
-                </p>
-                <div className="space-y-3 text-muted-foreground leading-relaxed">
-                  <p>
-                    نود التأكيد على أن جميع التوقعات، الأسعار، والتحليلات المعروضة عبر النماذج الذكية في المنصة هي لأغراض **دعم القرار فقط** ولا تمثل نصيحة مالية مباشرة أو دعوة للشراء أو البيع.
-                  </p>
-                  <p>
-                    الاستثمار في الأسواق المالية ينطوي على مخاطر عالية، وأي قرار تتخذه هو تحت **مسؤوليتك الشخصية الكاملة**. لا نتحمل أي مسؤولية عن أي خسائر مادية قد تنتج عن الاعتماد على البيانات المتاحة.
-                  </p>
-                  <p className="font-semibold text-primary/80">
-                    الذكاء الاصطناعي هو أداة مساعدة، وقرارك الاستثماري يحتاج دائماً لبحثك الخاص.
-                  </p>
-                </div>
-              </div>
-
-              <Button 
-                onClick={closeDisclaimer} 
-                className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20 mt-4"
-              >
-                فهمت وأوافق
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }

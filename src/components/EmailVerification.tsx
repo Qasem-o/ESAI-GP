@@ -17,6 +17,7 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
     const [resendCooldown, setResendCooldown] = useState(0);
+    const [isSuccess, setIsSuccess] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     // Handle countdown for resend
@@ -28,15 +29,18 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
     }, [resendCooldown]);
 
     const handleChange = (index: number, value: string) => {
+        // Take only the last character if multiple are entered (e.g. overwrite)
+        const char = value.slice(-1);
+        
         // Only allow numbers
-        if (value && !/^\d+$/.test(value)) return;
+        if (char && !/^\d+$/.test(char)) return;
 
         const newCode = [...code];
-        newCode[index] = value;
+        newCode[index] = char;
         setCode(newCode);
 
-        // Auto-focus next input
-        if (value && index < 5) {
+        // Auto-focus next input if a value was entered
+        if (char && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
@@ -50,16 +54,19 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
             const digits = pastedData.split('');
             setCode(digits);
             // Construct full code and verify immediately
-            handleVerify(digits.join(''));
-            // Focus last input
-            inputRefs.current[5]?.focus();
+            handleVerify(pastedData);
         }
     };
 
     const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-        // Handle backspace
-        if (e.key === 'Backspace' && !code[index] && index > 0) {
-            inputRefs.current[index - 1]?.focus();
+        // Handle backspace: move to previous field if current is empty
+        if (e.key === 'Backspace') {
+            if (!code[index] && index > 0) {
+                inputRefs.current[index - 1]?.focus();
+                const newCode = [...code];
+                newCode[index - 1] = '';
+                setCode(newCode);
+            }
         }
     };
 
@@ -74,9 +81,18 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
         try {
             setError('');
             await verifyEmail(email, codeToVerify);
-            onVerified();
+            setIsSuccess(true);
+            
+            // Give a small delay for the success state to show before navigation
+            // This prevents race conditions and "black screen" issues
+            setTimeout(() => {
+                onVerified();
+            }, 1500);
         } catch (err: any) {
             setError(err.message || 'Verification failed');
+            // If failed, clear the code to let them try again
+            if (!verificationCode) setCode(['', '', '', '', '', '']);
+            inputRefs.current[0]?.focus();
         }
     };
 
@@ -94,7 +110,7 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
 
     // Auto-submit when all fields are filled
     useEffect(() => {
-        if (code.every(digit => digit !== '')) {
+        if (code.every(digit => digit !== '') && !isSuccess && !isLoading) {
             handleVerify();
         }
     }, [code]);
@@ -140,14 +156,19 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
                 )}
 
                 <Button
-                    className="w-full h-11"
+                    className={`w-full h-11 transition-all ${isSuccess ? "bg-green-600 hover:bg-green-700" : ""}`}
                     onClick={() => handleVerify()}
-                    disabled={isLoading || code.some(d => !d)}
+                    disabled={isLoading || code.some(d => !d) || isSuccess}
                 >
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Verifying...
+                        </>
+                    ) : isSuccess ? (
+                        <>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Verified Successfully!
                         </>
                     ) : (
                         <>
