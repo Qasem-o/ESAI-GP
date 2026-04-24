@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { AlertCircle, ShieldCheck, TrendingUp, Info } from "lucide-react";
@@ -34,15 +35,16 @@ export function DisclaimerModal() {
     localStorage.removeItem('show_disclaimer');
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {show && (
-        <div className="fixed inset-0 bg-background/60 backdrop-blur-xl z-[9999] flex items-center justify-center p-4 md:p-6">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-xl flex items-center justify-center p-4 md:p-6" style={{ position: 'fixed', zIndex: 999999, top: 0, left: 0, right: 0, bottom: 0 }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden border border-border/50 relative"
+            className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full overflow-hidden border border-border/50 relative mx-auto"
+            style={{ maxWidth: '450px' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Design Elements */}
@@ -120,6 +122,7 @@ export function DisclaimerModal() {
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
