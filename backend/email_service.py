@@ -63,7 +63,7 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     <body>
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI Logo" style="width: 80px; height: auto; margin-bottom: 15px; border-radius: 12px;">
+                <img src="{LOGO_URL}" alt="EyeStocks AI" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 16px; object-fit: contain; background: white; padding: 5px;" onerror="this.style.display='none'">
                 <h1>🔐 Email Verification</h1>
                 <p>EyeStocks AI</p>
             </div>
@@ -113,7 +113,7 @@ async def send_welcome_email(email: str, username: str) -> bool:
     <body>
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI Logo" style="width: 80px; height: auto; margin-bottom: 15px; border-radius: 12px;">
+                <img src="{LOGO_URL}" alt="EyeStocks AI" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 16px; object-fit: contain; background: white; padding: 5px;" onerror="this.style.display='none'">
                 <h1>🎉 Welcome to EyeStocks AI!</h1>
             </div>
             <div class="content">

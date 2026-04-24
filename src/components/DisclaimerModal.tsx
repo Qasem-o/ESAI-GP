@@ -9,10 +9,24 @@ export function DisclaimerModal() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const shouldShow = localStorage.getItem('show_disclaimer');
-    if (shouldShow === 'true' && isAuthenticated) {
-      setShow(true);
-    }
+    // Check immediately
+    const check = () => {
+      const shouldShow = localStorage.getItem('show_disclaimer');
+      if (shouldShow === 'true' && isAuthenticated) {
+        setShow(true);
+      }
+    };
+    
+    check();
+
+    // Also check every second for 5 seconds in case of race conditions during login/signup
+    const interval = setInterval(check, 1000);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+    
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, [isAuthenticated]);
 
   const handleAccept = () => {
