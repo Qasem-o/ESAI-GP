@@ -25,19 +25,26 @@ from profile_routes import router as profile_router
 from portfolio_routes import router as portfolio_router
 from simulator_routes import router as simulator_router
 from community_routes import router as community_router
+from admin_routes import router as admin_router
+import admin_routes as _admin_routes
 from middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+import prediction_models  # noqa: ensure price_predictions table is registered
 
 # Database Config
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Fallback for local development
 if not DATABASE_URL:
+    import urllib.parse
     PG_USER = os.getenv("PG_USER", "postgres")
     PG_PASS = os.getenv("PG_PASS", "123123")
     PG_HOST = os.getenv("PG_HOST", "localhost")
     PG_PORT = os.getenv("PG_PORT", "5432")
     PG_DB = os.getenv("PG_DB", "Stocksdata")
-    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+    
+    # URL encode the password to handle special characters like '@'
+    encoded_pass = urllib.parse.quote_plus(PG_PASS)
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{encoded_pass}@{PG_HOST}:{PG_PORT}/{PG_DB}"
 elif DATABASE_URL.startswith("postgres://"):
     # Fix for hosting providers that use the old postgres:// prefix
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
@@ -136,6 +143,10 @@ app.include_router(profile_router)
 app.include_router(portfolio_router)
 app.include_router(simulator_router)
 app.include_router(community_router)
+app.include_router(admin_router)
+# Override admin_routes.get_db so it uses our engine
+from fastapi import Depends as _Depends
+app.dependency_overrides[_admin_routes.get_db] = get_db
 
 # Ensure uploads directory exists
 uploads_dir = os.path.join(current_dir, "uploads")
@@ -390,66 +401,122 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
     stock = db.query(Stock).filter(Stock.symbol == symbol).first()
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
-    
-    # Simple statistical prediction based on recent history
-    history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
-        .order_by(desc(PriceHistory.date))\
-        .limit(30)\
+
+    current_price = float(stock.current_price or 0)
+
+    # ── 1. Try to use AI-trained prediction from DB ─────────────────────────
+    try:
+        from prediction_models import PricePrediction
+        from datetime import date, timedelta
+        today = date.today()
+        # Look for prediction for today or the next 3 days
+        ai_pred = (
+            db.query(PricePrediction)
+            .filter(
+                PricePrediction.stock_id == stock.stock_id,
+                PricePrediction.prediction_date >= today,
+                PricePrediction.prediction_date <= today + timedelta(days=3),
+            )
+            .order_by(PricePrediction.prediction_date)
+            .first()
+        )
+        if ai_pred:
+            predicted_price = float(ai_pred.predicted_price)
+            change_percent  = float(ai_pred.change_percent or 0)
+            direction       = ai_pred.direction or ("bullish" if change_percent > 0 else "bearish")
+            confidence      = float(ai_pred.confidence or 75.0)
+            recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
+            target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
+            stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
+
+            # Technical analysis points
+            latest_tech = (
+                db.query(TechnicalIndicator)
+                .filter(TechnicalIndicator.stock_id == stock.stock_id)
+                .order_by(desc(TechnicalIndicator.date))
+                .first()
+            )
+            analysis_points = [f"🤖 AI Hybrid Model prediction (LSTM + XGBoost) — {ai_pred.model_type}."]
+            if latest_tech:
+                rsi_val = float(latest_tech.rsi) if latest_tech.rsi else None
+                if rsi_val:
+                    if rsi_val > 70:
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: overbought territory.")
+                    elif rsi_val < 30:
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: oversold territory.")
+                    else:
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: neutral zone.")
+                if latest_tech.macd and latest_tech.macd_signal:
+                    if latest_tech.macd > latest_tech.macd_signal:
+                        analysis_points.append("MACD above signal line — bullish momentum.")
+                    else:
+                        analysis_points.append("MACD below signal line — bearish momentum.")
+            analysis_points.append(f"Predicted change: {change_percent:+.2f}%")
+
+            return {
+                "tomorrow_price": round(predicted_price, 2),
+                "confidence": confidence,
+                "direction": direction,
+                "change_percent": round(change_percent, 2),
+                "recommendation": recommendation,
+                "target_price": target_price,
+                "stop_loss": stop_loss,
+                "risk_level": "Low" if confidence > 85 else ("Medium" if confidence > 70 else "High"),
+                "analysis": analysis_points,
+            }
+    except Exception as e:
+        print(f"⚠️ Could not load AI prediction for {symbol}: {e}")
+
+    # ── 2. Fallback: Statistical prediction from recent history ─────────────
+    history = (
+        db.query(PriceHistory)
+        .filter(PriceHistory.stock_id == stock.stock_id)
+        .order_by(desc(PriceHistory.date))
+        .limit(30)
         .all()
-        
+    )
     if not history or len(history) < 2:
         return {
-            "tomorrow_price": float(stock.current_price or 0),
+            "tomorrow_price": current_price,
             "confidence": 0,
             "direction": "neutral",
-            "change_percent": 0
+            "change_percent": 0,
+            "recommendation": "HOLD",
+            "target_price": current_price,
+            "stop_loss": current_price,
+            "risk_level": "High",
+            "analysis": ["Insufficient data for prediction."],
         }
-    
-    # Calculate simple momentum
-    recent_closes = [float(h.close) for h in history]
-    current_price = recent_closes[0]
-    avg_change = sum((recent_closes[i] - recent_closes[i+1]) for i in range(len(recent_closes)-1)) / len(recent_closes)
-    
-    predicted_price = current_price + avg_change
-    change_percent = ((predicted_price - current_price) / current_price) * 100
-    
-    direction = "bullish" if change_percent > 0 else "bearish"
-    
-    # Fetch metrics for confidence if available
-    metric = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
-    confidence = float(metric.directional_accuracy) if metric else 75.0
 
-    # Auto-generate detailed fields
-    recommendation = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
-    target_price = round(predicted_price * 1.05 if direction == "bullish" else predicted_price * 0.95, 2)
-    stop_loss = round(current_price * 0.95 if direction == "bullish" else current_price * 1.05, 2)
-    
-    # Generate analysis points based on technicals if available
-    latest_tech = db.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id == stock.stock_id)\
-        .order_by(desc(TechnicalIndicator.date)).first()
-        
-    analysis_points = []
+    recent_closes = [float(h.close) for h in history]
+    avg_change     = sum(recent_closes[i] - recent_closes[i + 1] for i in range(len(recent_closes) - 1)) / len(recent_closes)
+    predicted_price = current_price + avg_change
+    change_percent  = ((predicted_price - current_price) / current_price) * 100 if current_price else 0
+    direction       = "bullish" if change_percent > 0 else "bearish"
+    metric          = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
+    confidence      = float(metric.directional_accuracy) if metric else 65.0
+    recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
+    target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
+    stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
+
+    latest_tech = (
+        db.query(TechnicalIndicator)
+        .filter(TechnicalIndicator.stock_id == stock.stock_id)
+        .order_by(desc(TechnicalIndicator.date))
+        .first()
+    )
+    analysis_points = ["📊 Statistical momentum model (AI training pending)."]
     if latest_tech:
         if latest_tech.rsi and latest_tech.rsi > 70:
-            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f}, indicating overbought conditions.")
+            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f} — overbought.")
         elif latest_tech.rsi and latest_tech.rsi < 30:
-            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f}, indicating oversold conditions.")
-        else:
-            analysis_points.append(f"RSI is neutral at {float(latest_tech.rsi or 50):.1f}.")
-            
+            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f} — oversold.")
         if latest_tech.macd and latest_tech.macd_signal:
-             if latest_tech.macd > latest_tech.macd_signal:
-                 analysis_points.append("MACD is above signal line (Bullish momentum).")
-             else:
-                 analysis_points.append("MACD is below signal line (Bearish momentum).")
-    
-    if not analysis_points:
-        analysis_points = ["Collecting more technical data for deep analysis."]
-        
-    if abs(change_percent) > 2:
-        analysis_points.append(f"Strong momentum detected ({change_percent:+.2f}% predicted).")
-    
-    
+            if latest_tech.macd > latest_tech.macd_signal:
+                analysis_points.append("MACD above signal line — bullish momentum.")
+            else:
+                analysis_points.append("MACD below signal line — bearish momentum.")
+
     return {
         "tomorrow_price": round(predicted_price, 2),
         "confidence": confidence,
@@ -459,7 +526,7 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
         "target_price": target_price,
         "stop_loss": stop_loss,
         "risk_level": "Medium",
-        "analysis": analysis_points
+        "analysis": analysis_points,
     }
 
 @app.get("/stocks/{symbol}/sentiment", response_model=SentimentResponse)

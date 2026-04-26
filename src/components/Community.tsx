@@ -238,8 +238,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     className="font-semibold cursor-pointer hover:underline hover:text-primary transition-colors"
                     onClick={() => navigate(`/profile/${post.author.user_id}`)}
                   >
-                    {post.author.username}
+                    {post.author.full_name || post.author.username}
                   </span>
+                  <span className="text-xs text-muted-foreground">@{post.author.username}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-1">
@@ -575,7 +576,10 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold text-sm">{trader.username}</p>
+                            <p className="font-semibold text-sm">{trader.full_name || trader.username}</p>
+                            <p className="text-xs text-muted-foreground">
+                              @{trader.username.toLowerCase()}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {trader.followers_count} followers • {trader.posts_count} posts
                             </p>
@@ -650,8 +654,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                       </Avatar>
                       <div className="flex-1 bg-muted/50 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">{c.author.username}</span>
-                          <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
+                          <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
+                          <span className="text-xs text-muted-foreground">@{c.author.username}</span>
+                          <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
                         </div>
                         <p className="text-sm">{c.content}</p>
                       </div>

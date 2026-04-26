@@ -29,6 +29,7 @@ export interface Post {
 export interface Follower {
     user_id: number;
     username: string;
+    full_name?: string;
     email: string;
     profile_picture_url?: string;
     bio?: string;

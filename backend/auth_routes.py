@@ -93,6 +93,7 @@ async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
     new_user = User(
         email=user_data.email,
         username=user_data.username,
+        full_name=user_data.full_name,
         password_hash=password_hash,
         is_verified=False,
         is_active=True
@@ -316,6 +317,10 @@ async def update_profile(
         
         current_user.username = profile_data.username
     
+    # Update full name if provided
+    if profile_data.full_name is not None:
+        current_user.full_name = profile_data.full_name
+    
     # Update phone number if provided
     if profile_data.phone_number is not None:
         current_user.phone_number = profile_data.phone_number
@@ -444,6 +449,7 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
         user = User(
             email=email,
             username=username,
+            full_name=name,
             password_hash=None, # No password for OAuth users
             is_verified=True,
             profile_picture_url=picture,

@@ -3,6 +3,7 @@ import { API_BASE_URL, getHeaders } from './apiConfig';
 export interface SignupData {
     email: string;
     username: string;
+    full_name: string;
     password: string;
 }
 
@@ -19,6 +20,7 @@ export interface VerifyEmailData {
 export interface UserProfile {
     user_id: number;
     username: string;
+    full_name?: string;
     email: string;
     phone_number?: string;
     profile_picture_url?: string;
@@ -26,6 +28,7 @@ export interface UserProfile {
     profile_completed: boolean;
     created_at: string;
     is_verified: boolean;
+    is_admin?: boolean;
     last_login?: string;
 }
 

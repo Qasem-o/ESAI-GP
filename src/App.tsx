@@ -3,14 +3,21 @@ import { Community } from "./components/Community";
 import { Stocks } from "./components/Stocks";
 import { Portfolio } from "./components/Portfolio";
 import { Simulator } from "./components/Simulator";
-import { Profile } from "./components/ProfileDynamic"; // Using dynamic profile with real user data
+import { Profile } from "./components/ProfileDynamic";
 import { Login } from "./components/Login";
 import { Signup } from "./components/Signup";
 import { StockDetail } from "./components/StockDetail";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
 import { DisclaimerModal } from "./components/DisclaimerModal";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { AdminOverview } from "./components/admin/AdminOverview";
+import { UserManagement } from "./components/admin/UserManagement";
+import { StockManagement } from "./components/admin/StockManagement";
+import { ModelManagement } from "./components/admin/ModelManagement";
+import { CommunityManagement } from "./components/admin/CommunityManagement";
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
 
@@ -35,7 +42,7 @@ export default function App() {
   const currentPage = getCurrentPage();
 
   const navigationProps = {
-    currentPage: currentPage === "stock" ? "explore" : currentPage, // Initial behavior showed specialized explore highlighting
+    currentPage: currentPage === "stock" ? "explore" : currentPage,
     onGoToHome: () => navigate("/"),
     onGoToExplore: () => navigate("/explore"),
     onGoToPortfolio: () => navigate("/portfolio"),
@@ -43,12 +50,13 @@ export default function App() {
     onGoToProfile: () => navigate("/profile"),
     onGoToSignup: () => navigate("/signup"),
     onGoToLogin: () => navigate("/login"),
+    onGoToAdmin: () => navigate("/admin"),
     onGoToStockDetails: (symbol: string) => navigate(`/stock/${symbol}`),
     onGoToStocks: () => navigate("/explore"),
     onGoToCommunity: () => navigate("/"),
     onGoToNews: () => { },
     onGoToLearn: () => { },
-    onGoToDashboard: () => navigate("/"), // Handle Login/Signup redirect
+    onGoToDashboard: () => navigate("/"),
   };
 
   return (
@@ -107,6 +115,17 @@ export default function App() {
                 />
               }
             />
+          </Route>
+
+          {/* Admin Routes - require admin role */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="users"     element={<UserManagement />} />
+              <Route path="stocks"    element={<StockManagement />} />
+              <Route path="models"    element={<ModelManagement />} />
+              <Route path="community" element={<CommunityManagement />} />
+            </Route>
           </Route>
 
           <Route

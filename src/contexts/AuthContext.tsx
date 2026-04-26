@@ -11,7 +11,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
-    signup: (email: string, username: string, password: string) => Promise<void>;
+    signup: (email: string, username: string, full_name: string, password: string) => Promise<void>;
     verifyEmail: (email: string, code: string) => Promise<void>;
     resendVerification: (email: string) => Promise<void>;
     logout: () => void;
@@ -67,10 +67,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initializeAuth();
     }, []);
 
-    const signup = async (email: string, username: string, password: string) => {
+    const signup = async (email: string, username: string, full_name: string, password: string) => {
         setIsLoading(true);
         try {
-            await authAPI.signup({ email, username, password });
+            await authAPI.signup({ email, username, full_name, password });
             // Note: User is not set here, will be set after email verification
         } finally {
             setIsLoading(false);

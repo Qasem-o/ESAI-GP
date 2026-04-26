@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
-import { User, Menu, X, LogOut, ChevronDown } from "lucide-react";
+import { User, Menu, X, LogOut, ChevronDown, Shield } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -20,12 +20,13 @@ import {
 interface HeaderProps {
   currentPage?: string;
   onGoToHome?: () => void;
-  onGoToExplore?: () => void; // Market/Explore
+  onGoToExplore?: () => void;
   onGoToPortfolio?: () => void;
   onGoToSimulator?: () => void;
   onGoToProfile?: () => void;
   onGoToSignup?: () => void;
   onGoToLogin?: () => void;
+  onGoToAdmin?: () => void;
 }
 
 export function Header({
@@ -36,8 +37,8 @@ export function Header({
   onGoToSimulator,
   onGoToProfile,
   onGoToSignup,
-  onGoToLogin
-
+  onGoToLogin,
+  onGoToAdmin,
 }: HeaderProps) {
   const { theme } = useTheme();
   const { user, isAuthenticated, logout } = useAuth();
@@ -149,9 +150,9 @@ export function Header({
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user?.username}</p>
+                        <p className="text-sm font-medium leading-none">{user?.full_name || user?.username}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          {user?.email}
+                          @{user?.username}
                         </p>
                       </div>
                     </DropdownMenuLabel>
@@ -160,6 +161,15 @@ export function Header({
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
+                    {user?.is_admin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={onGoToAdmin} className="cursor-pointer text-orange-600 focus:text-orange-600">
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin Panel</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
@@ -283,7 +293,10 @@ function MobileNav({
                         <DefaultAvatar />
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{user?.username}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium leading-none">{user?.full_name || user?.username}</span>
+                      <span className="text-xs text-muted-foreground mt-1">@{user?.username}</span>
+                    </div>
                   </div>
                   <Button variant="outline" onClick={() => handleNavClick(onGoToProfile)} className="justify-start">
                     <User className="w-4 h-4 mr-2" /> Profile

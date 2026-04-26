@@ -11,6 +11,7 @@ class UserSignup(BaseModel):
     """User signup request schema."""
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
+    full_name: Optional[str] = Field(None, max_length=100)
     password: str = Field(..., min_length=8)
     
     @validator('username')
@@ -58,6 +59,7 @@ class UserResponse(BaseModel):
     """User profile response schema."""
     user_id: int
     username: str
+    full_name: Optional[str] = None
     email: str
     phone_number: Optional[str]
     profile_picture_url: Optional[str]
@@ -65,6 +67,7 @@ class UserResponse(BaseModel):
     profile_completed: bool
     created_at: datetime
     is_verified: bool
+    is_admin: bool = False
     last_login: Optional[datetime]
     
     class Config:
@@ -87,6 +90,7 @@ class RefreshTokenRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     """Update user profile request schema."""
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
+    full_name: Optional[str] = Field(None, max_length=100)
     phone_number: Optional[str] = Field(None, max_length=20)
     bio: Optional[str] = Field(None, max_length=500)
     profile_picture_url: Optional[str] = Field(None, max_length=255)

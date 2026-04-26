@@ -1,54 +1,101 @@
+"""
+model_training.py - Dynamic Training & Next-Day Prediction
+
+Reads ALL stocks from the database (no hardcoded lists).
+For each stock:
+  1. Loads price history + technical indicators from DB.
+  2. Trains a Hybrid LSTM + XGBoost model.
+  3. Predicts the next trading day's price.
+  4. Saves predictions + metrics to the DB.
+
+Usage:
+  python model_training.py
+"""
+
 import pandas as pd
 import numpy as np
 import os
+import sys
 import joblib
+from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+
+# ─── Path setup ────────────────────────────────────────────────────────────────
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT_DIR = os.path.dirname(_BACKEND_DIR) if os.path.basename(_BACKEND_DIR) == "backend" else _BACKEND_DIR
+
+sys.path.insert(0, _BACKEND_DIR)
+sys.path.insert(0, _ROOT_DIR)
+
+# Load env
+load_dotenv(os.path.join(_BACKEND_DIR, '.env'))
+load_dotenv(os.path.join(_ROOT_DIR, 'backend', '.env'))
+load_dotenv()
+
 from xgboost import XGBRegressor
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
-from preparedata import Base, ModelMetric, Stock # Import ORM models
 
-# ==========================================
-# 1. CONFIGURATION
-# ==========================================
-DB_CONFIG = {
-    'user': 'postgres',
-    'password': '123123',
-    'host': 'localhost',
-    'port': '5432',
-    'database': 'Stocksdata' 
-}
+from preparedata import Base, ModelMetric, Stock, PriceHistory
 
-MODEL_DIR = "trained_models"
+# Import prediction model
+from prediction_models import PricePrediction
 
-# ==========================================
-# 2. DATA LOADING & HELPERS
-# ==========================================
+# ─── Configuration ─────────────────────────────────────────────────────────────
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    import urllib.parse
+    PG_USER = os.getenv("PG_USER", "postgres")
+    PG_PASS = os.getenv("PG_PASS", "123123")
+    PG_HOST = os.getenv("PG_HOST", "localhost")
+    PG_PORT = os.getenv("PG_PORT", "5432")
+    PG_DB   = os.getenv("PG_DB",   "Stocksdata")
+    
+    # URL encode the password to handle special characters like '@'
+    encoded_pass = urllib.parse.quote_plus(PG_PASS)
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{encoded_pass}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+elif DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+MODEL_DIR = os.path.join(_ROOT_DIR, "trained_models")
+
+# ─── DB Helpers ────────────────────────────────────────────────────────────────
+
 def get_db_engine():
-    url = f"postgresql+psycopg2://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
-    return create_engine(url)
+    return create_engine(DATABASE_URL, echo=False)
+
 
 def create_tables_if_not_exist():
     engine = get_db_engine()
     Base.metadata.create_all(engine)
-    print("✅ Verified/Created database tables.")
+    # Also ensure price_predictions table exists
+    from prediction_models import PricePrediction  # noqa already imported above
+    from models import Base as AuthBase
+    AuthBase.metadata.create_all(engine)
+    print("✅ Verified/Created all database tables.")
+
 
 def get_all_tickers():
+    """Fetch ALL stock symbols from the DB (fully dynamic, no hardcoded list)."""
     engine = get_db_engine()
     with engine.connect() as conn:
         result = conn.execute(text("SELECT DISTINCT symbol FROM stocks ORDER BY symbol"))
         tickers = [row[0] for row in result]
     return tickers
 
-def load_data_from_postgres(ticker):
-    # print(f"Fetching data for {ticker}...")
+
+def load_data_from_db(ticker: str) -> pd.DataFrame | None:
+    """Load price history + technical indicators for a ticker from the DB."""
     engine = get_db_engine()
-    
     query = f"""
-    SELECT 
+    SELECT
         ph.date, ph.close, ph.volume,
         ti.rsi, ti.macd, ti.macd_signal, ti.sma_20, ti.sma_50
     FROM price_history ph
@@ -58,209 +105,213 @@ def load_data_from_postgres(ticker):
     ORDER BY ph.date ASC
     """
     df = pd.read_sql(query, engine)
-    if df.empty: 
+    if df.empty:
         return None
-        
     df['date'] = pd.to_datetime(df['date'])
     df.set_index('date', inplace=True)
     df.dropna(inplace=True)
     return df
 
-# ==========================================
-# 3. TRAINING LOGIC
-# ==========================================
-def train_and_save_model(ticker):
-    print(f"\n=========================================")
+
+# ─── Next Trading Day ──────────────────────────────────────────────────────────
+
+def next_trading_day(ref_date: date_type) -> date_type:
+    """Returns the next weekday (Mon-Fri) after ref_date."""
+    nxt = ref_date + timedelta(days=1)
+    while nxt.weekday() >= 5:  # Saturday=5, Sunday=6
+        nxt += timedelta(days=1)
+    return nxt
+
+
+# ─── Training Logic ────────────────────────────────────────────────────────────
+
+def train_and_predict(ticker: str):
+    print(f"\n{'='*45}")
     print(f"🚀 Processing: {ticker}")
-    print(f"=========================================")
-    
+    print(f"{'='*45}")
+
     # 1. Load Data
-    df = load_data_from_postgres(ticker)
+    df = load_data_from_db(ticker)
     if df is None:
-        print(f"⚠️ No data found for {ticker}. Skipping.")
+        print(f"  ⚠️  No data found for {ticker}. Skipping.")
         return
-    
     if len(df) < 100:
-        print(f"⚠️ Not enough data points ({len(df)}) for {ticker}. Skipping.")
+        print(f"  ⚠️  Only {len(df)} rows for {ticker} (need ≥100). Skipping.")
         return
 
-    # Directories
     ticker_dir = os.path.join(MODEL_DIR, ticker)
     os.makedirs(ticker_dir, exist_ok=True)
 
-    # Features for XGBoost
     feature_cols = ['rsi', 'macd', 'macd_signal', 'sma_20', 'sma_50', 'volume']
-    
-    # Split
+    look_back = 60
+
     train_size = int(len(df) * 0.8)
     train_df = df.iloc[:train_size]
-    test_df = df.iloc[train_size:]
-    
-    # -----------------------------------
-    # MODEL 1: LSTM (Trend)
-    # -----------------------------------
+    test_df  = df.iloc[train_size:]
+
+    # ── MODEL 1: LSTM ──────────────────────────────────────────────────────
     print(f"  [1/3] Training LSTM...")
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(df[['close']])
-    
-    look_back = 60
-    
+
     def create_sequences(dataset):
         X, y = [], []
         for i in range(look_back, len(dataset)):
-            X.append(dataset[i-look_back:i, 0])
+            X.append(dataset[i - look_back:i, 0])
             y.append(dataset[i, 0])
         return np.array(X), np.array(y)
 
     X_all, y_all = create_sequences(scaled_data)
-    
     if len(X_all) == 0:
-        print("    ⚠️ Not enough data for sequences.")
+        print("    ⚠️  Not enough data for sequences.")
         return
 
     train_len_lstm = int(len(X_all) * 0.8)
-    X_train_lstm = X_all[:train_len_lstm]
-    y_train_lstm = y_all[:train_len_lstm]
-    X_test_lstm = X_all[train_len_lstm:]
-    
-    X_train_lstm = np.reshape(X_train_lstm, (X_train_lstm.shape[0], look_back, 1))
-    X_test_lstm = np.reshape(X_test_lstm, (X_test_lstm.shape[0], look_back, 1))
-    
-    # Define Model
-    model_lstm = Sequential()
-    model_lstm.add(Input(shape=(look_back, 1)))
-    model_lstm.add(LSTM(50, return_sequences=True))
-    model_lstm.add(Dropout(0.2))
-    model_lstm.add(LSTM(50, return_sequences=False))
-    model_lstm.add(Dropout(0.2))
-    model_lstm.add(Dense(25))
-    model_lstm.add(Dense(1))
-    
+    X_train_lstm  = X_all[:train_len_lstm].reshape(-1, look_back, 1)
+    y_train_lstm  = y_all[:train_len_lstm]
+    X_test_lstm   = X_all[train_len_lstm:].reshape(-1, look_back, 1)
+
+    model_lstm = Sequential([
+        Input(shape=(look_back, 1)),
+        LSTM(50, return_sequences=True),
+        Dropout(0.2),
+        LSTM(50, return_sequences=False),
+        Dropout(0.2),
+        Dense(25),
+        Dense(1),
+    ])
     model_lstm.compile(optimizer='adam', loss='mean_squared_error')
-    model_lstm.fit(X_train_lstm, y_train_lstm, batch_size=32, epochs=10, verbose=0) # Epochs reduced for speed in batch
-    
-    # Save LSTM & Scaler
+    model_lstm.fit(X_train_lstm, y_train_lstm, batch_size=32, epochs=10, verbose=0)
+
     model_lstm.save(os.path.join(ticker_dir, 'lstm_model.h5'))
     joblib.dump(scaler, os.path.join(ticker_dir, 'scaler.pkl'))
-    
-    # Predict for Hybrid
-    lstm_test_pred_scaled = model_lstm.predict(X_test_lstm, verbose=0)
-    lstm_test_pred = scaler.inverse_transform(lstm_test_pred_scaled)
 
-    # -----------------------------------
-    # MODEL 2: XGBoost
-    # -----------------------------------
+    lstm_test_pred  = scaler.inverse_transform(model_lstm.predict(X_test_lstm, verbose=0))
+    lstm_train_pred = scaler.inverse_transform(model_lstm.predict(X_train_lstm, verbose=0))
+
+    # ── MODEL 2: XGBoost ───────────────────────────────────────────────────
     print(f"  [2/3] Training XGBoost...")
-    X_train_xgb = train_df[feature_cols]
-    y_train_xgb = train_df['close']
-    X_test_xgb = test_df[feature_cols]
-    
-    xgb_model = XGBRegressor(n_estimators=500, learning_rate=0.05) # estimators reduced for speed
-    xgb_model.fit(X_train_xgb, y_train_xgb, verbose=False)
-    
-    # Save XGBoost
+    xgb_model = XGBRegressor(n_estimators=500, learning_rate=0.05)
+    xgb_model.fit(train_df[feature_cols], train_df['close'], verbose=False)
     xgb_model.save_model(os.path.join(ticker_dir, 'xgb_model.json'))
-    xgb_preds = xgb_model.predict(X_test_xgb)
 
-    # -----------------------------------
-    # MODEL 3: Hybrid Corrector
-    # -----------------------------------
+    # ── MODEL 3: Hybrid Corrector ──────────────────────────────────────────
     print(f"  [3/3] Training Hybrid Corrector...")
-    
-    # Get LSTM predictions on TRAIN set to calculate residuals
-    lstm_train_pred_scaled = model_lstm.predict(X_train_lstm, verbose=0)
-    lstm_train_pred = scaler.inverse_transform(lstm_train_pred_scaled)
-    
-    # Align
-    train_actual_aligned = df['close'].iloc[look_back : look_back + len(lstm_train_pred)].values
-    residuals_train = train_actual_aligned - lstm_train_pred.flatten()
-    
-    # Train Corrector
-    X_train_hybrid = df[feature_cols].iloc[look_back : look_back + len(lstm_train_pred)]
+    train_actual = df['close'].iloc[look_back: look_back + len(lstm_train_pred)].values
+    residuals_train = train_actual - lstm_train_pred.flatten()
+    X_train_hybrid = df[feature_cols].iloc[look_back: look_back + len(lstm_train_pred)]
+
     hybrid_corrector = XGBRegressor(n_estimators=500, learning_rate=0.05)
     hybrid_corrector.fit(X_train_hybrid, residuals_train)
-    
-    # Save Corrector
     hybrid_corrector.save_model(os.path.join(ticker_dir, 'hybrid_corrector.json'))
-    
-    # Predict Residuals for Test
-    # Align test features: The last len(lstm_test_pred) rows
+
     X_test_hybrid = df[feature_cols].iloc[-len(lstm_test_pred):]
-    predicted_residuals = hybrid_corrector.predict(X_test_hybrid)
-    
-    hybrid_final_preds = lstm_test_pred.flatten() + predicted_residuals
-    
-    # -----------------------------------
-    # Evaluation
-    # -----------------------------------
-    min_len = min(len(lstm_test_pred), len(xgb_preds), len(hybrid_final_preds))
+    hybrid_preds  = lstm_test_pred.flatten() + hybrid_corrector.predict(X_test_hybrid)
+
+    # ── Evaluation ─────────────────────────────────────────────────────────
+    min_len    = min(len(lstm_test_pred), len(hybrid_preds))
     res_actual = df['close'].iloc[-min_len:].values
-    res_hybrid = hybrid_final_preds[-min_len:]
-    
-    mape = mean_absolute_percentage_error(res_actual, res_hybrid)
-    rmse = np.sqrt(mean_squared_error(res_actual, res_hybrid))
-    
-    # Directional Accuracy
-    actual_dir = np.diff(res_actual) > 0
-    pred_dir = np.diff(res_hybrid) > 0
-    dir_acc = np.mean(actual_dir == pred_dir) * 100
+    res_hybrid = hybrid_preds[-min_len:]
 
-    print(f"  ✅ Done. Hybrid RMSE: {rmse:.4f}, MAPE: {mape:.2%}, Dir Acc: {dir_acc:.2f}%")
+    mape   = mean_absolute_percentage_error(res_actual, res_hybrid)
+    rmse   = float(np.sqrt(mean_squared_error(res_actual, res_hybrid)))
+    dir_acc = float(np.mean((np.diff(res_actual) > 0) == (np.diff(res_hybrid) > 0)) * 100)
 
-    # -----------------------------------
-    # Save Metrics to DB
-    # -----------------------------------
+    print(f"  ✅ RMSE: {rmse:.4f} | MAPE: {mape:.2%} | Dir Acc: {dir_acc:.2f}%")
+
+    # ── Next-Day Prediction ────────────────────────────────────────────────
+    last_60_scaled = scaled_data[-look_back:].reshape(1, look_back, 1)
+    lstm_next_scaled = model_lstm.predict(last_60_scaled, verbose=0)
+    lstm_next_price  = float(scaler.inverse_transform(lstm_next_scaled)[0][0])
+
+    last_features = df[feature_cols].iloc[[-1]]
+    residual_corr = float(hybrid_corrector.predict(last_features)[0])
+    next_price    = round(lstm_next_price + residual_corr, 4)
+
+    current_price = float(df['close'].iloc[-1])
+    change_pct    = round(((next_price - current_price) / current_price) * 100, 4) if current_price else 0.0
+    direction     = "bullish" if change_pct > 0 else ("bearish" if change_pct < 0 else "neutral")
+    last_date     = df.index[-1].date() if hasattr(df.index[-1], 'date') else df.index[-1]
+    pred_date     = next_trading_day(last_date)
+
+    print(f"  📈 Next Day ({pred_date}): {next_price:.4f} ({change_pct:+.2f}%  → {direction})")
+
+    # ── Save to DB ─────────────────────────────────────────────────────────
+    engine = get_db_engine()
+    SessionClass = sessionmaker(bind=engine)
+    session = SessionClass()
     try:
-        engine = get_db_engine()
-        Session = sessionmaker(bind=engine)
-        session = Session()
-
-        # Get stock_id
         stock = session.query(Stock).filter(Stock.symbol == ticker).one_or_none()
-        if stock:
-            # Check for existing metric
-            metric = session.query(ModelMetric).filter(
-                ModelMetric.stock_id == stock.stock_id,
-                ModelMetric.model_type == 'Hybrid'
-            ).one_or_none()
+        if not stock:
+            print(f"  ⚠️  Stock '{ticker}' not found in DB.")
+            return
 
-            if not metric:
-                metric = ModelMetric(stock_id=stock.stock_id, model_type='Hybrid')
-                session.add(metric)
-            
-            metric.rmse = float(rmse)
-            metric.mape = float(mape)
-            metric.directional_accuracy = float(dir_acc)
-            # metric.created_at = datetime.utcnow() # Auto-updated usually or default
-            
-            session.commit()
-            print(f"  💾 Saved metrics to DB for {ticker}")
-        else:
-            print(f"  ⚠️ Stock {ticker} not found in DB stock table?")
-        session.close()
+        # Upsert ModelMetric
+        metric = session.query(ModelMetric).filter(
+            ModelMetric.stock_id == stock.stock_id,
+            ModelMetric.model_type == 'Hybrid'
+        ).one_or_none()
+        if not metric:
+            metric = ModelMetric(stock_id=stock.stock_id, model_type='Hybrid')
+            session.add(metric)
+        metric.rmse = round(rmse, 4)
+        metric.mape = round(float(mape), 4)
+        metric.directional_accuracy = round(dir_acc, 2)
+
+        # Upsert PricePrediction
+        pred_row = session.query(PricePrediction).filter(
+            PricePrediction.stock_id == stock.stock_id,
+            PricePrediction.prediction_date == pred_date,
+        ).one_or_none()
+        if not pred_row:
+            pred_row = PricePrediction(stock_id=stock.stock_id, prediction_date=pred_date)
+            session.add(pred_row)
+        pred_row.predicted_price = next_price
+        pred_row.confidence      = round(dir_acc, 2)
+        pred_row.direction       = direction
+        pred_row.change_percent  = change_pct
+        pred_row.model_type      = "Hybrid"
+        pred_row.trained_at      = datetime.utcnow()
+
+        session.commit()
+        print(f"  💾 Saved prediction + metrics for {ticker}")
     except Exception as e:
-        print(f"  ❌ Error saving metrics to DB: {e}")
+        print(f"  ❌ DB save error for {ticker}: {e}")
+        session.rollback()
+    finally:
+        session.close()
+
+
+# ─── Entry Point ───────────────────────────────────────────────────────────────
 
 def main():
-    print("Initializing...")
+    print("🔧 Initializing...")
     create_tables_if_not_exist()
-    
-    print("Fetching tickers from database...")
+
+    print("📋 Fetching tickers from database (dynamic)...")
     try:
         tickers = get_all_tickers()
     except Exception as e:
         print(f"❌ Failed to fetch tickers: {e}")
         return
 
-    print(f"Found {len(tickers)} stocks: {tickers}")
-    
+    if not tickers:
+        print("⚠️  No stocks found in the database. Add stocks via the Admin panel first.")
+        return
+
+    print(f"📊 Found {len(tickers)} stocks: {tickers}")
+    failed = []
     for t in tickers:
         try:
-            train_and_save_model(t)
+            train_and_predict(t)
         except Exception as e:
             print(f"❌ Error training {t}: {e}")
+            failed.append(t)
 
-    print("\n🎉 All training completed.")
+    print(f"\n🎉 Training complete! ({len(tickers) - len(failed)}/{len(tickers)} succeeded)")
+    if failed:
+        print(f"⚠️  Failed: {failed}")
+
 
 if __name__ == "__main__":
     main()

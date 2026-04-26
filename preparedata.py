@@ -35,14 +35,20 @@ load_dotenv()
 # Database Config
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
+    import urllib.parse
     PG_USER = os.getenv("PG_USER", "postgres")
     PG_PASS = os.getenv("PG_PASS", "123123")
     PG_HOST = os.getenv("PG_HOST", "localhost")
     PG_PORT = os.getenv("PG_PORT", "5432")
     PG_DB = os.getenv("PG_DB", "Stocksdata")
-    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
-elif DATABASE_URL.startswith("postgres://") and "+psycopg2" not in DATABASE_URL:
+    
+    # URL encode the password to handle special characters like '@'
+    encoded_pass = urllib.parse.quote_plus(PG_PASS)
+    DATABASE_URL = f"postgresql+psycopg2://{PG_USER}:{encoded_pass}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # Hardcoded Tickers and Dates
 HARDCODED_TICKERS = [
@@ -59,6 +65,10 @@ HARDCODED_START = "2018-01-01"
 HARDCODED_END = datetime.today().strftime("%Y-%m-%d")
 
 # DATABASE_URL = "sqlite:///eyestock.db" # Use this for SQLite
+
+def get_engine_from_env():
+    """Returns a SQLAlchemy engine using the same DATABASE_URL logic above."""
+    return create_engine(DATABASE_URL, echo=False)
 
 Base = declarative_base()
 

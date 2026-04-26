@@ -29,6 +29,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
+    username: "",
     fullName: "",
     email: "",
     password: "",
@@ -62,11 +63,8 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
     }
 
     try {
-      // Username is derived from email or fullName for now, but backend expects username
-      // Let's use part of email or fullName as username
-      const username = formData.fullName.replace(/\s+/g, '_').toLowerCase() + Math.floor(Math.random() * 1000);
-
-      await signup(formData.email, username, formData.password);
+      // Use both username and fullName provided by the user
+      await signup(formData.email, formData.username, formData.fullName, formData.password);
       setVerificationStep(true);
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.");
@@ -173,7 +171,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                     <Input
                       id="fullName"
                       type="text"
-                      placeholder="Enter your full name"
+                      placeholder="e.g. Ali Ahmed"
                       value={formData.fullName}
                       onChange={(e) => handleInputChange("fullName", e.target.value)}
                       className="pl-10 h-12"
@@ -181,6 +179,29 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                       disabled={isLoading}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground font-medium text-sm">@</div>
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="ali_21"
+                      value={formData.username}
+                      onChange={(e) => handleInputChange("username", e.target.value)}
+                      className="pl-8 h-12"
+                      required
+                      minLength={3}
+                      pattern="^[a-zA-Z0-9_-]+$"
+                      title="Username must contain only letters, numbers, hyphens, and underscores"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    Unique handle for your profile (e.g. @ali_21)
+                  </p>
                 </div>
 
                 <div className="space-y-2">

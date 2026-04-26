@@ -3,6 +3,7 @@ import { API_BASE_URL, getHeaders } from './apiConfig';
 export interface PostAuthor {
     user_id: number;
     username: string;
+    full_name: string | null;
     profile_picture_url: string | null;
 }
 
@@ -34,6 +35,7 @@ export interface PostComment {
 export interface TopTrader {
     user_id: number;
     username: string;
+    full_name: string | null;
     profile_picture_url: string | null;
     followers_count: number;
     posts_count: number;

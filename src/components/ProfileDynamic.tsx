@@ -76,6 +76,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     // Edit profile states
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editUsername, setEditUsername] = useState("");
+    const [editFullName, setEditFullName] = useState("");
     const [editPhone, setEditPhone] = useState("");
     const [editBio, setEditBio] = useState("");
     const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
@@ -128,6 +129,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
     const handleEditProfile = () => {
         setEditUsername(currentUser?.username || "");
+        setEditFullName(currentUser?.full_name || "");
         setEditPhone(currentUser?.phone_number || "");
         setEditBio(currentUser?.bio || "");
         setAvatarPreview(currentUser?.profile_picture_url || "");
@@ -250,6 +252,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             // Update profile using AuthContext (updates user state globally)
             await updateProfile({
                 username: editUsername !== currentUser.username ? editUsername : undefined,
+                full_name: editFullName !== currentUser.full_name ? editFullName : undefined,
                 phone_number: editPhone || null,
                 bio: editBio || null,
                 profile_picture_url: avatarUrl
@@ -375,10 +378,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     ) : (
                                         <DefaultAvatar className="w-24 h-24 mb-4 border-4 border-background shadow-lg" />
                                     )}
-                                    <h2 className="text-2xl font-bold">{targetUser?.username || "Loading..."}</h2>
+                                    <h2 className="text-2xl font-bold">{targetUser?.full_name || targetUser?.username || "Loading..."}</h2>
                                     <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                        <Mail className="w-4 h-4" />
-                                        <p className="text-sm">{targetUser?.email}</p>
+                                        <User className="w-4 h-4" />
+                                        <p className="text-sm">@{targetUser?.username?.toLowerCase() || "username"}</p>
                                     </div>
                                     {targetUser?.phone_number && (
                                         <div className="flex items-center gap-2 text-muted-foreground mt-1">
@@ -543,7 +546,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                             )}
                                                             <div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold">{targetUser?.username}</span>
+                                                                    <span className="font-semibold">{targetUser?.full_name || targetUser?.username}</span>
+                                                                    <span className="text-xs text-muted-foreground">@{targetUser?.username}</span>
                                                                     {targetUser?.is_verified && (
                                                                         <Badge variant="secondary" className="text-xs">
                                                                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -667,7 +671,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                             )}
                                                             <div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold">{follower.username}</span>
+                                                                    <span className="font-semibold">{follower.full_name || follower.username}</span>
                                                                     {follower.is_verified && (
                                                                         <Badge variant="secondary" className="text-xs">
                                                                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -675,7 +679,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                                         </Badge>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-sm text-muted-foreground">{follower.email}</p>
+                                                                <p className="text-sm text-muted-foreground">@{follower.username.toLowerCase()}</p>
                                                                 <p className="text-xs text-muted-foreground">{follower.followers_count} followers</p>
                                                             </div>
                                                         </div>
@@ -748,6 +752,17 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     )}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Full Name */}
+                        <div className="space-y-2">
+                            <Label htmlFor="editFullName">Display Name (Full Name)</Label>
+                            <Input
+                                id="editFullName"
+                                value={editFullName}
+                                onChange={(e) => setEditFullName(e.target.value)}
+                                placeholder="e.g. Ali Ahmed"
+                            />
                         </div>
 
                         {/* Username */}
