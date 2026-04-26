@@ -452,6 +452,8 @@ def _run_training_subprocess():
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding='utf-8',
+            errors='replace',   # replace undecodable bytes instead of crashing
             cwd=root_dir,
         )
         for line in iter(proc.stdout.readline, ""):
