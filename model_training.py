@@ -290,35 +290,95 @@ def train_and_predict(ticker: str):
         session.close()
 
 
+# ─── DB Helper: get today's already-trained tickers ───────────────────────────
+
+def get_trained_today() -> list:
+    """Return list of tickers that already have a prediction trained today (UTC)."""
+    engine = get_db_engine()
+    from prediction_models import PricePrediction
+    from sqlalchemy.orm import sessionmaker as sm
+    from datetime import timezone
+    today_utc = datetime.now(timezone.utc).date()
+    Session = sm(bind=engine)
+    session = Session()
+    try:
+        rows = (
+            session.query(Stock.symbol)
+            .join(PricePrediction, PricePrediction.stock_id == Stock.stock_id)
+            .filter(PricePrediction.trained_at >= datetime.combine(today_utc, datetime.min.time()))
+            .distinct()
+            .all()
+        )
+        return [r[0] for r in rows]
+    except Exception:
+        return []
+    finally:
+        session.close()
+
+
 # ─── Entry Point ───────────────────────────────────────────────────────────────
 
 def main():
-    print("🔧 Initializing...")
+    import argparse
+    parser = argparse.ArgumentParser(description="Train AI models for stocks")
+    parser.add_argument(
+        "--symbols", nargs="*", default=None,
+        help="Only train these symbols (space-separated). Defaults to all in DB."
+    )
+    parser.add_argument(
+        "--skip-trained-today", action="store_true",
+        help="Skip stocks that were already trained today."
+    )
+    args = parser.parse_args()
+
+    print(">> Initializing...")
     create_tables_if_not_exist()
 
-    print("📋 Fetching tickers from database (dynamic)...")
+    print(">> Fetching tickers from database (dynamic)...")
     try:
-        tickers = get_all_tickers()
+        all_tickers = get_all_tickers()
     except Exception as e:
-        print(f"❌ Failed to fetch tickers: {e}")
+        print(f"[ERROR] Failed to fetch tickers: {e}")
         return
+
+    if not all_tickers:
+        print("[WARN] No stocks found in the database. Add stocks via the Admin panel first.")
+        return
+
+    # Filter to requested symbols only
+    if args.symbols:
+        requested = [s.upper() for s in args.symbols]
+        tickers = [t for t in all_tickers if t in requested]
+        missing = [s for s in requested if s not in all_tickers]
+        if missing:
+            print(f"[WARN] These symbols are not in the DB: {missing}")
+    else:
+        tickers = all_tickers
+
+    # Skip already trained today if requested
+    if args.skip_trained_today:
+        trained_today = get_trained_today()
+        skipped = [t for t in tickers if t in trained_today]
+        tickers = [t for t in tickers if t not in trained_today]
+        if skipped:
+            print(f">> Skipping already-trained today: {skipped}")
 
     if not tickers:
-        print("⚠️  No stocks found in the database. Add stocks via the Admin panel first.")
+        print(">> All stocks are already trained for today. Nothing to do.")
         return
 
-    print(f"📊 Found {len(tickers)} stocks: {tickers}")
+    print(f">> Training {len(tickers)} stock(s): {tickers}")
     failed = []
     for t in tickers:
         try:
             train_and_predict(t)
         except Exception as e:
-            print(f"❌ Error training {t}: {e}")
+            print(f"[ERROR] Training {t}: {e}")
             failed.append(t)
 
-    print(f"\n🎉 Training complete! ({len(tickers) - len(failed)}/{len(tickers)} succeeded)")
+    print(f"\n>> Training complete! ({len(tickers) - len(failed)}/{len(tickers)} succeeded)")
     if failed:
-        print(f"⚠️  Failed: {failed}")
+        print(f"[WARN] Failed: {failed}")
 
 
 if __name__ == "__main__":

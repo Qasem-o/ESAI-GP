@@ -340,10 +340,11 @@ def delete_comment(
 @router.post("/models/train")
 def trigger_training(
     admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
 ):
     """
-    Triggers local model training for ALL stocks in the database.
-    Runs model_training.py as a background subprocess.
+    Smart training: only trains stocks not yet trained today.
+    If all stocks were trained today, does nothing.
     """
     with _training_lock:
         if _training_state["status"] == "running":
@@ -352,10 +353,34 @@ def trigger_training(
         _training_state["started_at"] = datetime.utcnow().isoformat()
         _training_state["log"] = ["Training started..."]
 
-    # Run in a separate thread to avoid blocking
-    thread = threading.Thread(target=_run_training_subprocess, daemon=True)
+    thread = threading.Thread(
+        target=_run_training_subprocess,
+        kwargs={"skip_trained_today": True},
+        daemon=True
+    )
     thread.start()
-    return {"message": "Training started successfully", "status": "running"}
+    return {"message": "Smart training started (skips already-trained today)", "status": "running"}
+
+
+@router.post("/models/train-all")
+def trigger_training_all(
+    admin: User = Depends(get_current_admin),
+):
+    """Force-retrain ALL stocks regardless of training date."""
+    with _training_lock:
+        if _training_state["status"] == "running":
+            return {"message": "Training is already running", "status": "running"}
+        _training_state["status"] = "running"
+        _training_state["started_at"] = datetime.utcnow().isoformat()
+        _training_state["log"] = ["Full retraining started..."]
+
+    thread = threading.Thread(
+        target=_run_training_subprocess,
+        kwargs={"skip_trained_today": False},
+        daemon=True
+    )
+    thread.start()
+    return {"message": "Full training started", "status": "running"}
 
 
 @router.get("/models/status")
@@ -366,6 +391,26 @@ def training_status(admin: User = Depends(get_current_admin)):
             "started_at": _training_state["started_at"],
             "log": _training_state["log"][-100:],  # Last 100 lines
         }
+
+
+@router.post("/stocks/fill-missing")
+def fill_missing_data(
+    admin: User = Depends(get_current_admin),
+):
+    """
+    For every stock in the DB, fetch only the missing price/indicator rows
+    (from last stored date to today). Fast incremental update.
+    """
+    with _training_lock:
+        if _training_state["status"] == "running":
+            return {"message": "A training job is running. Wait until it finishes.", "status": "running"}
+        _training_state["status"] = "running"
+        _training_state["started_at"] = datetime.utcnow().isoformat()
+        _training_state["log"] = ["Fill-missing data job started..."]
+
+    thread = threading.Thread(target=_fill_missing_bg, daemon=True)
+    thread.start()
+    return {"message": "Fill-missing job started", "status": "running"}
 
 
 @router.get("/models/predictions", response_model=List[PredictionOut])
@@ -442,18 +487,97 @@ def _fetch_stock_data_bg(ticker: str):
         print(f"❌ Background fetch failed for {ticker}: {e}")
 
 
-def _run_training_subprocess():
-    """Run model_training.py and capture output."""
+def _fill_missing_bg():
+    """Fetch only missing price/indicator rows for every stock in the DB."""
+    try:
+        root_dir = os.path.dirname(current_dir)
+        sys.path.insert(0, root_dir)
+        from preparedata import (
+            get_engine_from_env, Stock, PriceHistory,
+            fetch_prices, prepare_and_store
+        )
+        from datetime import datetime as dt, timedelta
+        import yfinance as yf
+
+        engine = get_engine_from_env()
+        from sqlalchemy.orm import sessionmaker
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+
+        stocks = session.query(Stock).order_by(Stock.symbol).all()
+        with _training_lock:
+            _training_state["log"].append(f"[INFO] {len(stocks)} stocks to check")
+
+        for stock in stocks:
+            ticker = stock.symbol
+            # Find latest stored date for this stock
+            latest_row = (
+                session.query(PriceHistory)
+                .filter(PriceHistory.stock_id == stock.stock_id)
+                .order_by(PriceHistory.date.desc())
+                .first()
+            )
+            today = dt.utcnow().date()
+            if latest_row and latest_row.date >= today:
+                with _training_lock:
+                    _training_state["log"].append(f"[SKIP] {ticker} — already up to date")
+                continue
+
+            # Start from day after last stored, or from 2018-01-01 if none
+            if latest_row:
+                start_date = (latest_row.date + timedelta(days=1)).strftime("%Y-%m-%d")
+            else:
+                start_date = "2018-01-01"
+
+            end_date = today.strftime("%Y-%m-%d")
+            with _training_lock:
+                _training_state["log"].append(
+                    f"[FETCH] {ticker} missing from {start_date} to {end_date}"
+                )
+
+            try:
+                df = fetch_prices(ticker, start_date, end_date)
+                if df.empty or "close" not in df.columns:
+                    with _training_lock:
+                        _training_state["log"].append(f"[WARN]  {ticker} — no new data returned")
+                    continue
+                df = df.dropna(subset=["close"]).reset_index(drop=True)
+                prepare_and_store(session, ticker, df)
+                with _training_lock:
+                    _training_state["log"].append(
+                        f"[OK]    {ticker} — {len(df)} new rows stored"
+                    )
+            except Exception as e:
+                with _training_lock:
+                    _training_state["log"].append(f"[ERROR] {ticker}: {e}")
+
+        session.close()
+        with _training_lock:
+            _training_state["status"] = "done"
+            _training_state["log"].append("--- Fill-missing job completed ---")
+    except Exception as e:
+        with _training_lock:
+            _training_state["status"] = "error"
+            _training_state["log"].append(f"[FATAL] Fill-missing job failed: {e}")
+
+
+def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None):
+    """Run model_training.py with smart skip and optional symbol filter."""
     root_dir = os.path.dirname(current_dir)
     script = os.path.join(root_dir, "model_training.py")
+    cmd = [sys.executable, script]
+    if skip_trained_today:
+        cmd.append("--skip-trained-today")
+    if symbols:
+        cmd += ["--symbols"] + symbols
     try:
         proc = subprocess.Popen(
-            [sys.executable, script],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             encoding='utf-8',
-            errors='replace',   # replace undecodable bytes instead of crashing
+            errors='replace',
             cwd=root_dir,
         )
         for line in iter(proc.stdout.readline, ""):

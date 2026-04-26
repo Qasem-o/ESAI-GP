@@ -75,6 +75,16 @@ export function ModelManagement() {
     fetchStatus();
   };
 
+  const startRetrainAll = async () => {
+    if (!confirm('Force retrain ALL stocks, even those already trained today? This may take a long time.')) return;
+    setLoading(true);
+    await fetch(`${API_BASE_URL}/admin/models/train-all`, {
+      method: 'POST', headers: getHeaders(true),
+    });
+    setLoading(false);
+    fetchStatus();
+  };
+
   const directionBadge = (dir: string, pct: number) => {
     const isUp = dir === 'bullish';
     return (
@@ -105,7 +115,15 @@ export function ModelManagement() {
             className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             {status.status === 'running' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {status.status === 'running' ? 'Training in progress...' : 'Start Training All Stocks'}
+            {status.status === 'running' ? 'Training in progress...' : 'Smart Train (Skip Trained Today)'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={startRetrainAll}
+            disabled={loading || status.status === 'running'}
+            className="gap-2 border-orange-400 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+          >
+            <RefreshCw className="w-4 h-4" /> Force Retrain All
           </Button>
           <Button variant="outline" size="sm" onClick={fetchStatus} className="gap-1">
             <RefreshCw className="w-3 h-3" /> Refresh

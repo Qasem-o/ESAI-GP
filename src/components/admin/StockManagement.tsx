@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Trash2, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Plus, Trash2, Loader2, AlertCircle, RefreshCw, Database, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { API_BASE_URL, getHeaders } from '../../services/apiConfig';
 
@@ -11,6 +11,19 @@ interface StockRow {
   current_price: number | null;
 }
 
+interface JobStatus {
+  status: 'idle' | 'running' | 'done' | 'error';
+  started_at: string | null;
+  log: string[];
+}
+
+const STATUS_ICONS = {
+  idle:    <Clock className="w-4 h-4 text-muted-foreground" />,
+  running: <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />,
+  done:    <CheckCircle2 className="w-4 h-4 text-green-500" />,
+  error:   <XCircle className="w-4 h-4 text-red-500" />,
+};
+
 export function StockManagement() {
   const [stocks, setStocks]   = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +31,12 @@ export function StockManagement() {
   const [newTicker, setNewTicker] = useState('');
   const [adding, setAdding]   = useState(false);
   const [addMsg, setAddMsg]   = useState('');
+
+  // Fill-missing job state (reuses /admin/models/status endpoint)
+  const [fillStatus, setFillStatus] = useState<JobStatus>({ status: 'idle', started_at: null, log: [] });
+  const [filling, setFilling] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+  const pollerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchStocks = () => {
     setLoading(true);
@@ -27,7 +46,48 @@ export function StockManagement() {
       .catch(e => { setError(e.message); setLoading(false); });
   };
 
+  const fetchJobStatus = async () => {
+    const r = await fetch(`${API_BASE_URL}/admin/models/status`, { headers: getHeaders(true) });
+    if (r.ok) setFillStatus(await r.json());
+  };
+
   useEffect(fetchStocks, []);
+
+  // Auto-scroll log
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [fillStatus.log]);
+
+  // Poll while running
+  useEffect(() => {
+    if (fillStatus.status === 'running') {
+      pollerRef.current = setInterval(fetchJobStatus, 2000);
+    } else {
+      if (pollerRef.current) clearInterval(pollerRef.current);
+    }
+    return () => { if (pollerRef.current) clearInterval(pollerRef.current); };
+  }, [fillStatus.status]);
+
+  const fillMissingData = async () => {
+    setFilling(true);
+    setFillStatus({ status: 'running', started_at: new Date().toISOString(), log: ['Starting fill-missing job...'] });
+    try {
+      const r = await fetch(`${API_BASE_URL}/admin/stocks/fill-missing`, {
+        method: 'POST', headers: getHeaders(true),
+      });
+      if (!r.ok) {
+        const data = await r.json();
+        setFillStatus(s => ({ ...s, status: 'error', log: [...s.log, `Error: ${data.detail}`] }));
+      } else {
+        // Start polling
+        pollerRef.current = setInterval(fetchJobStatus, 2000);
+      }
+    } catch (e: any) {
+      setFillStatus(s => ({ ...s, status: 'error', log: [...s.log, `Error: ${e.message}`] }));
+    } finally {
+      setFilling(false);
+    }
+  };
 
   const addStock = async () => {
     const symbol = newTicker.trim().toUpperCase();
@@ -42,11 +102,11 @@ export function StockManagement() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'Failed to add stock');
-      setAddMsg(`✅ ${symbol} added! Historical data is being fetched in the background.`);
+      setAddMsg(`Added! ${symbol} — historical data is being fetched in the background.`);
       setNewTicker('');
       fetchStocks();
     } catch (e: any) {
-      setAddMsg(`❌ ${e.message}`);
+      setAddMsg(`Error: ${e.message}`);
     } finally {
       setAdding(false);
     }
@@ -60,11 +120,63 @@ export function StockManagement() {
     fetchStocks();
   };
 
+  const logLineColor = (line: string) => {
+    if (line.includes('[ERROR]') || line.includes('[FATAL]')) return 'text-red-400';
+    if (line.includes('[OK]'))    return 'text-green-400';
+    if (line.includes('[SKIP]'))  return 'text-yellow-400';
+    if (line.includes('[WARN]'))  return 'text-orange-400';
+    if (line.includes('[FETCH]')) return 'text-blue-300';
+    if (line.includes('---'))     return 'text-green-300 font-bold';
+    return 'text-gray-300';
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Stock Management</h1>
         <p className="text-muted-foreground mt-1">Add or remove stocks. New stocks auto-fetch data from Yahoo Finance.</p>
+      </div>
+
+      {/* Fill Missing Data */}
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <h2 className="font-semibold mb-3 flex items-center gap-2">
+          <Database className="w-4 h-4 text-blue-500" /> Fill Missing Data (Incremental)
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Fetches only the <strong>missing</strong> price rows (from last stored date to today) for all stocks
+          and computes their technical indicators. Much faster than a full re-fetch.
+        </p>
+        <div className="flex items-center gap-4 mb-4">
+          <Button
+            onClick={fillMissingData}
+            disabled={filling || fillStatus.status === 'running'}
+            className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+          >
+            {fillStatus.status === 'running'
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</>
+              : <><Database className="w-4 h-4" /> Fill Missing Data</>
+            }
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchJobStatus} className="gap-1">
+            <RefreshCw className="w-3 h-3" /> Refresh Status
+          </Button>
+          <div className="flex items-center gap-2 ml-auto text-sm">
+            {STATUS_ICONS[fillStatus.status]}
+            <span className="capitalize font-medium">{fillStatus.status}</span>
+          </div>
+        </div>
+
+        {/* Live Log */}
+        {fillStatus.log.length > 0 && (
+          <div
+            ref={logRef}
+            className="bg-black/90 rounded-lg p-4 font-mono text-xs h-48 overflow-y-auto"
+          >
+            {fillStatus.log.map((line, i) => (
+              <div key={i} className={logLineColor(line)}>{line || '\u00a0'}</div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add Stock */}
@@ -86,7 +198,7 @@ export function StockManagement() {
           </Button>
         </div>
         {addMsg && (
-          <p className={`mt-2 text-sm ${addMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`mt-2 text-sm ${addMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
             {addMsg}
           </p>
         )}
