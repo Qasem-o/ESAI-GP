@@ -17,6 +17,12 @@ import numpy as np
 import os
 import sys
 import joblib
+
+# Force UTF-8 output on Windows (avoids UnicodeEncodeError with emoji on cp1252)
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
 from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
