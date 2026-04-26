@@ -23,16 +23,18 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
 # ─── Path setup ────────────────────────────────────────────────────────────────
-_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-_ROOT_DIR = os.path.dirname(_BACKEND_DIR) if os.path.basename(_BACKEND_DIR) == "backend" else _BACKEND_DIR
+# model_training.py lives in the project root.
+# We always need both root and backend/ on sys.path.
+_THIS_FILE   = os.path.abspath(__file__)
+_ROOT_DIR    = os.path.dirname(_THIS_FILE)
+_BACKEND_DIR = os.path.join(_ROOT_DIR, "backend")
 
-sys.path.insert(0, _BACKEND_DIR)
 sys.path.insert(0, _ROOT_DIR)
+sys.path.insert(0, _BACKEND_DIR)
 
-# Load env
+# Load env files (try both locations)
+load_dotenv(os.path.join(_ROOT_DIR, '.env'))
 load_dotenv(os.path.join(_BACKEND_DIR, '.env'))
-load_dotenv(os.path.join(_ROOT_DIR, 'backend', '.env'))
-load_dotenv()
 
 from xgboost import XGBRegressor
 from tensorflow.keras.models import Sequential
