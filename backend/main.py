@@ -144,9 +144,6 @@ app.include_router(portfolio_router)
 app.include_router(simulator_router)
 app.include_router(community_router)
 app.include_router(admin_router)
-# Override admin_routes.get_db so it uses our engine
-from fastapi import Depends as _Depends
-app.dependency_overrides[_admin_routes.get_db] = get_db
 
 # Ensure uploads directory exists
 uploads_dir = os.path.join(current_dir, "uploads")
@@ -163,6 +160,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Override admin_routes.get_db so it uses our engine
+app.dependency_overrides[_admin_routes.get_db] = get_db
 
 # Pydantic Models
 # Currency detection and conversion
