@@ -105,7 +105,7 @@ async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
     
     # Generate verification code
     code = generate_verification_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     
     # Store verification code
     verification = EmailVerification(
@@ -155,7 +155,7 @@ async def verify_email(
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
     # Check if code expired
-    if verification.expires_at < datetime.utcnow():
+    if verification.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Verification code expired. Please request a new one.")
     
     # Check attempts
@@ -167,7 +167,7 @@ async def verify_email(
     
     # Mark user as verified
     user.is_verified = True
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(user)
@@ -210,7 +210,7 @@ async def resend_verification(
     
     # Generate new code
     code = generate_verification_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
     
     # Store new verification code
     verification = EmailVerification(
@@ -246,7 +246,7 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     
     # Check if account is locked
     if is_account_locked(user.failed_login_attempts, user.locked_until):
-        minutes_left = int((user.locked_until - datetime.utcnow()).total_seconds() / 60)
+        minutes_left = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60)
         raise HTTPException(
             status_code=403,
             detail=f"Account locked due to too many failed login attempts. Try again in {minutes_left} minutes."
@@ -275,7 +275,7 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     # Reset failed attempts on successful login
     user.failed_login_attempts = 0
     user.locked_until = None
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(user)
@@ -337,7 +337,7 @@ async def update_profile(
     if current_user.username and current_user.email:
         current_user.profile_completed = True
     
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(current_user)
@@ -474,7 +474,7 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
     refresh_token = create_refresh_token({"user_id": user.user_id})
     
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
     
     return TokenResponse(
@@ -549,7 +549,7 @@ async def telegram_auth(auth_data: TelegramAuthRequest, db: Session = Depends(ge
     refresh_token = create_refresh_token({"user_id": user.user_id})
     
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
     
     return TokenResponse(
@@ -581,7 +581,7 @@ async def upload_avatar(
     
     # Update user profile
     current_user.profile_picture_url = avatar_url
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(current_user)
     

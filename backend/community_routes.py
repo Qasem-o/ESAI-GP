@@ -167,10 +167,11 @@ def _enrich_posts(posts, user_id, db):
             "post_id": post.post_id,
             "content": post.content,
             "stock": stock_data,
-            "created_at": post.created_at.isoformat(),
+            "created_at": post.created_at.isoformat() + "Z",
             "author": {
                 "user_id": author.user_id if author else 0,
                 "username": author.username if author else "Unknown",
+                "full_name": author.full_name if author else None,
                 "profile_picture_url": profile_pic,
             },
             "likes_count": likes_count,
@@ -307,10 +308,11 @@ async def get_comments(
         result.append({
             "comment_id": c.comment_id,
             "content": c.content,
-            "created_at": c.created_at.isoformat(),
+            "created_at": c.created_at.isoformat() + "Z",
             "author": {
                 "user_id": author.user_id if author else 0,
                 "username": author.username if author else "Unknown",
+                "full_name": author.full_name if author else None,
                 "profile_picture_url": author.profile_picture_url if author else None,
             }
         })
@@ -345,10 +347,11 @@ async def create_comment(
     return {
         "comment_id": comment.comment_id,
         "content": comment.content,
-        "created_at": comment.created_at.isoformat(),
+        "created_at": comment.created_at.isoformat() + "Z",
         "author": {
             "user_id": author.user_id if author else 0,
             "username": author.username if author else "Unknown",
+            "full_name": author.full_name if author else None,
             "profile_picture_url": author.profile_picture_url if author else None,
         }
     }
@@ -438,29 +441,50 @@ async def get_top_traders(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Get top users sorted by followers count."""
+    """Get top 3 users sorted by virtual trading total value."""
     user_id = get_optional_user_id(authorization)
+    from simulator_routes import get_current_price
+    from simulator_models import SimulatorState, SimulatorHolding
 
-    top_users = db.query(User, UserStats).outerjoin(
-        UserStats, User.user_id == UserStats.user_id
-    ).order_by(desc(UserStats.followers_count)).limit(10).all()
-
+    # Fetch all simulator states
+    states = db.query(SimulatorState).all()
+    user_values = []
+    
+    for state in states:
+        holdings = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == state.user_id).all()
+        total_value = state.balance
+        for h in holdings:
+            cp = get_current_price(db, h.stock_symbol)
+            total_value += h.shares * cp
+        user_values.append((state.user_id, total_value))
+    
+    # Sort by total_value descending and take top 3
+    user_values.sort(key=lambda x: x[1], reverse=True)
+    top_3 = user_values[:3]
+    
     result = []
-    for user, stats in top_users:
+    for uid, val in top_3:
+        user = db.query(User).filter(User.user_id == uid).first()
+        if not user:
+            continue
+        stats = db.query(UserStats).filter(UserStats.user_id == uid).first()
+        
         is_following = False
-        if user_id and user.user_id != user_id:
+        if user_id and uid != user_id:
             is_following = db.query(UserFollow).filter(
                 UserFollow.follower_id == user_id,
-                UserFollow.following_id == user.user_id
+                UserFollow.following_id == uid
             ).first() is not None
 
         result.append({
             "user_id": user.user_id,
             "username": user.username,
+            "full_name": user.full_name,
             "profile_picture_url": user.profile_picture_url,
             "followers_count": stats.followers_count if stats else 0,
             "posts_count": stats.posts_count if stats else 0,
             "is_following": is_following,
+            "portfolio_value": round(val, 2)
         })
 
     return result

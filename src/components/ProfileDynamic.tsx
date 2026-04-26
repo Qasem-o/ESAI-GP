@@ -283,12 +283,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     };
 
     const formatJoinDate = (dateString: string) => {
-        const date = new Date(dateString);
+        const isoStr = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
+        const date = new Date(isoStr);
         return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     };
 
     const formatTimeAgo = (dateString: string) => {
-        const date = new Date(dateString);
+        const isoStr = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
+        const date = new Date(isoStr);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);

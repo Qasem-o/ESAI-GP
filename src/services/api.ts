@@ -33,6 +33,7 @@ export interface ChartData {
   data: {
     time: string;
     price: number;
+    prediction?: number;
   }[];
 }
 
@@ -81,16 +82,25 @@ export interface StockMetric {
 
 // API functions
 
+const cache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 30000; // 30 seconds
+
 // Fetch all stocks
 export const fetchStocks = async (): Promise<StockPrice[]> => {
   try {
+    const cacheKey = 'all_stocks';
+    if (cache.has(cacheKey)) {
+      const cached = cache.get(cacheKey)!;
+      if (Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+    }
+
     const response = await fetch(`${API_BASE_URL}/stocks`);
     if (!response.ok) {
       throw new Error(`Failed to fetch stocks`);
     }
     const data = await response.json();
     // Map backend StockBase to frontend StockPrice
-    return data.map((item: any) => ({
+    const mappedData = data.map((item: any) => ({
       symbol: item.symbol,
       name: item.name,
       price: item.current_price || 0,
@@ -102,6 +112,9 @@ export const fetchStocks = async (): Promise<StockPrice[]> => {
       volume: item.volume || "N/A",
       marketCap: item.market_cap || "N/A"
     }));
+    
+    cache.set(cacheKey, { data: mappedData, timestamp: Date.now() });
+    return mappedData;
   } catch (error) {
     console.error('Error fetching stocks:', error);
     throw error;
@@ -153,7 +166,8 @@ export const fetchChartData = async (symbol: string, limit: number = 120): Promi
       symbol,
       data: data.map((item: any) => ({
         time: item.date,
-        price: item.close
+        price: item.close,
+        prediction: item.prediction
       }))
     };
   } catch (error) {

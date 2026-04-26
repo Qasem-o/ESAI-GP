@@ -170,10 +170,11 @@ export function StockManagement() {
         {fillStatus.log.length > 0 && (
           <div
             ref={logRef}
-            className="bg-black/90 rounded-lg p-4 font-mono text-xs h-48 overflow-y-auto"
+            className="bg-[#0a0a0a] rounded-lg p-4 font-mono text-xs border border-gray-800/60 shadow-inner"
+            style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}
           >
             {fillStatus.log.map((line, i) => (
-              <div key={i} className={logLineColor(line)}>{line || '\u00a0'}</div>
+              <div key={i} className={`${logLineColor(line)} whitespace-pre-wrap break-words mb-1`}>{line || '\u00a0'}</div>
             ))}
           </div>
         )}

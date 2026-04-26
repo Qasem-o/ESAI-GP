@@ -211,6 +211,7 @@ class PricePoint(BaseModel):
     date: date
     close: float
     volume: Optional[int]
+    prediction: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -366,13 +367,32 @@ def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_d
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     
+    from prediction_models import PricePrediction
+    
     history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
         .order_by(desc(PriceHistory.date))\
         .limit(limit)\
         .all()
     
+    hist_dates = [h.date for h in history]
+    preds = db.query(PricePrediction).filter(
+        PricePrediction.stock_id == stock.stock_id,
+        PricePrediction.prediction_date.in_(hist_dates)
+    ).all() if hist_dates else []
+    
+    pred_map = {p.prediction_date: float(p.predicted_price) for p in preds}
+    
+    results = []
     # Reverse to return chronological order for charts
-    return history[::-1]
+    for h in history[::-1]:
+        results.append({
+            "date": h.date,
+            "close": float(h.close),
+            "volume": h.volume,
+            "prediction": pred_map.get(h.date)
+        })
+        
+    return results
 
 @app.get("/stocks/{symbol}/metrics", response_model=List[MetricResponse])
 def get_stock_metrics(symbol: str, db: Session = Depends(get_db)):
@@ -436,7 +456,13 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
                 .order_by(desc(TechnicalIndicator.date))
                 .first()
             )
-            analysis_points = [f"🤖 AI Hybrid Model prediction (LSTM + XGBoost) — {ai_pred.model_type}."]
+            analysis_points = [f"Hybrid Model prediction (LSTM + XGBoost) — {ai_pred.model_type}."]
+            
+            # Fetch metrics to show MAPE and RMSE
+            metric = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
+            if metric and metric.mape is not None and metric.rmse is not None:
+                analysis_points.append(f"Model Accuracy Metrics: MAPE = {metric.mape}%, RMSE = {metric.rmse}")
+                
             if latest_tech:
                 rsi_val = float(latest_tech.rsi) if latest_tech.rsi else None
                 if rsi_val:

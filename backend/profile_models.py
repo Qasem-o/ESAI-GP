@@ -4,7 +4,7 @@ User profile and social features models
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from models import Base
 
 class UserStats(Base):
@@ -35,7 +35,7 @@ class UserStats(Base):
     total_profit_loss = Column(Float, default=0.0)
     
     # Timestamps
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationship
     user = relationship("User", back_populates="stats")
@@ -48,7 +48,7 @@ class UserFollow(Base):
     follow_id = Column(Integer, primary_key=True, index=True)
     follower_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     following_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     follower = relationship("User", foreign_keys=[follower_id], backref="following")
@@ -71,8 +71,8 @@ class Post(Base):
     views_count = Column(Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationship
     user = relationship("User", back_populates="posts")
@@ -85,4 +85,4 @@ class PostLike(Base):
     like_id = Column(Integer, primary_key=True, index=True)
     post_id = Column(Integer, ForeignKey("posts.post_id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

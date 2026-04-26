@@ -2,7 +2,7 @@
 Authentication utilities for password hashing, JWT tokens, and security.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt
 from jose import JWTError, jwt
@@ -72,7 +72,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token with expiration."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"type": "access", "exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -81,7 +81,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Create a JWT refresh token with expiration."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"type": "refresh", "exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -127,14 +127,14 @@ def is_account_locked(failed_attempts: int, locked_until: Optional[datetime]) ->
         bool: True if account is locked, False otherwise
     """
     if failed_attempts >= MAX_FAILED_ATTEMPTS:
-        if locked_until and locked_until > datetime.utcnow():
+        if locked_until and locked_until > datetime.now(timezone.utc):
             return True
     return False
 
 
 def calculate_lockout_time() -> datetime:
     """Calculate the lockout expiration time."""
-    return datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+    return datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
 
 def get_password_strength_score(password: str) -> int:

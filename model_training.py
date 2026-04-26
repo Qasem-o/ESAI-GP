@@ -281,6 +281,40 @@ def train_and_predict(ticker: str):
         pred_row.model_type      = "Hybrid"
         pred_row.trained_at      = datetime.utcnow()
 
+        # Upsert Historical Test Predictions (last 60 days) to show AI confidence graph
+        test_dates = df.index[-min_len:]
+        test_preds = res_hybrid
+        hist_len = min(60, min_len)
+        hist_dates = test_dates[-hist_len:]
+        hist_preds = test_preds[-hist_len:]
+        
+        for i in range(hist_len):
+            h_date = hist_dates[i].date() if hasattr(hist_dates[i], 'date') else hist_dates[i]
+            h_pred = float(hist_preds[i])
+            
+            prev_idx = len(df) - hist_len + i - 1
+            if prev_idx >= 0:
+                h_prev_actual = float(df['close'].iloc[prev_idx])
+                h_change_pct = round(((h_pred - h_prev_actual) / h_prev_actual) * 100, 4)
+                h_dir = "bullish" if h_change_pct > 0 else ("bearish" if h_change_pct < 0 else "neutral")
+            else:
+                h_change_pct = 0.0
+                h_dir = "neutral"
+                
+            h_row = session.query(PricePrediction).filter(
+                PricePrediction.stock_id == stock.stock_id,
+                PricePrediction.prediction_date == h_date,
+            ).one_or_none()
+            if not h_row:
+                h_row = PricePrediction(stock_id=stock.stock_id, prediction_date=h_date)
+                session.add(h_row)
+            h_row.predicted_price = h_pred
+            h_row.confidence = round(dir_acc, 2)
+            h_row.direction = h_dir
+            h_row.change_percent = h_change_pct
+            h_row.model_type = "Hybrid"
+            h_row.trained_at = datetime.utcnow()
+
         session.commit()
         print(f"  💾 Saved prediction + metrics for {ticker}")
     except Exception as e:

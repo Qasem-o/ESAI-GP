@@ -7,7 +7,7 @@ import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
 import { StockLogo } from "./StockLogo";
-import { fetchStocks, StockPrice } from "../services/api";
+import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "../services/api";
 import {
   TrendingUp,
   TrendingDown,
@@ -24,7 +24,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Plus,
-  Sparkles
+  Sparkles,
+  Flame
 } from "lucide-react";
 
 // Mock sectors for filter (or could fetch from DB distinct sectors)
@@ -40,12 +41,7 @@ const formatLargeNumber = (num: number | undefined | string) => {
   return n.toLocaleString();
 };
 
-// Watchlist (Mock for now)
-const watchlist = [
-  { symbol: "AAPL", change: 2.4 },
-  { symbol: "NVDA", change: 3.2 },
-  { symbol: "TSLA", change: 5.8 }
-];
+// Helper for numbers
 
 interface NavigationProps {
   currentPage: string;
@@ -60,6 +56,7 @@ interface NavigationProps {
   onGoToStockDetails: (symbol: string) => void;
   onGoToSignup?: () => void;
   onGoToLogin?: () => void;
+  onGoToAdmin?: () => void;
 }
 
 const containerVariants = {
@@ -96,13 +93,15 @@ interface StocksProps extends NavigationProps { }
 
 
 
-export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin }: StocksProps) {
+export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin, onGoToAdmin }: StocksProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSector, setSelectedSector] = useState("All");
   const [stocks, setStocks] = useState<StockPrice[]>([]);
   const [sectorStats, setSectorStats] = useState<{ name: string, count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStock, setSelectedStock] = useState<StockPrice | null>(null);
+  const [aiInsight, setAiInsight] = useState<StockPrediction | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
 
   // Helper to determine currency
   const getCurrency = (symbol: string) => {
@@ -149,6 +148,16 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
     loadStocks();
   }, []);
 
+  useEffect(() => {
+    if (selectedStock) {
+      setInsightLoading(true);
+      fetchStockPrediction(selectedStock.symbol)
+        .then(data => setAiInsight(data))
+        .catch(() => setAiInsight(null))
+        .finally(() => setInsightLoading(false));
+    }
+  }, [selectedStock]);
+
   const filteredStocks = stocks.filter(stock => {
     const matchesSearch =
       (stock.symbol && stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -169,6 +178,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
         onGoToProfile={onGoToProfile}
         onGoToSignup={onGoToSignup}
         onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
       />
 
       {/* Main Content */}
@@ -223,27 +233,27 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
               </CardContent>
             </Card>
 
-            {/* Watchlist */}
+            {/* Trending Stocks */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  Watchlist
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  Trending Stocks
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {watchlist.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+                {stocks
+                  .slice()
+                  .sort((a, b) => Math.abs(b.change || 0) - Math.abs(a.change || 0))
+                  .slice(0, 5)
+                  .map((item, i) => (
+                  <div key={i} onClick={() => setSelectedStock(item)} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer">
                     <span className="font-semibold">${item.symbol}</span>
-                    <Badge variant={item.change >= 0 ? "default" : "destructive"} className="text-xs">
-                      {item.change >= 0 ? '+' : ''}{item.change}%
+                    <Badge variant={(item.change || 0) >= 0 ? "default" : "destructive"} className="text-xs">
+                      {(item.change || 0) >= 0 ? '+' : ''}{item.change}%
                     </Badge>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" className="w-full mt-2">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Stock
-                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -450,21 +460,43 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                    <p className="text-sm">Strong upward momentum detected in the last 7 days</p>
+                {insightLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
-                    <p className="text-sm">High social media engagement and positive sentiment</p>
+                ) : aiInsight ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
+                      <span className="text-sm font-medium">Recommendation</span>
+                      <Badge variant={aiInsight.direction === 'bullish' ? 'default' : aiInsight.direction === 'bearish' ? 'destructive' : 'secondary'}>
+                        {aiInsight.recommendation || aiInsight.direction}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
+                      <span className="text-sm font-medium">Confidence</span>
+                      <span className="font-bold">{(aiInsight.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                    {aiInsight.target_price && (
+                      <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
+                        <span className="text-sm font-medium">Target</span>
+                        <span className="font-bold">${aiInsight.target_price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                      </div>
+                    )}
+                    {aiInsight.analysis && aiInsight.analysis.length > 0 && (
+                      <div className="pt-2">
+                        <p className="text-sm font-medium mb-2">Key Drivers:</p>
+                        <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
+                          {aiInsight.analysis.slice(0, 3).map((note, idx) => (
+                            <li key={idx}>{note}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0" />
-                    <p className="text-sm">Earnings report expected in 2 weeks</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="w-full mt-4">
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No AI insights available for this stock currently.</p>
+                )}
+                <Button variant="outline" size="sm" className="w-full mt-4 cursor-pointer" onClick={() => selectedStock && onGoToStockDetails(selectedStock.symbol)}>
                   View Full Analysis
                 </Button>
               </CardContent>

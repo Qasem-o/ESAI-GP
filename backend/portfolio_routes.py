@@ -108,7 +108,7 @@ class TransactionResponse(BaseModel):
     shares: float
     price: float
     total: float
-    created_at: datetime
+    created_at: str
 
     class Config:
         from_attributes = True
@@ -286,7 +286,7 @@ async def get_transactions(
         shares=t.shares,
         price=round(t.price, 2),
         total=round(t.total, 2),
-        created_at=t.created_at,
+        created_at=t.created_at.isoformat() + ("Z" if "Z" not in t.created_at.isoformat() else ""),
     ) for t in txns]
 
 
@@ -337,7 +337,7 @@ async def buy_stock(
     cash.balance -= total_cost
 
     # Determine transaction date
-    txn_date = datetime.utcnow()
+    txn_date = datetime.now(timezone.utc)
     if req.transaction_date:
         try:
             # Try to parseYYYY-MM-DD
@@ -405,7 +405,7 @@ async def sell_stock(
     cash.balance += total_proceeds
 
     # Determine transaction date
-    txn_date = datetime.utcnow()
+    txn_date = datetime.now(timezone.utc)
     if req.transaction_date:
         try:
             parsed_date = datetime.fromisoformat(req.transaction_date)
@@ -578,7 +578,7 @@ async def get_watchlist(
             "currency": currency_info["code"],
             "currency_symbol": currency_info["symbol"],
             "sector": stock.sector if stock else None,
-            "added_at": item.created_at.isoformat() if item.created_at else None,
+            "added_at": (item.created_at.isoformat() + "Z") if item.created_at else None,
         })
 
     return result

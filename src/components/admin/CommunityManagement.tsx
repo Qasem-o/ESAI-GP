@@ -92,7 +92,7 @@ export function CommunityManagement() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground mb-1">
-                  User #{p.user_id} · {new Date(p.created_at).toLocaleString()} · ❤️ {p.likes_count} · 💬 {p.comments_count}
+                  User #{p.user_id} · {new Date(p.created_at.endsWith('Z') || p.created_at.includes('+') ? p.created_at : p.created_at + 'Z').toLocaleString()} · ❤️ {p.likes_count} · 💬 {p.comments_count}
                 </p>
                 <p className="text-sm line-clamp-3">{p.content}</p>
               </div>
@@ -125,7 +125,7 @@ export function CommunityManagement() {
                   <td className="px-4 py-3 max-w-xs truncate">{c.content}</td>
                   <td className="px-4 py-3 text-muted-foreground">#{c.post_id}</td>
                   <td className="px-4 py-3 text-muted-foreground">#{c.user_id}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.created_at.endsWith('Z') || c.created_at.includes('+') ? c.created_at : c.created_at + 'Z').toLocaleString()}</td>
                   <td className="px-4 py-3 flex justify-center">
                     <Button
                       variant="ghost" size="sm"

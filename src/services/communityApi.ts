@@ -40,6 +40,7 @@ export interface TopTrader {
     followers_count: number;
     posts_count: number;
     is_following: boolean;
+    portfolio_value?: number;
 }
 // ====== API Class ======
 

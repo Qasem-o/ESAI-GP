@@ -59,7 +59,9 @@ interface PortfolioProps extends NavigationProps { }
 
 // Time ago helper
 function timeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
+  // Ensure the date is treated as UTC if no timezone is provided
+  const isoStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`;
+  const date = new Date(isoStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSecs = Math.floor(diffMs / 1000);

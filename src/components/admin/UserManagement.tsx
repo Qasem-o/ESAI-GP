@@ -6,6 +6,7 @@ import { API_BASE_URL, getHeaders } from '../../services/apiConfig';
 interface UserRow {
   user_id: number;
   username: string;
+  full_name: string | null;
   email: string;
   is_active: boolean;
   is_verified: boolean;
@@ -95,8 +96,8 @@ export function UserManagement() {
                   <tr key={u.user_id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium">{u.username}</p>
-                        <p className="text-xs text-muted-foreground">{u.email}</p>
+                        <p className="font-medium">{u.full_name || u.username}</p>
+                        <p className="text-xs text-muted-foreground">{u.email} (@{u.username})</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">

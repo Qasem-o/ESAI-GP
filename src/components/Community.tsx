@@ -35,7 +35,9 @@ import {
 } from "lucide-react";
 
 function timeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
+  // Ensure the date is treated as UTC if no timezone is provided
+  const isoStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`;
+  const date = new Date(isoStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSecs = Math.floor(diffMs / 1000);
@@ -62,11 +64,12 @@ interface NavigationProps {
   onGoToProfile: () => void;
   onGoToSignup?: () => void;
   onGoToLogin?: () => void;
+  onGoToAdmin?: () => void;
 }
 
 interface CommunityProps extends NavigationProps { }
 
-export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: CommunityProps) {
+export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoToAdmin }: CommunityProps) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -337,6 +340,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
         onGoToProfile={onGoToProfile}
         onGoToSignup={onGoToSignup}
         onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
       />
 
       {/* Main Content */}
@@ -580,8 +584,8 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             <p className="text-xs text-muted-foreground">
                               @{trader.username.toLowerCase()}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {trader.followers_count} followers • {trader.posts_count} posts
+                            <p className="text-xs font-semibold text-green-500 mt-1">
+                              Virtual Value: ${trader.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                             </p>
                           </div>
                         </div>

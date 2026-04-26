@@ -34,6 +34,7 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
     return {
         "user_id": user.user_id,
         "username": user.username,
+        "full_name": user.full_name,
         "email": user.email,
         "profile_picture_url": user.profile_picture_url,
         "bio": user.bio,
@@ -60,6 +61,7 @@ class PostResponse(BaseModel):
     post_id: int
     user_id: int
     username: str
+    full_name: Optional[str] = None
     content: str
     stock_symbol: Optional[str]
     likes_count: int
@@ -75,6 +77,7 @@ class PostResponse(BaseModel):
 class FollowerResponse(BaseModel):
     user_id: int
     username: str
+    full_name: Optional[str] = None
     email: str
     profile_picture_url: Optional[str]
     bio: Optional[str]
@@ -176,6 +179,7 @@ async def get_user_posts(
             post_id=post.post_id,
             user_id=post.user_id,
             username=user.username,
+            full_name=user.full_name,
             content=post.content,
             stock_symbol=post.stock_symbol,
             likes_count=post_likes,
@@ -209,6 +213,7 @@ async def get_followers(user_id: int, limit: int = 50, db: Session = Depends(get
         result.append(FollowerResponse(
             user_id=follower.user_id,
             username=follower.username,
+            full_name=follower.full_name,
             email=follower.email,
             profile_picture_url=follower.profile_picture_url,
             bio=follower.bio,
@@ -239,6 +244,7 @@ async def get_following(user_id: int, limit: int = 50, db: Session = Depends(get
         result.append(FollowerResponse(
             user_id=user.user_id,
             username=user.username,
+            full_name=user.full_name,
             email=user.email,
             profile_picture_url=user.profile_picture_url,
             bio=user.bio,

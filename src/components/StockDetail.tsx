@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Textarea } from "./ui/textarea";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, ComposedChart } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
@@ -430,6 +430,37 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     );
   }
 
+  const getChartDataWithPrediction = () => {
+    if (!history?.data || history.data.length === 0) return [];
+    
+    // Create a deep copy of the historical data and initialize ai_prediction from the backend
+    const baseData = history.data.map(d => ({ 
+      time: d.time, 
+      price: d.price, 
+      ai_prediction: d.prediction != null ? d.prediction : null
+    }));
+    
+    if (prediction && prediction.tomorrow_price) {
+      const lastIndex = baseData.length - 1;
+      
+      // Add the future prediction point
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // If we don't have historical predictions to connect to, anchor it to the current price
+      if (baseData[lastIndex].ai_prediction == null) {
+        baseData[lastIndex].ai_prediction = baseData[lastIndex].price;
+      }
+      
+      baseData.push({
+        time: tomorrow.toISOString().split('T')[0],
+        price: null as any,
+        ai_prediction: prediction.tomorrow_price
+      });
+    }
+    return baseData;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
@@ -530,7 +561,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
 
               <div className="w-full mt-4" style={{ height: '350px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={history?.data || []}>
+                  <ComposedChart data={getChartDataWithPrediction()}>
                     <defs>
                       <linearGradient id="colorPriceMain" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
@@ -558,7 +589,10 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                       }}
                       itemStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value: any) => [`$${parseFloat(value).toFixed(2)}`, 'Price']}
+                      formatter={(value: any, name: string) => {
+                        const formattedValue = `$${parseFloat(value).toFixed(2)}`;
+                        return [formattedValue, name === 'ai_prediction' ? 'AI Prediction' : 'Price'];
+                      }}
                       labelFormatter={(label) => new Date(label).toDateString()}
                       cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
                     />
@@ -568,8 +602,20 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       stroke="#22c55e"
                       strokeWidth={3}
                       fill="url(#colorPriceMain)"
+                      connectNulls={true}
                     />
-                  </AreaChart>
+                    <Line
+                      type="monotone"
+                      dataKey="ai_prediction"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      strokeDasharray="5 5"
+                      dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }}
+                      activeDot={{ r: 6 }}
+                      isAnimationActive={true}
+                      connectNulls={true}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </Card>
@@ -849,7 +895,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                                 </Avatar>
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{post.author.username}</span>
+                                    <span className="font-semibold">{post.author.full_name || post.author.username}</span>
+                                    <span className="text-xs text-muted-foreground">@{post.author.username}</span>
                                   </div>
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                                     <span className="flex items-center gap-1">
@@ -927,25 +974,25 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">RSI (14)</p>
-                            <p className="font-semibold">{technicals[0].rsi?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[technicals.length - 1].rsi?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">MACD</p>
-                            <p className="font-semibold">{technicals[0].macd?.toFixed(4) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[technicals.length - 1].macd?.toFixed(4) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">SMA 20</p>
-                            <p className="font-semibold">{technicals[0].sma_20?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[technicals.length - 1].sma_20?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">EMA 50</p>
-                            <p className="font-semibold">{technicals[0].ema_50?.toFixed(2) || "N/A"}</p>
+                            <p className="font-semibold">{technicals[technicals.length - 1].ema_50?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="col-span-2 space-y-1">
                             <p className="text-xs text-muted-foreground">Bollinger Bands</p>
                             <p className="text-sm">
-                              Upper: {technicals[0].bollinger_upper?.toFixed(2) || "N/A"} /
-                              Lower: {technicals[0].bollinger_lower?.toFixed(2) || "N/A"}
+                              Upper: {technicals[technicals.length - 1].bollinger_upper?.toFixed(2) || "N/A"} /
+                              Lower: {technicals[technicals.length - 1].bollinger_lower?.toFixed(2) || "N/A"}
                             </p>
                           </div>
                         </div>
@@ -1190,7 +1237,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                   </div>
                 )}
                 <p className="text-xs text-center text-muted-foreground pt-2 border-t">
-                  ⚠️ AI predictions are for informational purposes only. Not financial advice.
+                  Disclaimer: AI predictions are for informational purposes only. Not financial advice.
                 </p>
               </CardContent>
             </Card>

@@ -6,9 +6,9 @@ to the frontend via the /stocks/{symbol}/prediction endpoint.
 
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
-from models import Base
+from preparedata import Base
 
 
 class PricePrediction(Base):
@@ -23,7 +23,7 @@ class PricePrediction(Base):
     direction = Column(String(10), nullable=True)             # 'bullish' / 'bearish' / 'neutral'
     change_percent = Column(Numeric(10, 4), nullable=True)
     model_type = Column(String(50), default="Hybrid")
-    trained_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    trained_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     __table_args__ = (
         UniqueConstraint("stock_id", "prediction_date", name="uq_prediction_stock_date"),

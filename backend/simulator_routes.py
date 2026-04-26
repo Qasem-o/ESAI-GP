@@ -172,7 +172,7 @@ async def get_transactions(
         "shares": t.shares,
         "price": round(t.price, 2),
         "total": round(t.total, 2),
-        "created_at": t.created_at,
+        "created_at": t.created_at.isoformat() + ("Z" if "Z" not in t.created_at.isoformat() else ""),
     } for t in txns]
 
 @router.post("/buy")

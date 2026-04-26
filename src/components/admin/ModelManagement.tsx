@@ -141,10 +141,11 @@ export function ModelManagement() {
         {status.log.length > 0 && (
           <div
             ref={logRef}
-            className="bg-black/90 text-green-400 rounded-lg p-4 font-mono text-xs h-64 overflow-y-auto"
+            className="bg-[#0a0a0a] text-green-400 rounded-lg p-4 font-mono text-xs border border-gray-800/60 shadow-inner"
+            style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}
           >
             {status.log.map((line, i) => (
-              <div key={i} className={line.includes('❌') || line.includes('Error') ? 'text-red-400' : line.includes('✅') ? 'text-green-400' : 'text-gray-300'}>
+              <div key={i} className={`${line.includes('❌') || line.includes('Error') ? 'text-red-400' : line.includes('✅') ? 'text-green-400' : 'text-gray-300'} whitespace-pre-wrap break-words mb-1`}>
                 {line}
               </div>
             ))}

@@ -7,7 +7,7 @@ import os
 import sys
 import subprocess
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
@@ -68,6 +68,7 @@ def get_current_admin(
 class UserOut(BaseModel):
     user_id: int
     username: str
+    full_name: Optional[str] = None
     email: str
     is_active: bool
     is_verified: bool
@@ -350,7 +351,7 @@ def trigger_training(
         if _training_state["status"] == "running":
             return {"message": "Training is already running", "status": "running"}
         _training_state["status"] = "running"
-        _training_state["started_at"] = datetime.utcnow().isoformat()
+        _training_state["started_at"] = datetime.now(timezone.utc).isoformat()
         _training_state["log"] = ["Training started..."]
 
     thread = threading.Thread(
@@ -371,7 +372,7 @@ def trigger_training_all(
         if _training_state["status"] == "running":
             return {"message": "Training is already running", "status": "running"}
         _training_state["status"] = "running"
-        _training_state["started_at"] = datetime.utcnow().isoformat()
+        _training_state["started_at"] = datetime.now(timezone.utc).isoformat()
         _training_state["log"] = ["Full retraining started..."]
 
     thread = threading.Thread(
@@ -405,7 +406,7 @@ def fill_missing_data(
         if _training_state["status"] == "running":
             return {"message": "A training job is running. Wait until it finishes.", "status": "running"}
         _training_state["status"] = "running"
-        _training_state["started_at"] = datetime.utcnow().isoformat()
+        _training_state["started_at"] = datetime.now(timezone.utc).isoformat()
         _training_state["log"] = ["Fill-missing data job started..."]
 
     thread = threading.Thread(target=_fill_missing_bg, daemon=True)
@@ -517,7 +518,7 @@ def _fill_missing_bg():
                 .order_by(PriceHistory.date.desc())
                 .first()
             )
-            today = dt.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             if latest_row and latest_row.date >= today:
                 with _training_lock:
                     _training_state["log"].append(f"[SKIP] {ticker} — already up to date")
