@@ -11,11 +11,11 @@ interface AdminStats {
 }
 
 const STAT_CARDS = [
-  { key: 'total_users',      label: 'Total Users',       icon: Users,          color: 'from-blue-500 to-blue-600'    },
-  { key: 'active_users',     label: 'Active Users',      icon: Users,          color: 'from-green-500 to-emerald-600' },
-  { key: 'total_stocks',     label: 'Stocks Tracked',    icon: TrendingUp,     color: 'from-purple-500 to-violet-600' },
-  { key: 'total_posts',      label: 'Community Posts',   icon: MessageSquare,  color: 'from-orange-500 to-amber-600'  },
-  { key: 'total_predictions',label: 'AI Predictions',    icon: Brain,          color: 'from-rose-500 to-pink-600'     },
+  { key: 'total_users', label: 'Total Users', icon: Users, color: 'from-blue-500 to-blue-600' },
+  { key: 'active_users', label: 'Active Users', icon: Users, color: 'from-green-500 to-emerald-600' },
+  { key: 'total_stocks', label: 'Stocks Tracked', icon: TrendingUp, color: 'from-purple-500 to-violet-600' },
+  { key: 'total_posts', label: 'Community Posts', icon: MessageSquare, color: 'from-orange-500 to-amber-600' },
+  { key: 'total_predictions', label: 'AI Predictions', icon: Brain, color: 'from-rose-500 to-pink-600' },
 ];
 
 export function AdminOverview() {
@@ -72,10 +72,10 @@ export function AdminOverview() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { href: '/admin/users',     label: 'Manage Users',     emoji: '👥' },
-            { href: '/admin/stocks',    label: 'Add Stock',        emoji: '📈' },
-            { href: '/admin/models',    label: 'Train Models',     emoji: '🤖' },
-            { href: '/admin/community', label: 'Review Posts',     emoji: '💬' },
+            { href: '/admin/users', label: 'Manage Users', emoji: '' },
+            { href: '/admin/stocks', label: 'Add Stock', emoji: '' },
+            { href: '/admin/models', label: 'Train Models', emoji: '' },
+            { href: '/admin/community', label: 'Review Posts', emoji: '' },
           ].map(({ href, label, emoji }) => (
             <a
               key={href}
