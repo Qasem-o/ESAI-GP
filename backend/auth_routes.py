@@ -155,7 +155,7 @@ async def verify_email(
         raise HTTPException(status_code=400, detail="Invalid verification code")
     
     # Check if code expired
-    if verification.expires_at < datetime.now(timezone.utc):
+    if verification.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Verification code expired. Please request a new one.")
     
     # Check attempts
@@ -246,7 +246,8 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     
     # Check if account is locked
     if is_account_locked(user.failed_login_attempts, user.locked_until):
-        minutes_left = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() / 60)
+        locked_until_aware = user.locked_until.replace(tzinfo=timezone.utc) if user.locked_until else None
+        minutes_left = int((locked_until_aware - datetime.now(timezone.utc)).total_seconds() / 60) if locked_until_aware else 0
         raise HTTPException(
             status_code=403,
             detail=f"Account locked due to too many failed login attempts. Try again in {minutes_left} minutes."

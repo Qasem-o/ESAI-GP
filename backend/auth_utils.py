@@ -127,8 +127,10 @@ def is_account_locked(failed_attempts: int, locked_until: Optional[datetime]) ->
         bool: True if account is locked, False otherwise
     """
     if failed_attempts >= MAX_FAILED_ATTEMPTS:
-        if locked_until and locked_until > datetime.now(timezone.utc):
-            return True
+        if locked_until:
+            locked_until_aware = locked_until.replace(tzinfo=timezone.utc) if locked_until.tzinfo is None else locked_until
+            if locked_until_aware > datetime.now(timezone.utc):
+                return True
     return False
 
 
