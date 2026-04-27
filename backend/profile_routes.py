@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from models import User
 from community_models import UserStats, UserFollow, Post, PostLike, PostComment

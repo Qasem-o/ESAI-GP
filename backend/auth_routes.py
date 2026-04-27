@@ -4,7 +4,7 @@ Authentication API routes for user signup, login, email verification, and OAuth.
 
 from fastapi import APIRouter, Depends, HTTPException, Header, UploadFile
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import sys
 import os
