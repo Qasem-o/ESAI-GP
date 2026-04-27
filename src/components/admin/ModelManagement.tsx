@@ -112,7 +112,7 @@ export function ModelManagement() {
           <Button
             onClick={startTraining}
             disabled={loading || status.status === 'running'}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="gap-2 bg-black text-white hover:bg-black/90"
           >
             {status.status === 'running' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             {status.status === 'running' ? 'Training in progress...' : 'Smart Train (Skip Trained Today)'}

@@ -150,7 +150,7 @@ export function StockManagement() {
           <Button
             onClick={fillMissingData}
             disabled={filling || fillStatus.status === 'running'}
-            className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+            className="gap-2 bg-black text-white hover:bg-black/90"
           >
             {fillStatus.status === 'running'
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</>
