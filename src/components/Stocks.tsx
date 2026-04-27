@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import { StockLogo } from "./StockLogo";
 import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "../services/api";
 import {
@@ -504,6 +505,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
           </motion.div>
         </div>
       </div >
+      <Footer />
     </div >
   );
 }

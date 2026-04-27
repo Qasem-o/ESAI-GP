@@ -18,6 +18,11 @@ import { UserManagement } from "./components/admin/UserManagement";
 import { StockManagement } from "./components/admin/StockManagement";
 import { ModelManagement } from "./components/admin/ModelManagement";
 import { CommunityManagement } from "./components/admin/CommunityManagement";
+import { About } from "./components/About";
+import { Terms } from "./components/Terms";
+import { Privacy } from "./components/Privacy";
+import { Help } from "./components/Help";
+
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
 
@@ -116,6 +121,12 @@ export default function App() {
               }
             />
           </Route>
+
+          {/* Public Legal/Info Pages */}
+          <Route path="/about" element={<About {...navigationProps} />} />
+          <Route path="/terms" element={<Terms {...navigationProps} />} />
+          <Route path="/privacy" element={<Privacy {...navigationProps} />} />
+          <Route path="/help" element={<Help {...navigationProps} />} />
 
           {/* Admin Routes - require admin role */}
           <Route element={<AdminRoute />}>

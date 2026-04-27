@@ -5,6 +5,7 @@ import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Progress } from "./ui/progress";
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import { useAuth } from "../contexts/AuthContext";
 import {
   portfolioAPI,
@@ -1362,6 +1363,7 @@ export function Portfolio({
       )}
 
 
+      <Footer />
     </div>
   );
 }

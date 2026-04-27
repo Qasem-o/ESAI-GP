@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import { useAuth } from "../contexts/AuthContext";
 import { simulatorAPI } from "../services/simulatorApi";
 import { portfolioAPI } from "../services/portfolioApi";
@@ -648,6 +649,7 @@ export function Simulator({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

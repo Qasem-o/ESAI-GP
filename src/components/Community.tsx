@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import { useAuth } from "../contexts/AuthContext";
 import { communityAPI, FeedPost, TopTrader, PostComment as CommentType } from "../services/communityApi";
 import { DefaultAvatar } from "./DefaultAvatar";
@@ -607,22 +608,10 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
             </Card>
 
             {/* Footer */}
-            <div className="text-xs text-muted-foreground space-y-2 px-2">
-              <div className="flex flex-wrap gap-2">
-                <a href="#" className="hover:underline">About</a>
-                <span>•</span>
-                <a href="#" className="hover:underline">Terms</a>
-                <span>•</span>
-                <a href="#" className="hover:underline">Privacy</a>
-                <span>•</span>
-                <a href="#" className="hover:underline">Help</a>
-              </div>
-              <p>© 2025 EyeStocks AI</p>
-            </div>
+            <Footer />
           </div>
         </div>
       </div>
-
       {/* Comments Modal */}
       {commentsPostId !== null && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
