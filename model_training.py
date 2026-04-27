@@ -215,6 +215,11 @@ def train_and_predict(ticker: str):
 
     X_test_hybrid = df[feature_cols].iloc[-len(lstm_test_pred):]
     hybrid_preds  = lstm_test_pred.flatten() + hybrid_corrector.predict(X_test_hybrid)
+    
+    # Calculate predictions for all historical dates
+    train_hybrid_preds = lstm_train_pred.flatten() + hybrid_corrector.predict(X_train_hybrid)
+    all_hybrid_preds = np.concatenate([train_hybrid_preds, hybrid_preds])
+    all_dates = df.index[look_back: look_back + len(all_hybrid_preds)]
 
     # ── Evaluation ─────────────────────────────────────────────────────────
     min_len    = min(len(lstm_test_pred), len(hybrid_preds))
@@ -266,54 +271,63 @@ def train_and_predict(ticker: str):
         metric.mape = round(float(mape), 4)
         metric.directional_accuracy = round(dir_acc, 2)
 
-        # Upsert PricePrediction
-        pred_row = session.query(PricePrediction).filter(
-            PricePrediction.stock_id == stock.stock_id,
-            PricePrediction.prediction_date == pred_date,
-        ).one_or_none()
-        if not pred_row:
-            pred_row = PricePrediction(stock_id=stock.stock_id, prediction_date=pred_date)
-            session.add(pred_row)
-        pred_row.predicted_price = next_price
-        pred_row.confidence      = round(dir_acc, 2)
-        pred_row.direction       = direction
-        pred_row.change_percent  = change_pct
-        pred_row.model_type      = "Hybrid"
-        pred_row.trained_at      = datetime.utcnow()
+        # Delete pred_row saving logic here because we do it in bulk insert below
 
-        # Upsert Historical Test Predictions (last 60 days) to show AI confidence graph
-        test_dates = df.index[-min_len:]
-        test_preds = res_hybrid
-        hist_len = min(60, min_len)
-        hist_dates = test_dates[-hist_len:]
-        hist_preds = test_preds[-hist_len:]
+        # Upsert Historical Predictions (all days) to show AI confidence graph
+        test_dates = all_dates
+        test_preds = all_hybrid_preds
+        hist_len = len(test_preds)
+        hist_dates = test_dates
+        hist_preds = test_preds
         
+        # Fast Bulk Insert for Historical Predictions
+        session.query(PricePrediction).filter(PricePrediction.stock_id == stock.stock_id).delete()
+        
+        # We need to preserve the "trained_at" from just now
+        now_utc = datetime.utcnow()
+        
+        predictions_to_insert = []
         for i in range(hist_len):
             h_date = hist_dates[i].date() if hasattr(hist_dates[i], 'date') else hist_dates[i]
             h_pred = float(hist_preds[i])
             
-            prev_idx = len(df) - hist_len + i - 1
-            if prev_idx >= 0:
+            prev_idx = look_back + i - 1
+            if prev_idx >= 0 and prev_idx < len(df):
                 h_prev_actual = float(df['close'].iloc[prev_idx])
-                h_change_pct = round(((h_pred - h_prev_actual) / h_prev_actual) * 100, 4)
+                h_change_pct = round(((h_pred - h_prev_actual) / h_prev_actual) * 100, 4) if h_prev_actual else 0.0
                 h_dir = "bullish" if h_change_pct > 0 else ("bearish" if h_change_pct < 0 else "neutral")
             else:
                 h_change_pct = 0.0
                 h_dir = "neutral"
                 
-            h_row = session.query(PricePrediction).filter(
-                PricePrediction.stock_id == stock.stock_id,
-                PricePrediction.prediction_date == h_date,
-            ).one_or_none()
-            if not h_row:
-                h_row = PricePrediction(stock_id=stock.stock_id, prediction_date=h_date)
-                session.add(h_row)
-            h_row.predicted_price = h_pred
-            h_row.confidence = round(dir_acc, 2)
-            h_row.direction = h_dir
-            h_row.change_percent = h_change_pct
-            h_row.model_type = "Hybrid"
-            h_row.trained_at = datetime.utcnow()
+            predictions_to_insert.append(
+                PricePrediction(
+                    stock_id=stock.stock_id,
+                    prediction_date=h_date,
+                    predicted_price=h_pred,
+                    confidence=round(dir_acc, 2),
+                    direction=h_dir,
+                    change_percent=h_change_pct,
+                    model_type="Hybrid",
+                    trained_at=now_utc
+                )
+            )
+            
+        # Re-add the NEXT day prediction
+        predictions_to_insert.append(
+            PricePrediction(
+                stock_id=stock.stock_id,
+                prediction_date=pred_date,
+                predicted_price=next_price,
+                confidence=round(dir_acc, 2),
+                direction=direction,
+                change_percent=change_pct,
+                model_type="Hybrid",
+                trained_at=now_utc
+            )
+        )
+        
+        session.bulk_save_objects(predictions_to_insert)
 
         session.commit()
         print(f"  💾 Saved prediction + metrics for {ticker}")
