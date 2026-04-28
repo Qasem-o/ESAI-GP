@@ -12,6 +12,16 @@ import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "
 import { portfolioAPI } from "../services/portfolioApi";
 import { toast } from "sonner";
 import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "./ui/drawer";
+import {
   TrendingUp,
   TrendingDown,
   Search,
@@ -108,6 +118,16 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
   const [insightLoading, setInsightLoading] = useState(false);
   const [watchlisted, setWatchlisted] = useState<Record<string, boolean>>({});
   const [isToggling, setIsToggling] = useState<Record<string, boolean>>({});
+  const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Helper to determine currency
   const getCurrency = (symbol: string) => {
@@ -222,12 +242,16 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
       {/* Main Content */}
       <div className="container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Sidebar */}
+          {/* Left Sidebar - Hidden on mobile */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
-            style={{ position: 'sticky', top: '6rem' }}
+            style={{ 
+              position: 'sticky', 
+              top: '6rem',
+              display: isDesktop ? 'block' : 'none'
+            }}
             className="lg:col-span-3 space-y-6 pr-1"
           >
             {/* Search */}
@@ -297,24 +321,81 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
           </motion.div>
 
           {/* Center - Stocks Grid */}
-          <div className="lg:col-span-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between flex-shrink-0">
+          <div 
+            className="flex flex-col gap-4"
+            style={{ gridColumn: isDesktop ? 'span 6 / span 6' : 'span 1 / span 1' }}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
               <div>
                 <h1 className="text-2xl font-bold">Explore Stocks</h1>
                 <p className="text-sm text-muted-foreground">
                   {filteredStocks.length} stocks • Real-time data
                 </p>
               </div>
+
+              {/* Mobile Filter Trigger */}
+              {!isDesktop && (
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      type="text"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9">
+                        <Filter className="w-4 h-4 mr-2" />
+                        Sectors
+                      </Button>
+                    </DrawerTrigger>
+                    <DrawerContent>
+                      <DrawerHeader>
+                        <DrawerTitle>Select Sector</DrawerTitle>
+                        <DrawerDescription>Filter stocks by category</DrawerDescription>
+                      </DrawerHeader>
+                      <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto max-h-[50vh]">
+                        {sectorStats.map((sector) => (
+                          <Button
+                            key={sector.name}
+                            variant={selectedSector === sector.name ? "default" : "outline"}
+                            className="justify-between text-xs h-auto py-2"
+                            onClick={() => {
+                              setSelectedSector(sector.name);
+                            }}
+                          >
+                            <span className="truncate">{sector.name}</span>
+                            <Badge variant="secondary" className="ml-1 text-[10px]">{sector.count}</Badge>
+                          </Button>
+                        ))}
+                      </div>
+                    </DrawerContent>
+                  </Drawer>
+                </div>
+              )}
             </div>
 
             {/* Stocks Grid */}
             <motion.div
               style={{ maxHeight: '80vh', overflowY: 'auto' }}
-              className="grid gap-4 pb-4 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-primary/20 hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+              className="grid gap-4 pb-4 pr-2 stocks-grid-container [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-primary/20 hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
+              {/* Force natural scrolling on small mobile screens if 80vh is too restrictive or weird */}
+              <style dangerouslySetInnerHTML={{ __html: `
+                @media (max-width: 640px) {
+                  .stocks-grid-container {
+                    max-height: none !important;
+                    overflow-y: visible !important;
+                  }
+                }
+              `}} />
               <AnimatePresence mode="popLayout">
                 {loading ? (
                   <motion.div 
@@ -349,7 +430,12 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                   >
                     <Card
                       className={`hover:shadow-lg transition-all cursor-pointer border-2 ${selectedStock?.symbol === stock.symbol ? 'border-primary' : 'border-transparent hover:border-primary/20'} bg-card/50 backdrop-blur-sm`}
-                      onClick={() => setSelectedStock(stock)}
+                      onClick={() => {
+                        setSelectedStock(stock);
+                        if (!isDesktop) {
+                          setIsMobileDetailOpen(true);
+                        }
+                      }}
                     >
                       <CardContent className="pt-6">
                         <div className="space-y-4">
@@ -450,12 +536,16 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
             </motion.div>
           </div>
 
-          {/* Right Sidebar - Selected Stock Details */}
+          {/* Right Sidebar - Hidden on mobile */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
-            style={{ position: 'sticky', top: '6rem' }}
+            style={{ 
+              position: 'sticky', 
+              top: '6rem',
+              display: isDesktop ? 'block' : 'none'
+            }}
             className="lg:col-span-3 space-y-6 pl-1"
           >
             {selectedStock && (
@@ -523,6 +613,86 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
           </motion.div>
         </div>
       </div>
+
+      {/* Mobile Details Drawer */}
+      <Drawer open={isMobileDetailOpen} onOpenChange={setIsMobileDetailOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="text-left pb-0">
+            <DrawerTitle className="flex items-center gap-3">
+              {selectedStock && <StockLogo symbol={selectedStock.symbol} name={selectedStock.name} />}
+              <span>{selectedStock?.name} Details</span>
+            </DrawerTitle>
+            <DrawerDescription>
+              {selectedStock?.symbol} • {selectedStock?.sector}
+            </DrawerDescription>
+          </DrawerHeader>
+          
+          {selectedStock && (
+            <div className="p-4 space-y-6 overflow-y-auto">
+              <div className="flex flex-col items-center py-2">
+                <p className="text-4xl font-bold">
+                  {getCurrency(selectedStock.symbol)} {selectedStock.price.toLocaleString()}
+                </p>
+                <Badge
+                  variant={(selectedStock.change || 0) >= 0 ? "default" : "destructive"}
+                  className="mt-2 text-sm"
+                >
+                  {(selectedStock.change || 0) >= 0 ? '+' : ''}{selectedStock.change || 0}%
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted/50 p-3 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Volume</p>
+                  <p className="font-bold">{formatLargeNumber(selectedStock.volume)}</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Market Cap</p>
+                  <p className="font-bold">{formatLargeNumber(selectedStock.marketCap)}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Button className="w-full h-12 text-lg" onClick={() => {
+                  onGoToSimulator();
+                  setIsMobileDetailOpen(false);
+                }}>
+                  <Zap className="w-5 h-5 mr-2" />
+                  Trade in Simulator
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 text-lg"
+                  onClick={(e) => {
+                    toggleWatchlist(e, selectedStock.symbol, selectedStock.name);
+                  }}
+                  disabled={isToggling[selectedStock.symbol]}
+                >
+                  <Star className={`w-5 h-5 mr-2 ${watchlisted[selectedStock.symbol] ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                  {watchlisted[selectedStock.symbol] ? "In Watchlist" : "Add to Watchlist"}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-12 text-muted-foreground"
+                  onClick={() => {
+                    onGoToStockDetails(selectedStock.symbol);
+                    setIsMobileDetailOpen(false);
+                  }}
+                >
+                  View Full Analysis Page
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <DrawerFooter className="pt-2">
+            <DrawerClose asChild>
+              <Button variant="secondary">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
       <Footer />
     </div>
   );
