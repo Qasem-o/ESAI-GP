@@ -2873,4 +2873,36 @@ html {
     filter: invert(1);
     cursor: pointer;
   }
+
+  /* Vaul Drawer Manual Fix */
+  [data-slot="drawer-overlay"] {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 50 !important;
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  [data-slot="drawer-content"] {
+    position: fixed !important;
+    z-index: 51 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background-color: hsl(var(--card)) !important;
+    color: hsl(var(--card-foreground)) !important;
+    outline: none !important;
+    transition: transform 0.3s ease-out !important;
+  }
+
+  [data-vaul-drawer-direction="bottom"] {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-height: 85vh !important;
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
+    border-top: 1px solid hsl(var(--border)) !important;
+    box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  }
 }
