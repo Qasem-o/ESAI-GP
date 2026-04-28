@@ -9,6 +9,8 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { StockLogo } from "./StockLogo";
 import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "../services/api";
+import { portfolioAPI } from "../services/portfolioApi";
+import { toast } from "sonner";
 import {
   TrendingUp,
   TrendingDown,
@@ -26,7 +28,8 @@ import {
   ArrowDownRight,
   Plus,
   Sparkles,
-  Flame
+  Flame,
+  Loader2
 } from "lucide-react";
 
 // Mock sectors for filter (or could fetch from DB distinct sectors)
@@ -103,6 +106,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
   const [selectedStock, setSelectedStock] = useState<StockPrice | null>(null);
   const [aiInsight, setAiInsight] = useState<StockPrediction | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [watchlisted, setWatchlisted] = useState<Record<string, boolean>>({});
+  const [isToggling, setIsToggling] = useState<Record<string, boolean>>({});
 
   // Helper to determine currency
   const getCurrency = (symbol: string) => {
@@ -140,6 +145,15 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
         if (data.length > 0) {
           setSelectedStock(data[0]);
         }
+
+        try {
+          const wl = await portfolioAPI.getWatchlist();
+          const wlMap: Record<string, boolean> = {};
+          wl.forEach(item => wlMap[item.stock_symbol] = true);
+          setWatchlisted(wlMap);
+        } catch (wlErr) {
+          console.warn("Could not load watchlist", wlErr);
+        }
       } catch (err) {
         console.error("Failed to load stocks", err);
       } finally {
@@ -159,6 +173,29 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
     }
   }, [selectedStock]);
 
+  const toggleWatchlist = async (e: React.MouseEvent, symbol: string, name: string) => {
+    e.stopPropagation();
+    setIsToggling(prev => ({ ...prev, [symbol]: true }));
+    try {
+      if (watchlisted[symbol]) {
+        await portfolioAPI.removeFromWatchlist(symbol);
+        setWatchlisted(prev => ({ ...prev, [symbol]: false }));
+        toast.success(`${symbol} removed from watchlist`);
+      } else {
+        await portfolioAPI.addToWatchlist(symbol, name);
+        setWatchlisted(prev => ({ ...prev, [symbol]: true }));
+        toast.success(`${symbol} added to watchlist`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update watchlist");
+      if (err.message === 'Session expired' && onGoToLogin) {
+        onGoToLogin();
+      }
+    } finally {
+      setIsToggling(prev => ({ ...prev, [symbol]: false }));
+    }
+  };
+
   const filteredStocks = stocks.filter(stock => {
     const matchesSearch =
       (stock.symbol && stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -168,7 +205,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Unified Header */}
       <Header
         currentPage={currentPage}
@@ -184,14 +221,14 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
       {/* Main Content */}
       <div className="container mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Sidebar */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
-            className="lg:col-span-3 space-y-6"
+            style={{ position: 'sticky', top: '6rem' }}
+            className="lg:col-span-3 space-y-6 pr-1"
           >
             {/* Search */}
             <Card>
@@ -260,39 +297,59 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
           </motion.div>
 
           {/* Center - Stocks Grid */}
-          <div className="lg:col-span-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="lg:col-span-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between flex-shrink-0">
               <div>
                 <h1 className="text-2xl font-bold">Explore Stocks</h1>
                 <p className="text-sm text-muted-foreground">
                   {filteredStocks.length} stocks • Real-time data
                 </p>
               </div>
-              <Tabs defaultValue="grid">
-                <TabsList>
-                  <TabsTrigger value="grid">Grid</TabsTrigger>
-                  <TabsTrigger value="list">List</TabsTrigger>
-                </TabsList>
-              </Tabs>
             </div>
 
             {/* Stocks Grid */}
             <motion.div
-              className="grid gap-4"
+              style={{ maxHeight: '80vh', overflowY: 'auto' }}
+              className="grid gap-4 pb-4 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-primary/20 hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               <AnimatePresence mode="popLayout">
-                {filteredStocks.map((stock) => (
+                {loading ? (
+                  <motion.div 
+                    key="loading"
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className="col-span-full flex flex-col items-center justify-center py-20 text-muted-foreground"
+                  >
+                    <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+                    <p className="text-lg font-medium text-foreground">Loading market data...</p>
+                    <p className="text-sm">Fetching real-time stock quotes and community insights.</p>
+                  </motion.div>
+                ) : filteredStocks.length === 0 ? (
+                  <motion.div 
+                    key="empty"
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }}
+                    className="col-span-full flex flex-col items-center justify-center py-20 text-muted-foreground"
+                  >
+                    <Search className="w-10 h-10 mb-4 opacity-20" />
+                    <p className="text-lg font-medium text-foreground">No stocks found</p>
+                    <p className="text-sm">Try adjusting your search or sector filter.</p>
+                  </motion.div>
+                ) : (
+                  filteredStocks.map((stock) => (
                   <motion.div
                     key={stock.symbol}
                     layout
                     variants={itemVariants}
                   >
                     <Card
-                      className="hover:shadow-lg transition-all cursor-pointer border-transparent hover:border-primary/20 bg-card/50 backdrop-blur-sm"
-                      onClick={() => onGoToStockDetails(stock.symbol)}
+                      className={`hover:shadow-lg transition-all cursor-pointer border-2 ${selectedStock?.symbol === stock.symbol ? 'border-primary' : 'border-transparent hover:border-primary/20'} bg-card/50 backdrop-blur-sm`}
+                      onClick={() => setSelectedStock(stock)}
                     >
                       <CardContent className="pt-6">
                         <div className="space-y-4">
@@ -310,8 +367,13 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                                 <p className="text-sm text-muted-foreground">{stock.symbol}</p>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon">
-                              <Star className="w-5 h-5" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={(e) => toggleWatchlist(e, stock.symbol, stock.name)}
+                              disabled={isToggling[stock.symbol]}
+                            >
+                              <Star className={`w-5 h-5 ${watchlisted[stock.symbol] ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"}`} />
                             </Button>
                           </div>
 
@@ -369,13 +431,12 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                             </div>
                           )}
 
-                          {/* Actions */}
                           <div className="flex gap-2">
-                            <Button className="flex-1" size="sm">
+                            <Button className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); onGoToSimulator(); }}>
                               <Zap className="w-4 h-4 mr-1" />
                               Trade
                             </Button>
-                            <Button variant="outline" className="flex-1" size="sm">
+                            <Button variant="outline" className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); onGoToStockDetails(stock.symbol); }}>
                               <BarChart2 className="w-4 h-4 mr-1" />
                               Analyze
                             </Button>
@@ -384,7 +445,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))}
+                )))}
               </AnimatePresence>
             </motion.div>
           </div>
@@ -394,7 +455,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
-            className="lg:col-span-3 space-y-6"
+            style={{ position: 'sticky', top: '6rem' }}
+            className="lg:col-span-3 space-y-6 pl-1"
           >
             {selectedStock && (
               <Card>
@@ -443,69 +505,25 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                       <Zap className="w-4 h-4 mr-2" />
                       Trade in Simulator
                     </Button>
-                    <Button variant="outline" className="w-full">
-                      <Star className="w-4 h-4 mr-2" />
-                      Add to Watchlist
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={(e) => toggleWatchlist(e, selectedStock.symbol, selectedStock.name)}
+                      disabled={isToggling[selectedStock.symbol]}
+                    >
+                      <Star className={`w-4 h-4 mr-2 ${watchlisted[selectedStock.symbol] ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                      {watchlisted[selectedStock.symbol] ? "Remove from Watchlist" : "Add to Watchlist"}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* AI Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  AI Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {insightLoading ? (
-                  <div className="flex justify-center py-4">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : aiInsight ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                      <span className="text-sm font-medium">Recommendation</span>
-                      <Badge variant={aiInsight.direction === 'bullish' ? 'default' : aiInsight.direction === 'bearish' ? 'destructive' : 'secondary'}>
-                        {aiInsight.recommendation || aiInsight.direction}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                      <span className="text-sm font-medium">Confidence</span>
-                      <span className="font-bold">{(aiInsight.confidence * 100).toFixed(1)}%</span>
-                    </div>
-                    {aiInsight.target_price && (
-                      <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                        <span className="text-sm font-medium">Target</span>
-                        <span className="font-bold">${aiInsight.target_price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                      </div>
-                    )}
-                    {aiInsight.analysis && aiInsight.analysis.length > 0 && (
-                      <div className="pt-2">
-                        <p className="text-sm font-medium mb-2">Key Drivers:</p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
-                          {aiInsight.analysis.slice(0, 3).map((note, idx) => (
-                            <li key={idx}>{note}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No AI insights available for this stock currently.</p>
-                )}
-                <Button variant="outline" size="sm" className="w-full mt-4 cursor-pointer" onClick={() => selectedStock && onGoToStockDetails(selectedStock.symbol)}>
-                  View Full Analysis
-                </Button>
-              </CardContent>
-            </Card>
+
           </motion.div>
         </div>
-      </div >
+      </div>
       <Footer />
-    </div >
+    </div>
   );
 }

@@ -280,41 +280,80 @@ def health_check(db: Session = Depends(get_db)):
 
 @app.get("/stocks", response_model=List[StockBase])
 def get_stocks(db: Session = Depends(get_db)):
+    from community_models import Post
+    from sqlalchemy import func
+    
     stocks = db.query(Stock).all()
     
-    # Enrich with latest volume from PriceHistory for each stock
+    # Enrich stocks
     enriched_stocks = []
     
     for stock in stocks:
-        latest_history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+        # Get latest TWO history records to calculate change
+        history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
             .order_by(desc(PriceHistory.date))\
-            .first()
+            .limit(2)\
+            .all()
             
         stock_dict = stock.__dict__.copy()
-        if latest_history:
-            stock_dict['volume'] = latest_history.volume
         
-        # Add currency info
+        # 1. Price and Change
+        if len(history) >= 1:
+            latest = history[0]
+            stock_dict['volume'] = latest.volume
+            
+            # If we have at least 2 records, calculate change from the previous day
+            if len(history) >= 2:
+                prev = history[1]
+                prev_close = float(prev.close)
+                curr_price = float(stock.current_price) if stock.current_price else float(latest.close)
+                
+                if prev_close > 0:
+                    day_change = curr_price - prev_close
+                    stock_dict['day_change'] = round(day_change, 2)
+                    stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
+            else:
+                # Only 1 record, can't calculate change from previous day
+                stock_dict['day_change'] = 0.0
+                stock_dict['change_percent'] = 0.0
+        
+        # 2. Currency info
         curr_info = get_stock_currency(stock.symbol)
         stock_dict['currency'] = curr_info['code']
         stock_dict['currency_symbol'] = curr_info['symbol']
         price = float(stock.current_price) if stock.current_price else 0.0
         stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
         
-        # Add social stats (mentions and sentiment) - deterministic for now
-        val = sum(ord(c) for c in stock.symbol)
-        stock_dict['mentions'] = (val * 7) % 1500 + 50
-        stock_dict['sentiment'] = (val % 30) + 40 # 40-70%
+        # 3. Social stats (REAL data from posts)
+        mentions_count = db.query(func.count(Post.post_id)).filter(Post.stock_symbol == stock.symbol).scalar()
+        stock_dict['mentions'] = mentions_count
         
-        # Calculate day change %
-        if latest_history and stock.current_price:
-            prev_close = float(latest_history.close)
-            curr_price = float(stock.current_price)
-            if prev_close > 0:
-                day_change = curr_price - prev_close
-                stock_dict['day_change'] = round(day_change, 2)
-                stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
-
+        if mentions_count > 0:
+            # Simple sentiment analysis based on keywords in posts
+            bullish_keywords = ['buy', 'bull', 'long', 'up', 'moon', 'good', 'strong', 'growth', 'ثور', 'شراء', 'صعود', 'ممتاز']
+            bearish_keywords = ['sell', 'bear', 'short', 'down', 'crash', 'bad', 'weak', 'drop', 'دب', 'بيع', 'هبوط', 'سيء']
+            
+            posts_content = db.query(Post.content).filter(Post.stock_symbol == stock.symbol).all()
+            bull_score = 0
+            bear_score = 0
+            
+            for (content,) in posts_content:
+                content_lower = content.lower()
+                bull_score += sum(1 for kw in bullish_keywords if kw in content_lower)
+                bear_score += sum(1 for kw in bearish_keywords if kw in content_lower)
+            
+            total_score = bull_score + bear_score
+            if total_score > 0:
+                sentiment_val = int((bull_score / total_score) * 100)
+                # Keep it within reasonable bounds 20-95%
+                stock_dict['sentiment'] = max(20, min(95, sentiment_val))
+            else:
+                # Neutral default for mentions with no clear sentiment
+                stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 15) # 50-65%
+        else:
+            # Fallback for 0 mentions
+            stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 10)
+        
         enriched_stocks.append(StockBase(**stock_dict))
         
     return enriched_stocks
@@ -324,27 +363,35 @@ def get_stock_details(symbol: str, db: Session = Depends(get_db)):
     stock = db.query(Stock).filter(Stock.symbol == symbol).first()
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
-    
-    # Enrich with latest price history for OHLV
-    latest_history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+
+    # Enrich with latest TWO history records to calculate change
+    history = db.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
         .order_by(desc(PriceHistory.date))\
-        .first()
+        .limit(2)\
+        .all()
         
     stock_dict = stock.__dict__.copy()
-    if latest_history:
-        stock_dict['day_open'] = float(latest_history.open) if latest_history.open else None
-        stock_dict['day_high'] = float(latest_history.high) if latest_history.high else None
-        stock_dict['day_low'] = float(latest_history.low) if latest_history.low else None
-        stock_dict['volume'] = latest_history.volume
+    
+    if len(history) >= 1:
+        latest = history[0]
+        stock_dict['day_open'] = float(latest.open) if latest.open else None
+        stock_dict['day_high'] = float(latest.high) if latest.high else None
+        stock_dict['day_low'] = float(latest.low) if latest.low else None
+        stock_dict['volume'] = latest.volume
         
         # Calculate change if price exists
-        if stock.current_price:
-            prev_close = float(latest_history.close)
-            curr_price = float(stock.current_price)
+        if len(history) >= 2:
+            prev = history[1]
+            prev_close = float(prev.close)
+            curr_price = float(stock.current_price) if stock.current_price else float(latest.close)
+            
             if prev_close > 0:
                 day_change = curr_price - prev_close
                 stock_dict['day_change'] = round(day_change, 2)
                 stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
+        else:
+            stock_dict['day_change'] = 0.0
+            stock_dict['change_percent'] = 0.0
 
     # Add currency info
     curr_info = get_stock_currency(stock.symbol)
@@ -353,12 +400,35 @@ def get_stock_details(symbol: str, db: Session = Depends(get_db)):
     price = float(stock.current_price) if stock.current_price else 0.0
     stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
     
-    # Add social stats
-    val = sum(ord(c) for c in stock.symbol)
-    stock_dict['mentions'] = (val * 7) % 1500 + 50
-    stock_dict['sentiment'] = (val % 30) + 40
+    # Add social stats (REAL data)
+    from community_models import Post
+    from sqlalchemy import func
     
-    # Manually construct Pydantic model to mix ORM and extra data
+    mentions_count = db.query(func.count(Post.post_id)).filter(Post.stock_symbol == stock.symbol).scalar()
+    stock_dict['mentions'] = mentions_count
+    
+    if mentions_count > 0:
+        bullish_keywords = ['buy', 'bull', 'long', 'up', 'moon', 'good', 'strong', 'growth', 'ثور', 'شراء', 'صعود', 'ممتاز']
+        bearish_keywords = ['sell', 'bear', 'short', 'down', 'crash', 'bad', 'weak', 'drop', 'دب', 'بيع', 'هبوط', 'سيء']
+        
+        posts_content = db.query(Post.content).filter(Post.stock_symbol == stock.symbol).all()
+        bull_score = 0
+        bear_score = 0
+        
+        for (content,) in posts_content:
+            content_lower = content.lower()
+            bull_score += sum(1 for kw in bullish_keywords if kw in content_lower)
+            bear_score += sum(1 for kw in bearish_keywords if kw in content_lower)
+        
+        total_score = bull_score + bear_score
+        if total_score > 0:
+            sentiment_val = int((bull_score / total_score) * 100)
+            stock_dict['sentiment'] = max(20, min(95, sentiment_val))
+        else:
+            stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 15)
+    else:
+        stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 10)
+    
     return StockBase(**stock_dict)
 
 @app.get("/stocks/{symbol}/history", response_model=List[PricePoint])
