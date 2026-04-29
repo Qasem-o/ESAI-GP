@@ -204,6 +204,23 @@ def fetch_prices(ticker, start, end, interval="1d"):
         df['Adj Close'] = df['Close']
     
     required_cols = ['Date','Open','High','Low','Close','Adj Close','Volume']
+    
+    # 3. Handle NaN in the last row (common for current day data in yfinance)
+    if not df.empty:
+        last_idx = df.index[-1]
+        if pd.isna(df.loc[last_idx, 'Close']):
+            try:
+                t_obj = yf.Ticker(ticker)
+                live_price = t_obj.info.get('currentPrice') or t_obj.info.get('regularMarketPrice')
+                if live_price:
+                    df.loc[last_idx, 'Close'] = live_price
+                    df.loc[last_idx, 'Adj Close'] = live_price
+                    for col in ['Open', 'High', 'Low']:
+                        if pd.isna(df.loc[last_idx, col]):
+                            df.loc[last_idx, col] = live_price
+            except Exception as e:
+                print(f"⚠️ Could not fetch live price for {ticker}: {e}")
+
     missing_cols = [col for col in required_cols if col not in df.columns]
 
     if missing_cols:

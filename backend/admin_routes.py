@@ -21,9 +21,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 sys.path.append(os.path.dirname(current_dir))
 
-from models import User, Base
+from models import User, Base, AdminNotification
 from community_models import Post, PostComment
 from auth_utils import verify_token
+from datetime import timedelta
 
 # Training state (in-memory for this process)
 _training_lock = threading.Lock()
@@ -153,6 +154,10 @@ def admin_stats(
 ):
     from preparedata import Stock
     from prediction_models import PricePrediction
+    
+    # Auto-generate market notifications when admin checks stats
+    generate_market_notifications(db)
+    
     return {
         "total_users": db.query(User).count(),
         "active_users": db.query(User).filter(User.is_active == True).count(),
@@ -160,6 +165,65 @@ def admin_stats(
         "total_posts": db.query(Post).count(),
         "total_predictions": db.query(PricePrediction).count(),
     }
+
+
+def generate_market_notifications(db: Session):
+    """Checks current time vs market closing times and generates admin alerts."""
+    now = datetime.now(timezone.utc)
+    ast_now = now + timedelta(hours=3)
+    s_day = ast_now.weekday() 
+    s_time = ast_now.hour * 100 + ast_now.minute
+    today_str = ast_now.strftime("%Y-%m-%d")
+
+    markets = [
+        {"id": "SA", "name": "Saudi Market", "days": [6, 0, 1, 2, 3], "close": 1500},
+        {"id": "US", "name": "US Market", "days": [0, 1, 2, 3, 4], "close": 2300},
+        {"id": "KW", "name": "Kuwait Market", "days": [6, 0, 1, 2, 3], "close": 1230},
+        {"id": "QA", "name": "Qatar Market", "days": [6, 0, 1, 2, 3], "close": 1315},
+    ]
+
+    for m in markets:
+        # If it's a trading day and it's past closing time
+        if s_day in m["days"] and s_time >= m["close"]:
+            # Check if we already notified for this today
+            tag = f"{m['id']}_{today_str}"
+            exists = db.query(AdminNotification).filter(AdminNotification.market == tag).first()
+            if not exists:
+                notif = AdminNotification(
+                    title=f"Market Closed: {m['name']}",
+                    message=f"The {m['name']} has closed for today ({today_str}). Please run 'Fill Missing Data' to fetch the latest prices and update charts.",
+                    market=tag
+                )
+                db.add(notif)
+                db.commit()
+
+
+@router.get("/notifications", response_model=List[dict])
+def get_admin_notifications(
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    notifs = db.query(AdminNotification).order_by(desc(AdminNotification.created_at)).limit(50).all()
+    return [{
+        "id": n.notification_id,
+        "title": n.title,
+        "message": n.message,
+        "is_read": n.is_read,
+        "created_at": n.created_at
+    } for n in notifs]
+
+
+@router.post("/notifications/{notif_id}/read")
+def mark_notification_read(
+    notif_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    n = db.query(AdminNotification).filter(AdminNotification.notification_id == notif_id).first()
+    if n:
+        n.is_read = True
+        db.commit()
+    return {"status": "ok"}
 
 
 # ─── User Management ──────────────────────────────────────────────────────────
@@ -529,8 +593,8 @@ def _fill_missing_bg():
             today_utc = datetime.now(timezone.utc).date()
             
             # Smart Skip: 
-            # 1. If we have yesterday's data or today's data, it's 'recent'
-            is_recent = latest_row and (today_utc - latest_row.date).days <= 1
+            # Only skip if we already have today's data (UTC)
+            is_recent = latest_row and latest_row.date >= today_utc and latest_row.close is not None
             # 2. Indicators must not be NULL
             has_valid_tech = latest_tech and latest_tech.rsi is not None
             

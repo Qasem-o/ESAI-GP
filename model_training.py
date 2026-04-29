@@ -494,22 +494,39 @@ def run_daily(tickers: list, workers: int = 4):
     return results
 
 
-def get_trained_today() -> list:
+def get_stocks_needing_training(tickers: list) -> list:
+    """Returns tickers that have new price data since their last training."""
     engine = get_engine()
     Session = sessionmaker(bind=engine)
     session = Session()
+    needing = []
     try:
-        today = datetime.now(timezone.utc).date()
-        rows = (
-            session.query(Stock.symbol)
-            .join(PricePrediction, PricePrediction.stock_id == Stock.stock_id)
-            .filter(PricePrediction.trained_at >= datetime.combine(today, datetime.min.time()))
-            .distinct()
-            .all()
-        )
-        return [r[0] for r in rows]
-    except Exception:
-        return []
+        for t in tickers:
+            # Get latest price date
+            res_h = session.execute(text(
+                "SELECT MAX(date) FROM price_history ph JOIN stocks s ON s.stock_id = ph.stock_id WHERE s.symbol = :t"
+            ), {"t": t}).scalar()
+            
+            # Get latest training timestamp
+            res_p = session.execute(text(
+                "SELECT MAX(trained_at) FROM price_predictions pp JOIN stocks s ON s.stock_id = pp.stock_id WHERE s.symbol = :t"
+            ), {"t": t}).scalar()
+            
+            if not res_h:
+                continue # No data to train on
+            
+            if not res_p:
+                needing.append(t) # Never trained
+                continue
+            
+            # If latest data date is >= the day we last trained (meaning new data arrived)
+            # trained_at is UTC, res_h is date (local/UTC)
+            if res_h >= res_p.date():
+                needing.append(t)
+        return needing
+    except Exception as e:
+        print(f"Error checking training status: {e}")
+        return tickers # Fallback to all
     finally:
         session.close()
 
@@ -537,11 +554,11 @@ def main():
               if args.symbols else all_tickers
 
     if args.skip_trained_today:
-        trained = get_trained_today()
-        skipped = [t for t in tickers if t in trained]
-        tickers  = [t for t in tickers if t not in trained]
-        if skipped:
-            print(f">> Skipping already trained today: {skipped}")
+        tickers = get_stocks_needing_training(tickers)
+        if not tickers:
+            print(">> All stocks are up to date with the latest data. Nothing to do.")
+            return
+        print(f">> Stocks needing update (new data found): {tickers}")
 
     if not tickers:
         print(">> All stocks trained today. Nothing to do.")

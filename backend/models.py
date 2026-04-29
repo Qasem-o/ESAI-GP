@@ -69,3 +69,14 @@ class EmailVerification(Base):
     __table_args__ = (
         Index('idx_email_code_used', 'email', 'verification_code', 'is_used'),
     )
+
+
+class AdminNotification(Base):
+    __tablename__ = "admin_notifications"
+    notification_id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    market = Column(String(50), nullable=True) # e.g. 'Saudi', 'US'
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

@@ -457,24 +457,31 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   const getChartDataWithPrediction = () => {
     if (!history?.data || history.data.length === 0) return [];
     
-    // Create a deep copy of the historical data
-    const baseData = history.data.map(d => ({ 
-      time: d.time, 
-      price: d.price, 
-      ai_prediction: d.prediction != null ? d.prediction : null
-    }));
+    // 1. Map historical data
+    // We only show historical predictions for the last 60 points to avoid "messy" chart starts
+    const historyData = history.data;
+    const baseData = historyData.map((d, idx) => {
+      const item: any = { 
+        time: d.time, 
+        price: d.price 
+      };
+      // Include historical prediction only if it's recent and valid
+      if (idx >= historyData.length - 60 && d.prediction != null && d.prediction > 0) {
+        item.ai_prediction = d.prediction;
+      }
+      return item;
+    });
     
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const lastHistoryItem = baseData[baseData.length - 1];
     const market = getMarketInfo(displayStockData.symbol);
     
-    // Only add 'today' or fill gaps if the market is open OR the price has moved from history
-    // This prevents "repeated" flat lines when the market is closed.
-    const priceMoved = Math.abs(displayStockData.price - lastHistoryItem.price) > 0.001;
+    // 2. Fill gaps between last history and today
+    // Only add points if the market is open or price has changed significantly
+    const priceMoved = Math.abs(displayStockData.price - lastHistoryItem.price) > 0.01;
     
     if (lastHistoryItem.time < todayStr && (market.isOpen || priceMoved)) {
-      // Fill gaps between last history point and today
       let currentGapDate = new Date(lastHistoryItem.time);
       currentGapDate.setHours(0,0,0,0);
       const targetDate = new Date(todayStr);
@@ -489,31 +496,41 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
         baseData.push({
           time: gapDateStr,
           price: isToday ? displayStockData.price : lastHistoryItem.price,
-          ai_prediction: lastHistoryItem.ai_prediction
+          // We don't copy historical predictions into the gap
         });
       }
     }
     
-    if (prediction && prediction.tomorrow_price) {
-      const lastIndex = baseData.length - 1;
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    // 3. Anchor the prediction line and add tomorrow's point
+    const finalLastIdx = baseData.length - 1;
+    if (finalLastIdx >= 0) {
+      const lastPoint = baseData[finalLastIdx];
       
-      if (baseData[lastIndex].ai_prediction == null) {
-        baseData[lastIndex].ai_prediction = baseData[lastIndex].price;
-      }
-      
-      if (baseData[lastIndex].time < tomorrowStr) {
+      // ANCHOR: Force the prediction line to start exactly from the current price
+      lastPoint.ai_prediction = lastPoint.price;
+
+      if (prediction && prediction.tomorrow_price) {
+        // Calculate tomorrow's date relative to the last point's time
+        const nextDay = new Date(lastPoint.time);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        // Basic weekend skip logic for a cleaner future point
+        if (nextDay.getDay() === 6) nextDay.setDate(nextDay.getDate() + 2); // Sat -> Mon
+        if (nextDay.getDay() === 0) nextDay.setDate(nextDay.getDate() + 1); // Sun -> Mon
+        
+        const nextDayStr = nextDay.toISOString().split('T')[0];
+        
         baseData.push({
-          time: tomorrowStr,
+          time: nextDayStr,
           price: null as any,
           ai_prediction: prediction.tomorrow_price
         });
       }
     }
+    
     return baseData;
   };
+
 
   return (
     <div className="min-h-screen bg-background">
