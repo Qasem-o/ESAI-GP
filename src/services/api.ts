@@ -258,22 +258,26 @@ const decodeGoogleNewsUrl = (url: string): string => {
     if (parts.length < 2) return url;
     
     const payload = parts[1].split("?")[0];
-    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
     
-    // Look for the first occurrence of http or https
-    const httpIndex = decoded.indexOf("http");
-    if (httpIndex === -1) return url;
+    // Base64 padding
+    let b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += '=';
     
-    // Extract the URL (it might have some binary junk around it)
-    let originalUrl = decoded.substring(httpIndex);
+    const decoded = atob(b64);
     
-    // Clean up trailing junk - URLs usually don't have non-printable chars
-    const firstJunk = originalUrl.search(/[^\x20-\x7E]/);
-    if (firstJunk !== -1) {
-      originalUrl = originalUrl.substring(0, firstJunk);
+    // Look for the URL using a more precise regex
+    const urlMatch = decoded.match(/https?:\/\/[^\s\x00-\x1F\x7F-\x9F]+/);
+    if (urlMatch) {
+      let originalUrl = urlMatch[0];
+      // Strip any trailing garbage (non-printable or non-URL chars)
+      const lastCleanChar = originalUrl.search(/[^\x21-\x7E]/);
+      if (lastCleanChar !== -1) {
+        originalUrl = originalUrl.substring(0, lastCleanChar);
+      }
+      return originalUrl;
     }
     
-    return originalUrl;
+    return url;
   } catch (e) {
     return url;
   }
@@ -354,7 +358,16 @@ export const fetchStockNews = async (symbol: string, name?: string): Promise<New
         } else if (diffHrs < 24) {
           timeAgo = `${diffHrs}h ago`;
         } else {
-          timeAgo = `${Math.floor(diffHrs / 24)}d ago`;
+          const diffDays = Math.floor(diffHrs / 24);
+          if (diffDays < 7) {
+            timeAgo = `${diffDays}d ago`;
+          } else {
+            // Use a more robust date format that doesn't flip in RTL browsers
+            const d = date.getDate();
+            const m = date.getMonth() + 1;
+            const y = date.getFullYear();
+            timeAgo = `${d}/${m}/${y}`;
+          }
         }
       }
 
