@@ -95,14 +95,23 @@ async def get_feed(
         query = query.filter(Post.user_id.in_(following_ids))
 
     if filter == "trending":
-        # Order by most liked in the recent period
-        subq = db.query(
+        # Order by total engagement (likes + comments)
+        likes_subq = db.query(
             PostLike.post_id,
             func.count(PostLike.like_id).label("like_count")
         ).group_by(PostLike.post_id).subquery()
 
-        query = query.outerjoin(subq, Post.post_id == subq.c.post_id) \
-            .order_by(desc(subq.c.like_count), desc(Post.created_at))
+        comments_subq = db.query(
+            PostComment.post_id,
+            func.count(PostComment.comment_id).label("comment_count")
+        ).group_by(PostComment.post_id).subquery()
+
+        query = query.outerjoin(likes_subq, Post.post_id == likes_subq.c.post_id) \
+            .outerjoin(comments_subq, Post.post_id == comments_subq.c.post_id) \
+            .order_by(
+                desc(func.coalesce(likes_subq.c.like_count, 0) + func.coalesce(comments_subq.c.comment_count, 0)),
+                desc(Post.created_at)
+            )
     else:
         query = query.order_by(desc(Post.created_at))
 
