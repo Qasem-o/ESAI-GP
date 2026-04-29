@@ -430,6 +430,30 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     );
   }
 
+  const getMarketInfo = (symbol: string) => {
+    const now = new Date();
+    const saudiTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }));
+    const sDay = saudiTime.getDay();
+    const sHours = saudiTime.getHours();
+    const sMinutes = saudiTime.getMinutes();
+    const sTimeVal = sHours * 100 + sMinutes;
+
+    if (symbol.endsWith('.SR')) {
+      const isOpen = sDay >= 0 && sDay <= 4 && sTimeVal >= 1000 && sTimeVal <= 1500;
+      return { name: 'Saudi Market', open: '10:00', close: '15:00', isOpen };
+    }
+    if (symbol.endsWith('.KW')) {
+      const isOpen = sDay >= 0 && sDay <= 4 && sTimeVal >= 900 && sTimeVal <= 1230;
+      return { name: 'Kuwait Market', open: '09:00', close: '12:30', isOpen };
+    }
+    if (symbol.endsWith('.QA')) {
+      const isOpen = sDay >= 0 && sDay <= 4 && sTimeVal >= 930 && sTimeVal <= 1315;
+      return { name: 'Qatar Market', open: '09:30', close: '13:15', isOpen };
+    }
+    const isOpen = sDay >= 1 && sDay <= 5 && sTimeVal >= 1630 && sTimeVal <= 2300;
+    return { name: 'US Market', open: '16:30', close: '23:00', isOpen };
+  };
+
   const getChartDataWithPrediction = () => {
     if (!history?.data || history.data.length === 0) return [];
     
@@ -443,30 +467,43 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const lastHistoryItem = baseData[baseData.length - 1];
+    const market = getMarketInfo(displayStockData.symbol);
     
-    // If the last history point is before today, add today's current price to bridge the gap
-    if (lastHistoryItem.time < todayStr) {
-      baseData.push({
-        time: todayStr,
-        price: displayStockData.price,
-        ai_prediction: lastHistoryItem.ai_prediction // Continue the prediction line if it exists
-      });
+    // Only add 'today' or fill gaps if the market is open OR the price has moved from history
+    // This prevents "repeated" flat lines when the market is closed.
+    const priceMoved = Math.abs(displayStockData.price - lastHistoryItem.price) > 0.001;
+    
+    if (lastHistoryItem.time < todayStr && (market.isOpen || priceMoved)) {
+      // Fill gaps between last history point and today
+      let currentGapDate = new Date(lastHistoryItem.time);
+      currentGapDate.setHours(0,0,0,0);
+      const targetDate = new Date(todayStr);
+      targetDate.setHours(0,0,0,0);
+
+      while (currentGapDate < targetDate) {
+        currentGapDate.setDate(currentGapDate.getDate() + 1);
+        const gapDateStr = currentGapDate.toISOString().split('T')[0];
+        
+        const isToday = gapDateStr === todayStr;
+        
+        baseData.push({
+          time: gapDateStr,
+          price: isToday ? displayStockData.price : lastHistoryItem.price,
+          ai_prediction: lastHistoryItem.ai_prediction
+        });
+      }
     }
     
     if (prediction && prediction.tomorrow_price) {
       const lastIndex = baseData.length - 1;
-      
-      // Calculate tomorrow's date relative to today
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
       
-      // Anchoring logic: if the last point doesn't have a prediction, anchor it to the price
       if (baseData[lastIndex].ai_prediction == null) {
         baseData[lastIndex].ai_prediction = baseData[lastIndex].price;
       }
       
-      // Avoid duplicate future points if they somehow exist
       if (baseData[lastIndex].time < tomorrowStr) {
         baseData.push({
           time: tomorrowStr,
@@ -555,7 +592,18 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                       }`}>
                       {displayStockData.change >= 0 ? '+' : ''}{displayStockData.change.toFixed(2)} ({displayStockData.changePercent.toFixed(2)}%)
                     </Badge>
-                    <span className="text-muted-foreground text-sm">Today</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getMarketInfo(displayStockData.symbol).isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                        <span className="text-muted-foreground text-xs font-medium">
+                          {getMarketInfo(displayStockData.symbol).name} 
+                          ({getMarketInfo(displayStockData.symbol).isOpen ? 'Open' : 'Closed'})
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/70">
+                        Hours: {getMarketInfo(displayStockData.symbol).open} - {getMarketInfo(displayStockData.symbol).close} (AST)
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-1 bg-muted p-1 rounded-lg">
