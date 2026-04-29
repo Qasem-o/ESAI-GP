@@ -246,9 +246,50 @@ export interface NewsItem {
   timestamp: number;
 }
 
-export const fetchStockNews = async (symbol: string): Promise<NewsItem[]> => {
+/**
+ * Attempts to decode a Google News redirect URL to get the original article link.
+ * Google News RSS links are often base64 encoded redirects.
+ */
+const decodeGoogleNewsUrl = (url: string): string => {
   try {
-    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(symbol + " stock market")}&hl=en-US&gl=US&ceid=US:en`;
+    if (!url.includes("articles/")) return url;
+    
+    const parts = url.split("articles/");
+    if (parts.length < 2) return url;
+    
+    const payload = parts[1].split("?")[0];
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    
+    // Look for the first occurrence of http or https
+    const httpIndex = decoded.indexOf("http");
+    if (httpIndex === -1) return url;
+    
+    // Extract the URL (it might have some binary junk around it)
+    let originalUrl = decoded.substring(httpIndex);
+    
+    // Clean up trailing junk - URLs usually don't have non-printable chars
+    const firstJunk = originalUrl.search(/[^\x20-\x7E]/);
+    if (firstJunk !== -1) {
+      originalUrl = originalUrl.substring(0, firstJunk);
+    }
+    
+    return originalUrl;
+  } catch (e) {
+    return url;
+  }
+};
+
+export const fetchStockNews = async (symbol: string, name?: string): Promise<NewsItem[]> => {
+  try {
+    const isSaudi = symbol.endsWith('.SR') || symbol.endsWith('.SA');
+    const searchTerm = name ? `${name} ${symbol}` : `${symbol} stock market`;
+    
+    // Use Arabic locale for Saudi stocks
+    const localeParams = isSaudi 
+      ? 'hl=ar&gl=SA&ceid=SA:ar' 
+      : 'hl=en-US&gl=US&ceid=US:en';
+      
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchTerm)}&${localeParams}`;
     // Using AllOrigins as it's generally more reliable than corsproxy.io
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
@@ -327,7 +368,7 @@ export const fetchStockNews = async (symbol: string): Promise<NewsItem[]> => {
         source: source,
         timeAgo,
         sentiment,
-        url: link,
+        url: decodeGoogleNewsUrl(link),
         timestamp
       };
     });
@@ -336,34 +377,44 @@ export const fetchStockNews = async (symbol: string): Promise<NewsItem[]> => {
   } catch (error) {
     console.error('Error fetching stock news:', error);
     // Return functional fallback links to Google News search
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(symbol + " stock market news")}&tbm=nws`;
+    const isSaudi = symbol.endsWith('.SR') || symbol.endsWith('.SA');
+    const searchUrl = isSaudi
+      ? `https://www.google.com/search?q=${encodeURIComponent(name || symbol + " أخبار الأسهم")}&tbm=nws&hl=ar`
+      : `https://www.google.com/search?q=${encodeURIComponent(name || symbol + " stock market news")}&tbm=nws`;
+      
     return [
       {
         id: -1,
-        title: `${symbol} Performance Analysis: Key Trends and Market Sentiment`,
-        summary: `Latest technical analysis on ${symbol} shows interesting patterns in trading volume and price action. Institutional investors remain focused on key support levels and broader market indicators.`,
-        source: "Financial News Feed",
-        timeAgo: "1h ago",
+        title: isSaudi ? `تحليل أداء ${symbol}: الاتجاهات الرئيسية ومعنويات السوق` : `${symbol} Performance Analysis: Key Trends and Market Sentiment`,
+        summary: isSaudi 
+          ? `يظهر التحليل الفني الأخير لـ ${symbol} أنماطاً مثيرة للاهتمام في حجم التداول وحركة السعر. لا يزال المستثمرون المؤسسيون يركزون على مستويات الدعم الرئيسية.`
+          : `Latest technical analysis on ${symbol} shows interesting patterns in trading volume and price action. Institutional investors remain focused on key support levels and broader market indicators.`,
+        source: isSaudi ? "موجز الأخبار المالية" : "Financial News Feed",
+        timeAgo: isSaudi ? "قبل ساعة" : "1h ago",
         sentiment: "neutral",
         url: searchUrl,
         timestamp: Date.now() - 3600000
       },
       {
         id: -2,
-        title: `Market Outlook for ${symbol} and Sector Peers`,
-        summary: `As the market prepares for the next earnings cycle, ${symbol} stands out with unique positioning. Analyst consensus continues to evolve based on recent economic data points.`,
-        source: "Market Analyst Network",
-        timeAgo: "4h ago",
+        title: isSaudi ? `توقعات السوق لـ ${symbol} ونظيراتها في القطاع` : `Market Outlook for ${symbol} and Sector Peers`,
+        summary: isSaudi
+          ? `مع استعداد السوق لدورة الأرباح القادمة، تبرز ${symbol} بمكانة فريدة. يستمر إجماع المحللين في التطور بناءً على نقاط البيانات الاقتصادية الأخيرة.`
+          : `As the market prepares for the next earnings cycle, ${symbol} stands out with unique positioning. Analyst consensus continues to evolve based on recent economic data points.`,
+        source: isSaudi ? "شبكة محللي السوق" : "Market Analyst Network",
+        timeAgo: isSaudi ? "قبل 4 ساعات" : "4h ago",
         sentiment: "positive",
         url: searchUrl,
         timestamp: Date.now() - 14400000
       },
       {
         id: -3,
-        title: `See more news for ${symbol} on Google News`,
-        summary: `Click here to view the latest real-time news updates and headlines for ${symbol} directly on Google News.`,
-        source: "External News Search",
-        timeAgo: "Now",
+        title: isSaudi ? `عرض المزيد من الأخبار لـ ${symbol} على أخبار جوجل` : `See more news for ${symbol} on Google News`,
+        summary: isSaudi
+          ? `انقر هنا لعرض أحدث تحديثات الأخبار والعناوين الرئيسية لـ ${symbol} مباشرة على أخبار جوجل.`
+          : `Click here to view the latest real-time news updates and headlines for ${symbol} directly on Google News.`,
+        source: isSaudi ? "بحث الأخبار الخارجية" : "External News Search",
+        timeAgo: isSaudi ? "الآن" : "Now",
         sentiment: "neutral",
         url: searchUrl,
         timestamp: Date.now()

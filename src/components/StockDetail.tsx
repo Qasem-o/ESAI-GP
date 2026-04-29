@@ -250,7 +250,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
           fetchStockTechnicals(currentSymbol),
           fetchStockPrediction(currentSymbol),
           fetchStockSentiment(currentSymbol),
-          fetchStockNews(currentSymbol)
+          fetchStockNews(currentSymbol, displayStockData.name)
         ]);
 
         setStockDetails(priceData);
@@ -395,7 +395,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     const loadNews = async () => {
       setIsLoadingNews(true);
       try {
-        const newsData = await fetchStockNews(displayStockData.symbol);
+        const newsData = await fetchStockNews(displayStockData.symbol, displayStockData.name);
         // Filter > 90 days and Sort Desc
         const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
         const filtered = newsData
