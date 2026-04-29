@@ -406,6 +406,11 @@ def main(): # Removed 'args' from main function signature
                  high_52 = info.get('fiftyTwoWeekHigh')
                  low_52 = info.get('fiftyTwoWeekLow')
                  
+                 # Update current price with live data if available
+                 live_price = info.get('currentPrice') or info.get('regularMarketPrice')
+                 if live_price:
+                     stock.current_price = decimal.Decimal(str(live_price))
+                 
                  if sector: stock.sector = sector
                  if description: stock.description = description
                  if name: stock.name = name

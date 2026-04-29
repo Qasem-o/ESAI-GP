@@ -433,30 +433,47 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
   const getChartDataWithPrediction = () => {
     if (!history?.data || history.data.length === 0) return [];
     
-    // Create a deep copy of the historical data and initialize ai_prediction from the backend
+    // Create a deep copy of the historical data
     const baseData = history.data.map(d => ({ 
       time: d.time, 
       price: d.price, 
       ai_prediction: d.prediction != null ? d.prediction : null
     }));
     
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const lastHistoryItem = baseData[baseData.length - 1];
+    
+    // If the last history point is before today, add today's current price to bridge the gap
+    if (lastHistoryItem.time < todayStr) {
+      baseData.push({
+        time: todayStr,
+        price: displayStockData.price,
+        ai_prediction: lastHistoryItem.ai_prediction // Continue the prediction line if it exists
+      });
+    }
+    
     if (prediction && prediction.tomorrow_price) {
       const lastIndex = baseData.length - 1;
       
-      // Add the future prediction point
+      // Calculate tomorrow's date relative to today
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
       
-      // If we don't have historical predictions to connect to, anchor it to the current price
+      // Anchoring logic: if the last point doesn't have a prediction, anchor it to the price
       if (baseData[lastIndex].ai_prediction == null) {
         baseData[lastIndex].ai_prediction = baseData[lastIndex].price;
       }
       
-      baseData.push({
-        time: tomorrow.toISOString().split('T')[0],
-        price: null as any,
-        ai_prediction: prediction.tomorrow_price
-      });
+      // Avoid duplicate future points if they somehow exist
+      if (baseData[lastIndex].time < tomorrowStr) {
+        baseData.push({
+          time: tomorrowStr,
+          price: null as any,
+          ai_prediction: prediction.tomorrow_price
+        });
+      }
     }
     return baseData;
   };
