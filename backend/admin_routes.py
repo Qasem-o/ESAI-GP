@@ -494,7 +494,7 @@ def _fill_missing_bg():
         root_dir = os.path.dirname(current_dir)
         sys.path.insert(0, root_dir)
         from preparedata import (
-            get_engine_from_env, Stock, PriceHistory,
+            get_engine_from_env, Stock, PriceHistory, TechnicalIndicator,
             fetch_prices, prepare_and_store
         )
         from datetime import datetime as dt, timedelta
@@ -518,35 +518,56 @@ def _fill_missing_bg():
                 .order_by(PriceHistory.date.desc())
                 .first()
             )
-            today = datetime.now(timezone.utc).date()
-            if latest_row and latest_row.date >= today:
+            # Check latest history row
+            latest_row = session.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id)\
+                .order_by(desc(PriceHistory.date)).first()
+            
+            # Check latest technical indicators row
+            latest_tech = session.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id == stock.stock_id)\
+                .order_by(desc(TechnicalIndicator.date)).first()
+
+            today_utc = datetime.now(timezone.utc).date()
+            
+            # Smart Skip: 
+            # 1. If we have yesterday's data or today's data, it's 'recent'
+            is_recent = latest_row and (today_utc - latest_row.date).days <= 1
+            # 2. Indicators must not be NULL
+            has_valid_tech = latest_tech and latest_tech.rsi is not None
+            
+            if is_recent and has_valid_tech:
                 with _training_lock:
-                    _training_state["log"].append(f"[SKIP] {ticker} — already up to date")
+                    _training_state["log"].append(f"[SKIP]  {ticker} — already up to date")
                 continue
 
-            # Start from day after last stored, or from 2018-01-01 if none
             if latest_row:
-                start_date = (latest_row.date + timedelta(days=1)).strftime("%Y-%m-%d")
+                # Refresh from 3 days ago to ensure overlap and fix any N/A
+                refresh_start = (latest_row.date - timedelta(days=3))
+                context_start = (refresh_start - timedelta(days=60)).strftime("%Y-%m-%d")
+                start_date = context_start
+                actual_update_from = refresh_start.strftime("%Y-%m-%d")
             else:
                 start_date = "2018-01-01"
+                actual_update_from = start_date
 
-            end_date = today.strftime("%Y-%m-%d")
+            end_date = (today_utc + timedelta(days=1)).strftime("%Y-%m-%d")
             with _training_lock:
                 _training_state["log"].append(
-                    f"[FETCH] {ticker} missing from {start_date} to {end_date}"
+                    f"[FETCH] {ticker} from {actual_update_from} to fix any gaps/indicators"
                 )
 
             try:
                 df = fetch_prices(ticker, start_date, end_date)
                 if df.empty or "close" not in df.columns:
                     with _training_lock:
-                        _training_state["log"].append(f"[WARN]  {ticker} — no new data returned")
+                        _training_state["log"].append(f"[WARN]  {ticker} — no data returned")
                     continue
+                
                 df = df.dropna(subset=["close"]).reset_index(drop=True)
-                prepare_and_store(session, ticker, df)
+                prepare_and_store(session, ticker, df, store_from=actual_update_from)
+                
                 with _training_lock:
                     _training_state["log"].append(
-                        f"[OK]    {ticker} — {len(df)} new rows stored"
+                        f"[OK]    {ticker} — updated from {actual_update_from}"
                     )
             except Exception as e:
                 with _training_lock:
@@ -562,11 +583,16 @@ def _fill_missing_bg():
             _training_state["log"].append(f"[FATAL] Fill-missing job failed: {e}")
 
 
-def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None):
-    """Run model_training.py with smart skip and optional symbol filter."""
+def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None,
+                              workers: int = 4):
+    """
+    Run model_training.py as a subprocess.
+    - LSTM is trained weekly (auto-detected inside the script).
+    - XGBoost runs in parallel using ProcessPoolExecutor (--workers).
+    """
     root_dir = os.path.dirname(current_dir)
-    script = os.path.join(root_dir, "model_training.py")
-    cmd = [sys.executable, script]
+    script   = os.path.join(root_dir, "model_training.py")
+    cmd = [sys.executable, script, "--workers", str(workers)]
     if skip_trained_today:
         cmd.append("--skip-trained-today")
     if symbols:
@@ -577,8 +603,8 @@ def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = No
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            encoding='utf-8',
-            errors='replace',
+            encoding="utf-8",
+            errors="replace",
             cwd=root_dir,
         )
         for line in iter(proc.stdout.readline, ""):

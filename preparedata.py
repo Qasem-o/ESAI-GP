@@ -62,7 +62,7 @@ HARDCODED_TICKERS = [
     "KFH.KW", "IQCD.QA" # Removed COMI.CA, FAB.AD, EMAAR.DU
 ]
 HARDCODED_START = "2018-01-01"
-HARDCODED_END = datetime.today().strftime("%Y-%m-%d")
+HARDCODED_END = (datetime.today() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
 # DATABASE_URL = "sqlite:///eyestock.db" # Use this for SQLite
 
@@ -142,20 +142,24 @@ def compute_ema(series: pd.Series, span: int):
     return series.ewm(span=span, adjust=False).mean()
 
 def compute_rsi(series: pd.Series, period: int = 14):
+    if len(series) < period: return pd.Series(index=series.index, data=None)
     delta = series.diff()
-    gain = delta.clip(lower=0)
-    loss = -1 * delta.clip(upper=0)
-    avg_gain = gain.rolling(window=period, min_periods=period).mean()
-    avg_loss = loss.rolling(window=period, min_periods=period).mean()
+    gain = delta.clip(lower=0).fillna(0)
+    loss = -1 * delta.clip(upper=0).fillna(0)
+    
+    # Use EWM for smoother RSI (Standard)
     avg_gain = gain.ewm(com=period - 1, adjust=False).mean()
     avg_loss = loss.ewm(com=period - 1, adjust=False).mean()
-    rs = avg_gain / (avg_loss.replace(0, 1e-8))
+    
+    rs = avg_gain / (avg_loss.replace(0, 1e-10))
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
 def compute_macd(series: pd.Series, span_short=12, span_long=26, span_signal=9):
-    ema_short = compute_ema(series, span_short)
-    ema_long = compute_ema(series, span_long)
+    if len(series) < span_long:
+        return pd.Series(0, index=series.index), pd.Series(0, index=series.index), pd.Series(0, index=series.index)
+    ema_short = series.ewm(span=span_short, adjust=False).mean()
+    ema_long = series.ewm(span=span_long, adjust=False).mean()
     macd = ema_short - ema_long
     signal = macd.ewm(span=span_signal, adjust=False).mean()
     hist = macd - signal
@@ -168,13 +172,21 @@ def compute_bollinger(series: pd.Series, window=20, n_std=2):
     lower = sma - (rolling_std * n_std)
     return upper, sma, lower
 
+def to_dec(x):
+    if pd.isna(x): return None
+    try:
+        return decimal.Decimal(str(round(float(x), 6)))
+    except:
+        return None
+
 # ---------------------------
-# Core pipeline (No changes needed)
-# ---------------------------
-# ---------------------------
-# Core pipeline (MODIFIED FOR DEBUGGING)
+# Core pipeline
 # ---------------------------
 def fetch_prices(ticker, start, end, interval="1d"):
+    """
+    Fetch historical prices from yfinance. 
+    NOTE: 'end' date is exclusive in yfinance, so we should pass today+1 to include today.
+    """
     df = yf.download(ticker, start=start, end=end, interval=interval, auto_adjust=False, progress=False)
     if df.empty:
         return df
@@ -186,20 +198,23 @@ def fetch_prices(ticker, start, end, interval="1d"):
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.droplevel(1)
 
-
-
-    # 2. DEFENSIVE CHECK: Ensure the required columns exist before trying to access them
+    # 2. DEFENSIVE CHECK: Ensure the required columns exist.
+    # Some stocks might not have 'Adj Close' or it might be renamed.
+    if 'Adj Close' not in df.columns and 'Close' in df.columns:
+        df['Adj Close'] = df['Close']
+    
     required_cols = ['Date','Open','High','Low','Close','Adj Close','Volume']
     missing_cols = [col for col in required_cols if col not in df.columns]
 
     if missing_cols:
         print(f"⚠️ Warning: Missing columns for {ticker}. Missing: {missing_cols}. Columns received: {list(df.columns)}")
-        # If any required column is missing, return an empty DataFrame so the main loop skips it.
-        return pd.DataFrame()
+        # If essential columns are missing, return empty
+        if 'Close' not in df.columns:
+            return pd.DataFrame()
             
-    # 3. Keep only needed cols and rename to lowercase
-    # This block assumes the required columns are now present or handled
-    df = df[required_cols].rename(columns={
+    # 3. Keep only available required cols and rename to lowercase
+    available_cols = [col for col in required_cols if col in df.columns]
+    df = df[available_cols].rename(columns={
         'Date':'date',
         'Open':'open',
         'High':'high', 
@@ -210,7 +225,7 @@ def fetch_prices(ticker, start, end, interval="1d"):
     })  
     return df
 
-def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame):
+def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame, store_from: str = None):
     # Upsert stock
     stock = session.query(Stock).filter(Stock.symbol==ticker).one_or_none()
     if not stock:
@@ -221,44 +236,49 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame):
     stock.current_price = decimal.Decimal(str(df['close'].iloc[-1])) if not df.empty else stock.current_price
 
     # Compute indicators
-    df['sma_20'] = compute_sma(df['close'], 20)
-    df['sma_50'] = compute_sma(df['close'], 50)
-    df['ema_20'] = compute_ema(df['close'], 20)
-    df['ema_50'] = compute_ema(df['close'], 50)
-    df['rsi_14'] = compute_rsi(df['close'], 14)
+    df['sma_20'] = compute_sma(df['close'], 20).ffill().bfill()
+    df['sma_50'] = compute_sma(df['close'], 50).ffill().bfill()
+    df['ema_20'] = compute_ema(df['close'], 20).ffill().bfill()
+    df['ema_50'] = compute_ema(df['close'], 50).ffill().bfill()
+    df['rsi_14'] = compute_rsi(df['close'], 14).ffill().bfill()
     macd, signal, hist = compute_macd(df['close'])
-    df['macd'] = macd
-    df['macd_signal'] = signal
-    df['macd_hist'] = hist
+    df['macd'] = macd.ffill().bfill()
+    df['macd_signal'] = signal.ffill().bfill()
+    df['macd_hist'] = hist.ffill().bfill()
     upper, middle, lower = compute_bollinger(df['close'], 20, 2)
-    df['boll_upper'] = upper
-    df['boll_mid'] = middle
-    df['boll_lower'] = lower
+    df['boll_upper'] = upper.ffill().bfill()
+    df['boll_mid'] = middle.ffill().bfill()
+    df['boll_lower'] = lower.ffill().bfill()
+
+    # Filter DF to only include rows from store_from if provided
+    if store_from:
+        df_to_store = df[df['date'] >= pd.to_datetime(store_from)].copy()
+        if df_to_store.empty:
+            print(f"  No new rows to store for {ticker} after {store_from}")
+            return
+    else:
+        df_to_store = df
 
     # Determine if we need to check existence or just bulk insert
     history_count = session.query(PriceHistory).filter(PriceHistory.stock_id == stock.stock_id).count()
     is_fresh = history_count == 0
 
     if is_fresh:
-        print(f"  Bulk inserting {len(df)} rows for {ticker}...")
+        print(f"  Bulk inserting {len(df_to_store)} rows for {ticker}...")
         ph_list = []
         ti_list = []
-        for _, row in df.iterrows():
+        for _, row in df_to_store.iterrows():
             d = pd.to_datetime(row['date']).date()
             ph_list.append(PriceHistory(
                 stock_id=stock.stock_id, 
                 date=d,
-                open=decimal.Decimal('0') if pd.isna(row['open']) else decimal.Decimal(str(row['open'])),
-                high=decimal.Decimal('0') if pd.isna(row['high']) else decimal.Decimal(str(row['high'])),
-                low=decimal.Decimal('0') if pd.isna(row['low']) else decimal.Decimal(str(row['low'])),
-                close=decimal.Decimal('0') if pd.isna(row['close']) else decimal.Decimal(str(row['close'])),
-                volume=int(row['volume']) if not pd.isna(row['volume']) else None
+                open=to_dec(row['open']),
+                high=to_dec(row['high']),
+                low=to_dec(row['low']),
+                close=to_dec(row['close']),
+                volume=int(row['volume']) if not pd.isna(row['volume']) else 0
             ))
             
-            def to_dec(x):
-                if pd.isna(x): return None
-                return decimal.Decimal(str(float(x)))
-
             ti_list.append(TechnicalIndicator(
                 stock_id=stock.stock_id, 
                 date=d,
@@ -275,25 +295,31 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame):
                 bollinger_lower=to_dec(row.get('boll_lower'))
             ))
         
-        session.add_all(ph_list)
-        session.add_all(ti_list)
+        session.bulk_save_objects(ph_list)
+        session.bulk_save_objects(ti_list)
     else:
-        # Fallback to row-by-row if some data exists (slower but safer)
-        for _, row in df.iterrows():
+        print(f"  Updating/Refreshing {len(df_to_store)} rows for {ticker}...")
+        for _, row in df_to_store.iterrows():
             d = pd.to_datetime(row['date']).date()
-            ph = session.query(PriceHistory).filter(PriceHistory.stock_id==stock.stock_id, PriceHistory.date==d).one_or_none()
-            if not ph: ph = PriceHistory(stock_id=stock.stock_id, date=d); session.add(ph)
-            ph.open = decimal.Decimal('0') if pd.isna(row['open']) else decimal.Decimal(str(row['open']))
-            ph.high = decimal.Decimal('0') if pd.isna(row['high']) else decimal.Decimal(str(row['high']))
-            ph.low = decimal.Decimal('0') if pd.isna(row['low']) else decimal.Decimal(str(row['low']))
-            ph.close = decimal.Decimal('0') if pd.isna(row['close']) else decimal.Decimal(str(row['close']))
-            ph.volume = int(row['volume']) if not pd.isna(row['volume']) else None
+            
+            # 1. Price History
+            ph = session.query(PriceHistory).filter(PriceHistory.stock_id==stock.stock_id, PriceHistory.date==d).first()
+            if not ph:
+                ph = PriceHistory(stock_id=stock.stock_id, date=d)
+                session.add(ph)
+            
+            ph.open = to_dec(row['open'])
+            ph.high = to_dec(row['high'])
+            ph.low = to_dec(row['low'])
+            ph.close = to_dec(row['close'])
+            ph.volume = int(row['volume']) if not pd.isna(row['volume']) else 0
 
-            ti = session.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id==stock.stock_id, TechnicalIndicator.date==d).one_or_none()
-            if not ti: ti = TechnicalIndicator(stock_id=stock.stock_id, date=d); session.add(ti)
-            def to_dec(x):
-                if pd.isna(x): return None
-                return decimal.Decimal(str(float(x)))
+            # 2. Technical Indicators
+            ti = session.query(TechnicalIndicator).filter(TechnicalIndicator.stock_id==stock.stock_id, TechnicalIndicator.date==d).first()
+            if not ti:
+                ti = TechnicalIndicator(stock_id=stock.stock_id, date=d)
+                session.add(ti)
+                
             ti.rsi = to_dec(row.get('rsi_14'))
             ti.macd = to_dec(row.get('macd'))
             ti.macd_signal = to_dec(row.get('macd_signal'))
@@ -307,7 +333,7 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame):
             ti.bollinger_lower = to_dec(row.get('boll_lower'))
 
     session.commit()
-    print(f"Stored {len(df)} rows for {ticker} (stock_id={stock.stock_id})")
+    print(f"Successfully processed {len(df_to_store)} rows for {ticker}")
 
 def main(): # Removed 'args' from main function signature
     # Attempt to create engine, will use the hardcoded DATABASE_URL
@@ -410,23 +436,25 @@ def main(): # Removed 'args' from main function signature
         latest_history = session.query(PriceHistory.date).filter(PriceHistory.stock_id == stock.stock_id)\
             .order_by(desc(PriceHistory.date)).first()
         
-        current_fetch_start = start
         if latest_history:
-            current_fetch_start = latest_history[0].strftime("%Y-%m-%d")
-            print(f"  Existing data found (latest: {current_fetch_start}). Fetching updates...")
+            last_db_date = latest_history[0]
+            # Refresh last 3 days to fix potential null indicators, plus 60 days context
+            refresh_start = (last_db_date - pd.Timedelta(days=3))
+            context_start = (refresh_start - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
+            actual_store_start = refresh_start.strftime("%Y-%m-%d")
+            
+            print(f"  Existing data found (latest: {last_db_date}). Fetching context from {context_start}...")
+            df = fetch_prices(t, context_start, end)
+            
+            if not df.empty and 'close' in df.columns:
+                df = df.dropna(subset=['close']).reset_index(drop=True)
+                prepare_and_store(session, t, df, store_from=actual_store_start)
         else:
             print(f"  No existing data. Fetching NEW price history for {t} from {start} to {end} ...")
-            
-        df = fetch_prices(t, current_fetch_start, end)
-        if df.empty:
-            print(f"  No new data for {t}. Continuing.")
-            continue
-        if 'close' not in df.columns:
-            print(f"  Warning: 'close' column not found for {t}. Skipping.")
-            continue
-        # Basic cleaning: drop rows where close is NaN
-        df = df.dropna(subset=['close']).reset_index(drop=True)
-        prepare_and_store(session, t, df)
+            df = fetch_prices(t, start, end)
+            if not df.empty and 'close' in df.columns:
+                df = df.dropna(subset=['close']).reset_index(drop=True)
+                prepare_and_store(session, t, df)
 
     session.close()
     print("Done.")
