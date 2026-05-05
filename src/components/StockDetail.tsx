@@ -324,8 +324,8 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
     symbol: stockDetails.symbol,
     name: stockDetails.name,
     price: stockDetails.price,
-    change: prediction?.tomorrow_price ? prediction.tomorrow_price - stockDetails.price : stockData.change,
-    changePercent: prediction?.change_percent || stockData.changePercent,
+    change: stockDetails.dayChange ?? stockData.change,
+    changePercent: stockDetails.changePercent ?? stockData.changePercent,
     sector: stockDetails.sector || "Unknown Sector",
     industry: stockDetails.industry || "Unknown Industry",
     about: stockDetails.description || "No description available for this company.",
@@ -501,13 +501,10 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
       }
     }
     
-    // 3. Anchor the prediction line and add tomorrow's point
+    // 3. Add tomorrow's point
     const finalLastIdx = baseData.length - 1;
     if (finalLastIdx >= 0) {
       const lastPoint = baseData[finalLastIdx];
-      
-      // ANCHOR: Force the prediction line to start exactly from the current price
-      lastPoint.ai_prediction = lastPoint.price;
 
       if (prediction && prediction.tomorrow_price) {
         // Calculate tomorrow's date relative to the last point's time

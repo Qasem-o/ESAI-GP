@@ -489,6 +489,7 @@ def list_predictions(
     rows = (
         db.query(PricePrediction, Stock.symbol)
         .join(Stock, PricePrediction.stock_id == Stock.stock_id)
+        .filter(PricePrediction.is_test_set == False)
         .order_by(desc(PricePrediction.trained_at))
         .limit(200)
         .all()

@@ -19,9 +19,9 @@ interface JobStatus {
 
 const STATUS_ICONS = {
   idle:    <Clock className="w-4 h-4 text-muted-foreground" />,
-  running: <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />,
-  done:    <CheckCircle2 className="w-4 h-4 text-green-500" />,
-  error:   <XCircle className="w-4 h-4 text-red-500" />,
+  running: <Loader2 className="w-4 h-4 text-foreground animate-spin" />,
+  done:    <CheckCircle2 className="w-4 h-4 text-foreground" />,
+  error:   <XCircle className="w-4 h-4 text-destructive" />,
 };
 
 export function StockManagement() {
@@ -121,139 +121,164 @@ export function StockManagement() {
   };
 
   const logLineColor = (line: string) => {
-    if (line.includes('[ERROR]') || line.includes('[FATAL]')) return 'text-red-400';
-    if (line.includes('[OK]'))    return 'text-green-400';
-    if (line.includes('[SKIP]'))  return 'text-yellow-400';
-    if (line.includes('[WARN]'))  return 'text-orange-400';
-    if (line.includes('[FETCH]')) return 'text-blue-300';
-    if (line.includes('---'))     return 'text-green-300 font-bold';
-    return 'text-gray-300';
+    if (line.includes('[ERROR]') || line.includes('[FATAL]')) return 'text-destructive';
+    if (line.includes('[OK]'))    return 'text-foreground font-medium';
+    if (line.includes('[SKIP]'))  return 'text-muted-foreground';
+    if (line.includes('[WARN]'))  return 'text-muted-foreground';
+    if (line.includes('[FETCH]')) return 'text-foreground';
+    if (line.includes('---'))     return 'text-foreground font-bold';
+    return 'text-muted-foreground';
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Stock Management</h1>
-        <p className="text-muted-foreground mt-1">Add or remove stocks. New stocks auto-fetch data from Yahoo Finance.</p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div className="flex justify-between items-end border-b pb-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Stock Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Add or remove stocks. New stocks auto-fetch data from Yahoo Finance.</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <div className="w-2 h-2 rounded-full bg-black dark:bg-white" />
+          <span>Active</span>
+        </div>
       </div>
 
-      {/* Fill Missing Data */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <h2 className="font-semibold mb-3 flex items-center gap-2">
-          <Database className="w-4 h-4 text-blue-500" /> Fill Missing Data (Incremental)
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Fetches only the <strong>missing</strong> price rows (from last stored date to today) for all stocks
-          and computes their technical indicators. Much faster than a full re-fetch.
-        </p>
-        <div className="flex items-center gap-4 mb-4">
-          <Button
-            onClick={fillMissingData}
-            disabled={filling || fillStatus.status === 'running'}
-            className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg active:shadow-sm"
-          >
-            {fillStatus.status === 'running'
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</>
-              : <><Database className="w-4 h-4" /> Fill Missing Data</>
-            }
-          </Button>
-          <Button variant="outline" size="sm" onClick={fetchJobStatus} className="gap-1">
-            <RefreshCw className="w-3 h-3" /> Refresh Status
-          </Button>
-          <div className="flex items-center gap-2 ml-auto text-sm">
-            {STATUS_ICONS[fillStatus.status]}
-            <span className="capitalize font-medium">{fillStatus.status}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 space-y-6">
+          {/* Add Stock */}
+          <div className="rounded-lg border bg-card p-6 flex flex-col justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add New Stock
+            </h2>
+            <div className="flex flex-col gap-3">
+              <input
+                value={newTicker}
+                onChange={e => setNewTicker(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addStock()}
+                placeholder="Ticker symbol (e.g. AAPL, 2222.SR)"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
+              />
+              <Button onClick={addStock} disabled={adding} className="w-full gap-2 h-10 bg-foreground text-background hover:bg-foreground/90 font-medium">
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Add Stock
+              </Button>
+            </div>
+            {addMsg && (
+              <p className={`mt-3 text-sm font-medium ${addMsg.startsWith('Error') ? 'text-destructive' : 'text-foreground'}`}>
+                {addMsg}
+              </p>
+            )}
           </div>
-        </div>
 
-        {/* Live Log */}
-        {fillStatus.log.length > 0 && (
-          <div
-            ref={logRef}
-            className="bg-[#0a0a0a] rounded-lg p-4 font-mono text-xs border border-gray-800/60 shadow-inner"
-            style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}
-          >
-            {fillStatus.log.map((line, i) => (
-              <div key={i} className={`${logLineColor(line)} whitespace-pre-wrap break-words mb-1`}>{line || '\u00a0'}</div>
-            ))}
-          </div>
-        )}
-      </div>
+          {/* Fill Missing Data */}
+          <div className="rounded-lg border bg-card p-6 flex flex-col justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Database className="w-4 h-4" /> Fill Missing Data
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              Fetches only the <strong>missing</strong> price rows (from last stored date to today) for all stocks
+              and computes their technical indicators. Much faster than a full re-fetch.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={fillMissingData}
+                disabled={filling || fillStatus.status === 'running'}
+                variant="outline"
+                className="w-full gap-2 h-10"
+              >
+                {fillStatus.status === 'running'
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</>
+                  : <><Database className="w-4 h-4" /> Fill Missing Data</>
+                }
+              </Button>
+              <Button variant="ghost" size="sm" onClick={fetchJobStatus} className="w-full gap-2 h-8 text-xs text-muted-foreground hover:text-foreground">
+                <RefreshCw className="w-3 h-3" /> Refresh Status
+              </Button>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2 border-t pt-3">
+                {STATUS_ICONS[fillStatus.status]}
+                <span className="uppercase tracking-wider font-medium">{fillStatus.status}</span>
+              </div>
+            </div>
 
-      {/* Add Stock */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <h2 className="font-semibold mb-3 flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add New Stock
-        </h2>
-        <div className="flex gap-3 max-w-md">
-          <input
-            value={newTicker}
-            onChange={e => setNewTicker(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addStock()}
-            placeholder="Ticker symbol (e.g. AAPL, 2222.SR)"
-            className="flex-1 px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <Button onClick={addStock} disabled={adding} className="gap-2">
-            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Add
-          </Button>
-        </div>
-        {addMsg && (
-          <p className={`mt-2 text-sm ${addMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
-            {addMsg}
-          </p>
-        )}
-      </div>
-
-      {/* Stocks Table */}
-      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
-          <h2 className="font-semibold text-sm">{stocks.length} stocks in database</h2>
-          <Button variant="ghost" size="sm" onClick={fetchStocks} className="gap-1">
-            <RefreshCw className="w-3 h-3" /> Refresh
-          </Button>
-        </div>
-        {error && (
-          <div className="flex items-center gap-3 text-destructive p-4">
-            <AlertCircle className="w-5 h-5" /> {error}
-          </div>
-        )}
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-3 text-left font-medium">Symbol</th>
-                  <th className="px-4 py-3 text-left font-medium">Name</th>
-                  <th className="px-4 py-3 text-left font-medium">Sector</th>
-                  <th className="px-4 py-3 text-left font-medium">Price</th>
-                  <th className="px-4 py-3 text-center font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {stocks.map(s => (
-                  <tr key={s.stock_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-primary">{s.symbol}</td>
-                    <td className="px-4 py-3">{s.name || '—'}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.sector || '—'}</td>
-                    <td className="px-4 py-3">{s.current_price ? `$${s.current_price.toFixed(2)}` : '—'}</td>
-                    <td className="px-4 py-3 flex justify-center">
-                      <Button
-                        variant="ghost" size="sm"
-                        onClick={() => deleteStock(s.symbol)}
-                        className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
+            {/* Live Log */}
+            {fillStatus.log.length > 0 && (
+              <div
+                ref={logRef}
+                className="mt-4 bg-muted/30 rounded p-3 font-mono text-[10px] leading-relaxed border shadow-inner max-h-[150px] overflow-y-auto"
+              >
+                {fillStatus.log.map((line, i) => (
+                  <div key={i} className={`${logLineColor(line)} whitespace-pre-wrap break-words mb-1`}>{line || '\u00a0'}</div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        <div className="lg:col-span-8">
+          {/* Stocks Table */}
+          <div className="rounded-lg border bg-card overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="text-lg font-semibold text-foreground">Registered Assets</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">{stocks.length} assets</span>
+                <Button variant="ghost" size="sm" onClick={fetchStocks} className="gap-1 text-muted-foreground hover:text-foreground">
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </Button>
+              </div>
+            </div>
+            
+            {error && (
+              <div className="flex items-center gap-3 text-destructive p-4 border-b bg-destructive/5">
+                <AlertCircle className="w-5 h-5" /> {error}
+              </div>
+            )}
+            
+            {loading ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Symbol</th>
+                      <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Name</th>
+                      <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Sector</th>
+                      <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Price</th>
+                      <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {stocks.map(s => (
+                      <tr key={s.stock_id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-5 font-semibold text-foreground">{s.symbol}</td>
+                        <td className="py-3 px-5 text-muted-foreground">{s.name || '—'}</td>
+                        <td className="py-3 px-5 text-muted-foreground">{s.sector || '—'}</td>
+                        <td className="py-3 px-5 text-foreground">{s.current_price ? `$${s.current_price.toFixed(2)}` : '—'}</td>
+                        <td className="py-3 px-5 text-right">
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => deleteStock(s.symbol)}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {stocks.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No stocks found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

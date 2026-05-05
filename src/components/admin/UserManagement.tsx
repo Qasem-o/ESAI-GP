@@ -52,98 +52,107 @@ export function UserManagement() {
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">User Management</h1>
-        <p className="text-muted-foreground mt-1">Manage accounts, roles, and access</p>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by name or email..."
-          className="pl-9 pr-4 py-2 w-full border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">User Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage accounts, roles, and platform access control</p>
+        </div>
+        
+        {/* Search */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search by name or email..."
+            className="pl-9 pr-4 py-2 w-full border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
+          />
+        </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 text-destructive bg-destructive/10 rounded-lg p-4">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
+        <div className="flex items-center gap-3 text-destructive bg-destructive/5 border-l-4 border-destructive p-4 rounded-r-lg">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" /> 
+          <span className="text-sm font-medium">{error}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
       ) : (
-        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="flex items-center justify-between p-5 border-b">
+            <h2 className="text-lg font-semibold text-foreground">Registered Users</h2>
+            <div className="text-sm text-muted-foreground">{filtered.length} users found</div>
+          </div>
+          
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">User</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Role</th>
-                  <th className="px-4 py-3 text-left font-medium">Joined</th>
-                  <th className="px-4 py-3 text-left font-medium">Last Login</th>
-                  <th className="px-4 py-3 text-center font-medium">Actions</th>
+                <tr className="bg-muted/50">
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">User</th>
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Status</th>
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Role</th>
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Joined Date</th>
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Last Login</th>
+                  <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filtered.map(u => (
                   <tr key={u.user_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
+                    <td className="py-3 px-5">
                       <div>
-                        <p className="font-medium">{u.full_name || u.username}</p>
-                        <p className="text-xs text-muted-foreground">{u.email} (@{u.username})</p>
+                        <p className="font-semibold text-foreground">{u.full_name || u.username}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{u.email} <span className="opacity-50">(@{u.username})</span></p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
-                        ${u.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                        {u.is_active ? '● Active' : '● Inactive'}
+                    <td className="py-3 px-5">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider
+                        ${u.is_active ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground border'}`}>
+                        {u.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="py-3 px-5">
                       {u.is_admin ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border border-foreground text-foreground">
                           <ShieldCheck className="w-3 h-3" /> Admin
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">User</span>
+                        <span className="text-sm text-muted-foreground">Standard</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {new Date(u.created_at).toLocaleDateString()}
+                    <td className="py-3 px-5 text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {u.last_login ? new Date(u.last_login).toLocaleDateString() : '—'}
+                    <td className="py-3 px-5 text-muted-foreground">
+                      {u.last_login ? new Date(u.last_login).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="py-3 px-5 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost" size="sm"
                           title={u.is_active ? 'Deactivate' : 'Activate'}
                           onClick={() => patch(u.user_id, { is_active: !u.is_active })}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         >
-                          {u.is_active ? <UserX className="w-4 h-4 text-amber-500" /> : <UserCheck className="w-4 h-4 text-green-500" />}
+                          {u.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </Button>
                         <Button
                           variant="ghost" size="sm"
                           title={u.is_admin ? 'Revoke Admin' : 'Grant Admin'}
                           onClick={() => patch(u.user_id, { is_admin: !u.is_admin })}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         >
-                          {u.is_admin ? <ShieldOff className="w-4 h-4 text-orange-500" /> : <ShieldCheck className="w-4 h-4 text-blue-500" />}
+                          {u.is_admin ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
                         </Button>
                         <Button
                           variant="ghost" size="sm"
                           title="Delete User"
                           onClick={() => deleteUser(u.user_id, u.username)}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -151,11 +160,15 @@ export function UserManagement() {
                     </td>
                   </tr>
                 ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                      No users found matching "{query}"
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-            {filtered.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">No users found</div>
-            )}
           </div>
         </div>
       )}

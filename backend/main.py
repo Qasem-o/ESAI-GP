@@ -455,19 +455,21 @@ def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_d
         .all()
     )
 
-    # Only read pre-stored test-set predictions (is_test_set=True)
+    # Prioritize real forecasts (is_test_set=False) over backtest rows
     hist_dates = [h.date for h in history]
-    test_preds = (
+    all_preds = (
         db.query(PricePrediction)
         .filter(
             PricePrediction.stock_id == stock.stock_id,
-            PricePrediction.is_test_set == True,
             PricePrediction.prediction_date.in_(hist_dates),
         )
+        .order_by(PricePrediction.is_test_set.desc()) # True first, False last
         .all()
     ) if hist_dates else []
 
-    pred_map = {p.prediction_date: float(p.predicted_price) for p in test_preds}
+    # Mapping: the last one seen for a date will win. 
+    # Since we ordered True first and False last, the False (real forecast) will overwrite if both exist.
+    pred_map = {p.prediction_date: float(p.predicted_price) for p in all_preds}
 
     # Chronological order for chart
     results = []
@@ -529,7 +531,18 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
             .order_by(PricePrediction.prediction_date)
             .first()
         )
+        
         if ai_pred:
+            # Check for staleness: 
+            # Get latest price history date
+            from preparedata import PriceHistory
+            latest_hist = db.query(PriceHistory.date).filter(PriceHistory.stock_id == stock.stock_id).order_by(desc(PriceHistory.date)).first()
+            
+            # If we have history, and the model was trained BEFORE the latest history date, it's stale
+            # It means we downloaded new price data but haven't retrained the model yet.
+            if latest_hist and ai_pred.trained_at and ai_pred.trained_at.date() < latest_hist[0]:
+                raise HTTPException(status_code=404, detail="AI model needs retraining with latest data")
+
             predicted_price = float(ai_pred.predicted_price)
             change_percent  = float(ai_pred.change_percent or 0)
             direction       = ai_pred.direction or ("bullish" if change_percent > 0 else "bearish")
@@ -538,7 +551,7 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
             target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
             stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
 
-            # Technical analysis points
+            # ... rest of the logic ...
             latest_tech = (
                 db.query(TechnicalIndicator)
                 .filter(TechnicalIndicator.stock_id == stock.stock_id)
@@ -547,7 +560,7 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
             )
             analysis_points = [f"Hybrid Model prediction (LSTM + XGBoost) — {ai_pred.model_type}."]
             
-            # Fetch metrics to show MAPE and RMSE
+            # Fetch metrics
             metric = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
             if metric and metric.mape is not None and metric.rmse is not None:
                 analysis_points.append(f"Model Accuracy Metrics: MAPE = {metric.mape}%, RMSE = {metric.rmse}")
@@ -579,71 +592,14 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
                 "risk_level": "Low" if confidence > 85 else ("Medium" if confidence > 70 else "High"),
                 "analysis": analysis_points,
             }
+            
+        raise HTTPException(status_code=404, detail="No fresh prediction available. Please run training.")
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"⚠️ Could not load AI prediction for {symbol}: {e}")
-
-    # ── 2. Fallback: Statistical prediction from recent history ─────────────
-    history = (
-        db.query(PriceHistory)
-        .filter(PriceHistory.stock_id == stock.stock_id)
-        .order_by(desc(PriceHistory.date))
-        .limit(30)
-        .all()
-    )
-    if not history or len(history) < 2:
-        return {
-            "tomorrow_price": current_price,
-            "confidence": 0,
-            "direction": "neutral",
-            "change_percent": 0,
-            "recommendation": "HOLD",
-            "target_price": current_price,
-            "stop_loss": current_price,
-            "risk_level": "High",
-            "analysis": ["Insufficient data for prediction."],
-        }
-
-    recent_closes = [float(h.close) for h in history]
-    avg_change     = sum(recent_closes[i] - recent_closes[i + 1] for i in range(len(recent_closes) - 1)) / len(recent_closes)
-    predicted_price = current_price + avg_change
-    change_percent  = ((predicted_price - current_price) / current_price) * 100 if current_price else 0
-    direction       = "bullish" if change_percent > 0 else "bearish"
-    metric          = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
-    confidence      = float(metric.directional_accuracy) if metric else 65.0
-    recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
-    target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
-    stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
-
-    latest_tech = (
-        db.query(TechnicalIndicator)
-        .filter(TechnicalIndicator.stock_id == stock.stock_id)
-        .filter(TechnicalIndicator.rsi.isnot(None))  # Root fix: only show valid indicators
-        .order_by(desc(TechnicalIndicator.date))
-        .first()
-    )
-    analysis_points = ["📊 Statistical momentum model (AI training pending)."]
-    if latest_tech:
-        if latest_tech.rsi and latest_tech.rsi > 70:
-            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f} — overbought.")
-        elif latest_tech.rsi and latest_tech.rsi < 30:
-            analysis_points.append(f"RSI is {float(latest_tech.rsi):.1f} — oversold.")
-        if latest_tech.macd and latest_tech.macd_signal:
-            if latest_tech.macd > latest_tech.macd_signal:
-                analysis_points.append("MACD above signal line — bullish momentum.")
-            else:
-                analysis_points.append("MACD below signal line — bearish momentum.")
-
-    return {
-        "tomorrow_price": round(predicted_price, 2),
-        "confidence": confidence,
-        "direction": direction,
-        "change_percent": round(change_percent, 2),
-        "recommendation": recommendation,
-        "target_price": target_price,
-        "stop_loss": stop_loss,
-        "risk_level": "Medium",
-        "analysis": analysis_points,
-    }
+        print(f"⚠️ Prediction error for {symbol}: {e}")
+        raise HTTPException(status_code=404, detail="Prediction unavailable")
 
 @app.get("/stocks/{symbol}/sentiment", response_model=SentimentResponse)
 def get_stock_sentiment(symbol: str, db: Session = Depends(get_db)):

@@ -349,6 +349,16 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame, store_fro
             ti.bollinger_middle = to_dec(row.get('boll_mid'))
             ti.bollinger_lower = to_dec(row.get('boll_lower'))
 
+            # 3. Update Actual Price in Predictions (NEW)
+            # Find any prediction made for this date and update its actual_price
+            from prediction_models import PricePrediction
+            pred = session.query(PricePrediction).filter(
+                PricePrediction.stock_id == stock.stock_id,
+                PricePrediction.prediction_date == d
+            ).first()
+            if pred:
+                pred.actual_price = to_dec(row['close'])
+
     session.commit()
     print(f"Successfully processed {len(df_to_store)} rows for {ticker}")
 

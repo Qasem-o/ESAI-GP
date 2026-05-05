@@ -5,7 +5,9 @@ export interface StockPrice {
   symbol: string;
   name: string;
   price: number;
-  change?: number; // Added change
+  change?: number; // Kept for backward compatibility
+  dayChange?: number;
+  changePercent?: number;
   sector?: string;
   description?: string;
   industry?: string;
@@ -99,7 +101,6 @@ export const fetchStocks = async (): Promise<StockPrice[]> => {
       throw new Error(`Failed to fetch stocks`);
     }
     const data = await response.json();
-    // Map backend StockBase to frontend StockPrice
     const mappedData = data.map((item: any) => ({
       symbol: item.symbol,
       name: item.name,
@@ -107,6 +108,8 @@ export const fetchStocks = async (): Promise<StockPrice[]> => {
       sector: item.sector,
       description: item.description,
       change: item.change_percent || 0,
+      dayChange: item.day_change || 0,
+      changePercent: item.change_percent || 0,
       mentions: item.mentions || 0,
       sentiment: item.sentiment || 0,
       volume: item.volume || "N/A",
@@ -144,7 +147,9 @@ export const fetchStockPrice = async (symbol: string): Promise<StockPrice> => {
       dayOpen: item.day_open,
       dayHigh: item.day_high,
       dayLow: item.day_low,
-      change: 0,
+      change: item.change_percent || 0,
+      dayChange: item.day_change || 0,
+      changePercent: item.change_percent || 0,
       volume: item.volume
     };
   } catch (error) {

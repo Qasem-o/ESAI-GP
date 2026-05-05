@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription } from "./ui/alert";
-import { TrendingUp, Eye, EyeOff, Mail, Lock, User, Loader2, AtSign } from "lucide-react";
+import { TrendingUp, Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { EmailVerification } from "./EmailVerification";
@@ -184,14 +184,14 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <div className="relative">
-                    <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground font-medium text-sm">@</div>
                     <Input
                       id="username"
                       type="text"
                       placeholder="ali_21"
                       value={formData.username}
                       onChange={(e) => handleInputChange("username", e.target.value)}
-                      className="pl-10 h-12"
+                      className="pl-8 h-12"
                       required
                       minLength={3}
                       pattern="^[a-zA-Z0-9_-]+$"
@@ -199,9 +199,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                       disabled={isLoading}
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground px-1">
-                    Unique handle for your profile (e.g. @ali_21)
-                  </p>
+
                 </div>
 
                 <div className="space-y-2">
