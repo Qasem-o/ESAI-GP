@@ -16,7 +16,7 @@ export function Privacy(props: any) {
         >
           <div className="space-y-2">
             <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
-            <p className="text-muted-foreground">Last updated: April 2024</p>
+            <p className="text-muted-foreground">Last updated: May 2026</p>
           </div>
 
           <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
