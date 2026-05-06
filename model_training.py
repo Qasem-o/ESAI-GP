@@ -11,7 +11,8 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 try:
     import tensorflow as tf
     from tensorflow.keras.models import Sequential, load_model
-    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input, BatchNormalization
+    from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 except ImportError:
     print("WARNING: TensorFlow not found. Training will fail. Run 'pip install tensorflow'")
     tf = None
@@ -25,13 +26,47 @@ sys.path.insert(0, _root)
 sys.path.insert(0, _backend)
 
 from dotenv import load_dotenv
-load_dotenv(os.path.join(_root, ".env"))
 load_dotenv(os.path.join(_backend, ".env"))
+load_dotenv(os.path.join(_root, ".env"), override=True)
 
 MODEL_DIR   = os.path.join(_root, "trained_models")
 LOOK_BACK   = 60
 TRAIN_SPLIT = 0.8
-FEATURE_COLS = ["rsi", "macd", "macd_signal", "sma_20", "sma_50", "volume"]
+
+# Base feature columns from the database
+DB_FEATURE_COLS = ["rsi", "macd", "macd_signal", "sma_20", "sma_50", "volume"]
+
+# All feature columns used for XGBoost (includes engineered features)
+FEATURE_COLS = [
+    "rsi", "macd", "macd_signal", "sma_20", "sma_50", "volume",
+    "ema_12", "ema_26", "bb_upper", "bb_lower", "bb_width",
+    "atr", "daily_return", "vol_ratio"
+]
+
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute additional technical indicators from OHLCV data."""
+    close = df["close"]
+
+    # EMA
+    df["ema_12"] = close.ewm(span=12, adjust=False).mean()
+    df["ema_26"] = close.ewm(span=26, adjust=False).mean()
+
+    # Bollinger Bands (20-day)
+    bb_mid = close.rolling(20).mean()
+    bb_std = close.rolling(20).std()
+    df["bb_upper"]  = bb_mid + 2 * bb_std
+    df["bb_lower"]  = bb_mid - 2 * bb_std
+    df["bb_width"]  = (df["bb_upper"] - df["bb_lower"]) / (bb_mid + 1e-9)
+
+    # ATR (14-day) — approximated from close only (no high/low in DB)
+    daily_change = close.diff().abs()
+    df["atr"] = daily_change.rolling(14).mean()
+
+    # Daily return & volume ratio
+    df["daily_return"] = close.pct_change()
+    df["vol_ratio"]    = df["volume"] / (df["volume"].rolling(20).mean() + 1e-9)
+
+    return df
 
 def get_engine():
     db_url = os.getenv("DATABASE_URL")
@@ -74,32 +109,44 @@ def _build_lstm(look_back: int):
     if tf is None: raise ImportError("TensorFlow not installed.")
     m = Sequential([
         Input(shape=(look_back, 1)),
-        LSTM(50, return_sequences=True),
+        LSTM(128, return_sequences=True),
         Dropout(0.2),
-        LSTM(50, return_sequences=False),
+        LSTM(64, return_sequences=True),
         Dropout(0.2),
-        Dense(25),
+        LSTM(32, return_sequences=False),
+        Dropout(0.1),
+        Dense(32, activation="relu"),
+        Dense(16, activation="relu"),
         Dense(1),
     ])
     m.compile(optimizer="adam", loss="mean_squared_error")
     return m
 
-def train_xgboost_for_ticker(ticker: str) -> dict:
-    import os, sys, joblib, numpy as np, pandas as pd
+def train_xgboost_for_ticker(ticker, force_lstm=False):
+    import pandas as pd
+    import numpy as np
+    import os
+    import sys
+    import joblib
     from datetime import datetime, timedelta, timezone
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import text
     from sklearn.preprocessing import MinMaxScaler
-    from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
     from xgboost import XGBRegressor
+    from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+    from tensorflow.keras.models import load_model, Sequential
+    from tensorflow.keras.layers import LSTM, Dense, Input, Dropout
+    from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-    _root = os.path.dirname(os.path.abspath(__file__))
-    _backend = os.path.join(_root, "backend")
-    sys.path.insert(0, _root)
-    sys.path.insert(0, _backend)
-
-    from model_training import get_engine, _build_sequences, _build_lstm, LOOK_BACK, TRAIN_SPLIT, MODEL_DIR, FEATURE_COLS
+    # Use globals from the module instead of re-importing
     from preparedata import Stock, ModelMetric
-    from prediction_models import PricePrediction
-    
+    from model_training import get_engine
+    try:
+        from backend.prediction_models import PricePrediction
+    except ImportError:
+        sys.path.append(os.path.join(os.getcwd(), 'backend'))
+        from prediction_models import PricePrediction
+
     engine = get_engine()
     Session = sessionmaker(bind=engine)
     
@@ -120,7 +167,15 @@ def train_xgboost_for_ticker(ticker: str) -> dict:
 
         df["date"] = pd.to_datetime(df["date"])
         df.set_index("date", inplace=True)
+        print(f"[{ticker}] Raw data: {len(df)} rows. Date range: {df.index.min()} to {df.index.max()}")
+
+        # Engineer additional features before dropping NaNs
+        df = engineer_features(df)
         df.dropna(inplace=True)
+        print(f"[{ticker}] After features & dropna: {len(df)} rows. Date range: {df.index.min()} to {df.index.max()}")
+
+        if len(df) < LOOK_BACK + 20:
+            return {"ticker": ticker, "status": "skip", "msg": f"Not enough data after feature engineering ({len(df)} rows)"}
 
         ticker_dir = os.path.join(MODEL_DIR, ticker)
         os.makedirs(ticker_dir, exist_ok=True)
@@ -138,47 +193,82 @@ def train_xgboost_for_ticker(ticker: str) -> dict:
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled = scaler.fit_transform(df[["close"]])
 
-        if needs_lstm or not os.path.exists(lstm_path):
+        if force_lstm or needs_lstm or not os.path.exists(lstm_path):
+            print(f"[{ticker}] Training NEW LSTM model...")
             X_all, y_all = _build_sequences(scaled, LOOK_BACK)
             if len(X_all) == 0: return {"ticker": ticker, "status": "skip", "msg": "Sequence build failed"}
-            train_n_lstm = int(len(X_all) * TRAIN_SPLIT)
+            train_n_lstm = len(X_all)
             X_train_lstm = X_all[:train_n_lstm].reshape(-1, LOOK_BACK, 1)
             y_train_lstm = y_all[:train_n_lstm]
             
             lstm_model = _build_lstm(LOOK_BACK)
-            lstm_model.fit(X_train_lstm, y_train_lstm, batch_size=32, epochs=10, verbose=0)
+            early_stop = EarlyStopping(
+                monitor="val_loss", patience=8, restore_best_weights=True, verbose=0
+            )
+            reduce_lr = ReduceLROnPlateau(
+                monitor="val_loss", factor=0.5, patience=4, verbose=0, min_lr=1e-6
+            )
+            lstm_model.fit(
+                X_train_lstm, y_train_lstm,
+                batch_size=32, epochs=50, verbose=0,
+                validation_split=0.1,
+                callbacks=[early_stop, reduce_lr]
+            )
             lstm_model.save(lstm_path)
             joblib.dump(scaler, scaler_path)
             with open(marker_path, "w") as f: f.write(datetime.utcnow().isoformat())
+            print(f"[{ticker}] LSTM model saved.")
         else:
+            print(f"[{ticker}] Using existing LSTM model.")
+            from tensorflow.keras.models import load_model
             lstm_model = load_model(lstm_path, compile=False)
             scaler = joblib.load(scaler_path)
 
+        print(f"[{ticker}] Generating residual targets via LSTM...")
         X_full, _ = _build_sequences(scaled, LOOK_BACK)
         X_full_seq = X_full.reshape(-1, LOOK_BACK, 1)
         lstm_full_pred_scaled = lstm_model.predict(X_full_seq, verbose=0)
         lstm_full_pred = scaler.inverse_transform(lstm_full_pred_scaled).flatten()
         
-        train_n = int(len(X_full) * TRAIN_SPLIT)
-        lstm_train_pred = lstm_full_pred[:train_n]
+        train_n = len(X_full)
+        lstm_train_pred = lstm_full_pred
         
         train_actual = df["close"].iloc[LOOK_BACK: LOOK_BACK + train_n].values
         train_res = train_actual - lstm_train_pred
         X_feat_train = df[FEATURE_COLS].iloc[LOOK_BACK - 1 : LOOK_BACK + train_n - 1]
         
-        hybrid = XGBRegressor(n_estimators=500, learning_rate=0.05, tree_method="hist", n_jobs=1)
-        hybrid.fit(X_feat_train, train_res)
+        print(f"[{ticker}] Training XGBoost corrector...")
+        hybrid = XGBRegressor(
+            n_estimators=400,
+            learning_rate=0.03,
+            max_depth=4,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            reg_alpha=0.1,
+            reg_lambda=1.5,
+            min_child_weight=3,
+            tree_method="hist",
+            n_jobs=1,
+            early_stopping_rounds=30,
+            eval_metric="rmse"
+        )
+        # Split train data for XGBoost early stopping
+        xgb_val_size = max(10, int(len(X_feat_train) * 0.1))
+        hybrid.fit(
+            X_feat_train.iloc[:-xgb_val_size], train_res[:-xgb_val_size],
+            eval_set=[(X_feat_train.iloc[-xgb_val_size:], train_res[-xgb_val_size:])],
+            verbose=False
+        )
         hybrid.save_model(os.path.join(ticker_dir, "hybrid_corrector.json"))
 
-        n_test = len(X_full) - train_n
-        use_n = min(n_test, LOOK_BACK)
-        test_start_idx = LOOK_BACK + train_n + (n_test - use_n)
+        use_n = min(len(X_full), LOOK_BACK)
+        test_start_idx = LOOK_BACK + len(X_full) - use_n
         
         test_actual = df["close"].iloc[test_start_idx:].values[:use_n]
         test_dates = df.index[test_start_idx:][:use_n]
         X_feat_test = df[FEATURE_COLS].iloc[test_start_idx - 1 : test_start_idx + use_n - 1]
         
-        lstm_test_slice = lstm_full_pred[train_n + (n_test - use_n):]
+        lstm_test_slice = lstm_full_pred[-use_n:]
         hybrid_corr = hybrid.predict(X_feat_test)
         test_preds = lstm_test_slice + hybrid_corr
 
@@ -212,6 +302,7 @@ def train_xgboost_for_ticker(ticker: str) -> dict:
                 metric = ModelMetric(stock_id=stock.stock_id, model_type="Hybrid")
                 session.add(metric)
             metric.rmse, metric.mape, metric.directional_accuracy = round(rmse,4), round(mape,4), round(dir_acc,2)
+            metric.created_at = datetime.now(timezone.utc) # Update the "Last Evaluated" time
 
             true_history_dates = {r.prediction_date for r in session.query(PricePrediction.prediction_date).filter(
                 PricePrediction.stock_id == stock.stock_id, PricePrediction.is_test_set == False, PricePrediction.actual_price != None
@@ -257,12 +348,21 @@ def train_xgboost_for_ticker(ticker: str) -> dict:
     except Exception as e:
         return {"ticker": ticker, "status": "error", "msg": str(e)}
 
-def run_daily(tickers: list, workers: int = 4):
+def run_daily(tickers: list, workers: int = 1, force_lstm: bool = False):
     results = {"ok": [], "skip": [], "error": []}
-    with ProcessPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(train_xgboost_for_ticker, t): t for t in tickers}
-        for fut in as_completed(futures):
-            r = fut.result()
+    if workers > 1:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(train_xgboost_for_ticker, t, force_lstm=force_lstm): t for t in tickers}
+            for fut in as_completed(futures):
+                r = fut.result()
+                if r["status"] == "error":
+                    print(f"[ERROR] {r['ticker']}: {r.get('msg', 'unknown')}")
+                results[r["status"]].append(r["ticker"])
+    else:
+        for t in tickers:
+            r = train_xgboost_for_ticker(t, force_lstm=force_lstm)
+            if r["status"] == "error":
+                print(f"[ERROR] {r['ticker']}: {r.get('msg', 'unknown')}")
             results[r["status"]].append(r["ticker"])
     return results
 
@@ -275,7 +375,17 @@ def get_stocks_needing_training(tickers: list) -> list:
         for t in tickers:
             res_h = session.execute(text("SELECT MAX(date) FROM price_history ph JOIN stocks s ON s.stock_id = ph.stock_id WHERE s.symbol = :t"), {"t": t}).scalar()
             res_p = session.execute(text("SELECT MAX(trained_at) FROM price_predictions pp JOIN stocks s ON s.stock_id = pp.stock_id WHERE s.symbol = :t"), {"t": t}).scalar()
-            if res_h and (not res_p or res_h >= res_p.date()): needing.append(t)
+            
+            if not res_h:
+                print(f"Skipping {t}: No price history found.")
+                continue
+            
+            if not res_p:
+                needing.append(t)
+            elif res_h >= res_p.date():
+                needing.append(t)
+            else:
+                print(f"Skipping {t}: Already trained on latest data (History: {res_h}, Trained: {res_p.date()}).")
         return needing
     finally: session.close()
 
@@ -284,7 +394,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbols", nargs="*", default=None)
     parser.add_argument("--skip-trained-today", action="store_true")
-    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--force-lstm", action="store_true")
+    parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
 
     create_tables()
@@ -296,9 +407,13 @@ def main():
         print("All stocks up to date.")
         return
 
-    print(f"Training {len(tickers)} stocks...")
-    results = run_daily(tickers, workers=args.workers)
-    print(f"Done! OK: {len(results['ok'])} | Errors: {len(results['error'])}")
+    print(f"Training {len(tickers)} stocks (Force LSTM: {args.force_lstm})...")
+    results = run_daily(tickers, workers=args.workers, force_lstm=args.force_lstm)
+    print(f"Done! OK: {len(results['ok'])} | Skipped: {len(results['skip'])} | Errors: {len(results['error'])}")
+    if results['error']:
+        print("[FAILED STOCKS]:")
+        for t in results['error']:
+            print(f"  - {t}")
 
 if __name__ == "__main__":
     main()

@@ -77,7 +77,10 @@ export function Header({
                   }}
                 />
               </div>
-              <span className="text-base sm:text-xl md:text-2xl font-bold whitespace-nowrap" style={{ fontFamily: "'Cairo', sans-serif" }}>ESAI</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-base sm:text-xl md:text-2xl font-bold whitespace-nowrap" style={{ fontFamily: "'Cairo', sans-serif" }}>ESAI</span>
+                <span className="text-[10px] font-bold text-muted-foreground border border-muted-foreground/30 px-1.5 py-0.5 rounded-md uppercase tracking-wider bg-muted/10">BETA</span>
+              </div>
             </motion.button>
           </div>
 

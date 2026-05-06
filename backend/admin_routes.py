@@ -420,7 +420,7 @@ def trigger_training(
 
     thread = threading.Thread(
         target=_run_training_subprocess,
-        kwargs={"skip_trained_today": True},
+        kwargs={"skip_trained_today": True, "workers": 2},
         daemon=True
     )
     thread.start()
@@ -441,7 +441,7 @@ def trigger_training_all(
 
     thread = threading.Thread(
         target=_run_training_subprocess,
-        kwargs={"skip_trained_today": False},
+        kwargs={"skip_trained_today": False, "force_lstm": True, "workers": 2},
         daemon=True
     )
     thread.start()
@@ -649,7 +649,7 @@ def _fill_missing_bg():
 
 
 def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None,
-                              workers: int = 4):
+                               workers: int = 1, force_lstm: bool = False):
     """
     Run model_training.py as a subprocess.
     - LSTM is trained weekly (auto-detected inside the script).
@@ -660,6 +660,8 @@ def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = No
     cmd = [sys.executable, script, "--workers", str(workers)]
     if skip_trained_today:
         cmd.append("--skip-trained-today")
+    if force_lstm:
+        cmd.append("--force-lstm")
     if symbols:
         cmd += ["--symbols"] + symbols
     try:
