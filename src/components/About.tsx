@@ -15,11 +15,6 @@ export function About(props: any) {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-12"
         >
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">About EyeStocks AI</h1>
-            <p className="text-xl text-muted-foreground">Your intelligent gateway to the financial markets.</p>
-          </div>
-
           <section className="prose prose-slate dark:prose-invert max-w-none text-center">
             <h2 className="text-2xl font-semibold">Welcome to EyeStocks AI</h2>
             <p className="text-lg">
