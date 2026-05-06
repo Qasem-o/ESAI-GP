@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
@@ -49,12 +50,19 @@ export function Header({
   };
 
   return (
-    <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+    <motion.header 
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50"
+    >
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Left: Brand (match Signup sizing) */}
           <div className="flex items-center">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={onGoToHome}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
             >
@@ -69,50 +77,39 @@ export function Header({
                   }}
                 />
               </div>
-              <span className="text-base sm:text-xl md:text-2xl font-semibold whitespace-nowrap">ESAI</span>
-            </button>
+              <span className="text-base sm:text-xl md:text-2xl font-bold whitespace-nowrap" style={{ fontFamily: "'Cairo', sans-serif" }}>ESAI</span>
+            </motion.button>
           </div>
 
           {/* Center: Nav */}
           <nav className="hidden md:flex items-center justify-center flex-1 gap-6">
-            <button
-              onClick={onGoToHome}
-              className={`px-4 text-base md:text-lg transition-colors cursor-pointer ${currentPage === "home"
-                ? "text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground"
+            {[
+              { label: "Home", onClick: onGoToHome, id: "home" },
+              { label: "Explore", onClick: onGoToExplore, id: "explore" },
+              { label: "Portfolio", onClick: onGoToPortfolio, id: "portfolio" },
+              { label: "Simulator", onClick: onGoToSimulator, id: "simulator" },
+            ].map((item) => (
+              <motion.button
+                key={item.id}
+                whileHover={{ y: -2 }}
+                whileTap={{ y: 0 }}
+                onClick={item.onClick}
+                className={`px-4 text-base md:text-lg transition-colors cursor-pointer relative ${
+                  currentPage === item.id || (item.id === "explore" && currentPage === "stocks")
+                    ? "text-primary font-bold"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
-            >
-              Home
-            </button>
-            <button
-              onClick={onGoToExplore}
-              className={`px-4 text-base md:text-lg transition-colors cursor-pointer ${currentPage === "explore" || currentPage === "stocks"
-                ? "text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              Explore
-            </button>
-            <button
-              onClick={onGoToPortfolio}
-              className={`px-4 text-base md:text-lg transition-colors relative cursor-pointer
-                ${currentPage === "portfolio"
-                  ? "text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-                }
-              `}
-            >
-              Portfolio
-            </button>
-            <button
-              onClick={onGoToSimulator}
-              className={`px-4 text-base md:text-lg transition-colors cursor-pointer ${currentPage === "simulator"
-                ? "text-primary font-medium"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              Simulator
-            </button>
+              >
+                {item.label}
+                {(currentPage === item.id || (item.id === "explore" && currentPage === "stocks")) && (
+                  <motion.div
+                    layoutId="navbar-underline"
+                    className="absolute bottom-[-1.25rem] left-0 right-0 h-0.5 bg-primary"
+                    initial={false}
+                  />
+                )}
+              </motion.button>
+            ))}
           </nav>
           {/* Right: Actions */}
           <div className="flex items-center justify-end gap-3 md:gap-4">
@@ -204,7 +201,7 @@ export function Header({
           </div>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }
 

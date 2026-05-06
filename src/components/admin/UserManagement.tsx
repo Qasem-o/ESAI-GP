@@ -54,7 +54,7 @@ export function UserManagement() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">User Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage accounts, roles, and platform access control</p>
@@ -62,12 +62,12 @@ export function UserManagement() {
         
         {/* Search */}
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search by name or email..."
-            className="pl-9 pr-4 py-2 w-full border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
+            className="pl-10 pr-4 h-10 w-full border rounded-md bg-background text-sm focus:outline-none focus:ring-1 focus:ring-foreground transition-all shadow-sm"
           />
         </div>
       </div>

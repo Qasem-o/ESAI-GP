@@ -187,15 +187,15 @@ export function ModelManagement() {
                 Refresh
               </button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="bg-muted/50">
-                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Asset</th>
-                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">For Date</th>
-                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Predicted Price</th>
-                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Trend</th>
-                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5 border-b">Confidence</th>
+                  <tr className="bg-muted/50 sticky top-0 z-10 border-b">
+                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5">Asset</th>
+                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5">For Date</th>
+                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5">Predicted Price</th>
+                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5">Trend</th>
+                    <th className="font-medium text-xs text-muted-foreground uppercase tracking-wider py-3 px-5">Confidence</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -229,34 +229,37 @@ export function ModelManagement() {
         </div>
 
         {/* Execution Logs */}
-        <div className="lg:col-span-4 flex flex-col space-y-6">
-          <div className="rounded-lg border bg-card flex flex-col h-full min-h-[400px]">
-            <div className="p-5 border-b flex justify-between items-center">
+        <div className="lg:col-span-4">
+          <div className="rounded-lg border bg-card flex flex-col h-[500px] overflow-hidden shadow-sm">
+            <div className="p-5 border-b flex justify-between items-center bg-muted/20">
               <h2 className="text-lg font-semibold text-foreground">Execution Logs</h2>
               <Terminal className="w-5 h-5 text-muted-foreground" />
             </div>
             
             <div
               ref={logRef}
-              className="flex-1 bg-muted/30 p-4 font-mono text-[11px] leading-relaxed overflow-y-auto"
+              className="flex-1 bg-black/90 text-gray-300 p-4 font-mono text-[11px] leading-relaxed overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
             >
               {status.log.length > 0 ? (
                 status.log.map((line, i) => (
-                  <div key={i} className={`mb-1 ${
-                    line.includes('❌') || line.includes('Error') ? 'text-destructive' : 
-                    line.includes('✅') || line.includes('success') ? 'text-foreground font-medium' : 
-                    line.includes('[FETCH]') || line.includes('[LSTM]') ? 'text-foreground' :
-                    'text-muted-foreground'
+                  <div key={i} className={`mb-1 break-words ${
+                    line.includes('❌') || line.includes('Error') ? 'text-red-400' : 
+                    line.includes('✅') || line.includes('success') ? 'text-green-400 font-medium' : 
+                    line.includes('[FETCH]') || line.includes('[LSTM]') ? 'text-blue-300' :
+                    'text-gray-400'
                   }`}>
-                    <span className="opacity-50 mr-2">[{new Date().toLocaleTimeString([], {hour12: false})}]</span>
+                    <span className="opacity-40 mr-2">[{new Date().toLocaleTimeString([], {hour12: false})}]</span>
                     {line}
                   </div>
                 ))
               ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground italic">
+                <div className="h-full flex items-center justify-center text-gray-500 italic">
                   Waiting for activity...
                 </div>
               )}
+            </div>
+            <div className="p-3 bg-muted/10 border-t text-[10px] text-muted-foreground text-center">
+              Auto-scrolling enabled
             </div>
           </div>
         </div>

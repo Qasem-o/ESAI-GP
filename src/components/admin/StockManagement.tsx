@@ -205,7 +205,7 @@ export function StockManagement() {
             {fillStatus.log.length > 0 && (
               <div
                 ref={logRef}
-                className="mt-4 bg-muted/30 rounded p-3 font-mono text-[10px] leading-relaxed border shadow-inner max-h-[150px] overflow-y-auto"
+                className="mt-4 bg-muted/30 rounded p-3 font-mono text-[10px] leading-relaxed border shadow-inner h-[200px] overflow-y-auto"
               >
                 {fillStatus.log.map((line, i) => (
                   <div key={i} className={`${logLineColor(line)} whitespace-pre-wrap break-words mb-1`}>{line || '\u00a0'}</div>
@@ -237,7 +237,7 @@ export function StockManagement() {
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
             ) : (
-              <div className="overflow-x-auto">
+            <div className="h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="bg-muted/50">

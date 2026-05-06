@@ -8,6 +8,14 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import Sequential, load_model
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+except ImportError:
+    print("WARNING: TensorFlow not found. Training will fail. Run 'pip install tensorflow'")
+    tf = None
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
@@ -63,8 +71,7 @@ def _build_sequences(scaled: np.ndarray, look_back: int):
     return np.array(X), np.array(y)
 
 def _build_lstm(look_back: int):
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+    if tf is None: raise ImportError("TensorFlow not installed.")
     m = Sequential([
         Input(shape=(look_back, 1)),
         LSTM(50, return_sequences=True),
@@ -83,7 +90,6 @@ def train_xgboost_for_ticker(ticker: str) -> dict:
     from sklearn.preprocessing import MinMaxScaler
     from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
     from xgboost import XGBRegressor
-    from tensorflow.keras.models import load_model
 
     _root = os.path.dirname(os.path.abspath(__file__))
     _backend = os.path.join(_root, "backend")
