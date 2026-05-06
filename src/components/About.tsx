@@ -15,16 +15,16 @@ export function About(props: any) {
         <motion.section 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-6 pb-12 border-b border-border"
+          className="space-y-6 pb-12 border-b border-border text-right"
         >
-          <div className="flex items-center gap-3 text-primary mb-4">
+          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
             <Target className="w-8 h-8" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-              مرحباً بكم في EyeStocks AI
+              Welcome to EyeStocks AI
             </h1>
           </div>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            نحن نؤمن بأن الاستثمار الناجح لا ينبغي أن يقتصر على خبراء وول ستريت. EyeStocks AI هي بوابتكم الذكية للأسواق المالية. نحن نجمع بين قوة الذكاء الاصطناعي المتقدم والتكنولوجيا المالية (FinTech) لتمكين المستثمرين الأفراد من اتخاذ قرارات تداول قائمة على البيانات وخالية من العواطف.
+            We believe that successful investing shouldn't be limited to Wall Street experts. EyeStocks AI is your intelligent gateway to the financial markets. We combine the power of advanced Artificial Intelligence and FinTech to empower retail investors to make data-driven, emotion-free trading decisions.
           </p>
         </motion.section>
 
@@ -35,12 +35,12 @@ export function About(props: any) {
           viewport={{ once: true }}
           className="space-y-6 pb-12 border-b border-border text-right"
         >
-          <div className="flex items-center gap-3 text-primary mb-4">
+          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
             <GraduationCap className="w-8 h-8" />
-            <h2 className="text-2xl font-bold text-foreground font-sans">قصتنا</h2>
+            <h2 className="text-2xl font-bold text-foreground">Our Story</h2>
           </div>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            بدأت EyeStocks AI كمشروع تخرج طموح في كلية علوم الحاسب وتقنية المعلومات بجامعة الملك فيصل (KFU). لاحظنا فجوة كبيرة بين نماذج التنبؤ المعقدة بالذكاء الاصطناعي واحتياجات اتخاذ القرار العملية للمستثمرين العاديين. كان حلنا هو بناء محرك ذكي يتعلم من الماضي، ويحلل الحاضر، ويتنبأ بالمستقبل.
+            EyeStocks AI began as an ambitious graduation project at the College of Computer Sciences & Information Technology at King Faisal University (KFU). We noticed a significant gap between complex AI forecasting models and the practical decision-making needs of everyday investors. Our solution was to build an intelligent engine that learns from the past, analyzes the present, and forecasts the future.
           </p>
         </motion.section>
 
@@ -49,41 +49,41 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-12 pb-12 border-b border-border"
+          className="space-y-12 pb-12 border-b border-border text-right"
         >
-          <div className="flex items-center gap-3 text-primary mb-4">
+          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
             <Award className="w-8 h-8" />
-            <h2 className="text-2xl font-bold text-foreground">ماذا نقدم</h2>
+            <h2 className="text-2xl font-bold text-foreground">What We Offer</h2>
           </div>
           
           <div className="space-y-12">
             {[
               {
-                title: "التنبؤ الذكي",
-                desc: "بدعم من بنية ذكاء اصطناعي هجينة (LSTM & XGBoost)، يقدم نظامنا تنبؤات دقيقة للغاية لاتجاهات الأسهم (دقة اتجاهية تزيد عن 83%) مع تصفية ضجيج السوق.",
+                title: "Intelligent Forecasting",
+                desc: "Powered by a Hybrid AI architecture (LSTM & XGBoost), our system delivers highly accurate stock trend predictions (over 83% directional accuracy) while filtering out market noise.",
                 icon: Brain
               },
               {
-                title: "محاكي خالي من المخاطر",
-                desc: "بيئة تداول افتراضية متكاملة تماماً تسمح لك باختبار استراتيجياتك بمحفظة افتراضية في ظل ظروف السوق الحقيقية.",
+                title: "Risk-Free Simulator",
+                desc: "A fully integrated virtual trading environment that allows you to test your strategies with a virtual portfolio under real market conditions.",
                 icon: TrendingUp
               },
               {
-                title: "مقاييس الثقة والمخاطر",
-                desc: "نحن لا نعطيك فقط سعراً مستهدفاً؛ بل نقدم \"درجة ثقة\" واضحة لمساعدتك في إدارة مخاطر التداول الخاصة بك مثل المحترفين.",
+                title: "Confidence & Risk Metrics",
+                desc: "We don't just give you a price target; we provide a clear \"Confidence Score\" to help you manage your trading risk like a pro.",
                 icon: Shield
               },
               {
-                title: "مجتمع تفاعلي",
-                desc: "مركز اجتماعي مخصص لمشاركة الرؤى، ومناقشة تحركات الأسهم، والتعلم من زملائك المستثمرين.",
+                title: "Interactive Community",
+                desc: "A dedicated social hub to share insights, discuss stock movements, and learn from fellow investors.",
                 icon: Users
               }
             ].map((item, idx) => (
-              <div key={idx} className="flex gap-6 items-start">
+              <div key={idx} className="flex gap-6 items-start justify-start flex-row-reverse">
                 <div className="p-3 bg-primary/5 rounded-full text-primary shrink-0">
                   <item.icon className="w-6 h-6" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1">
                   <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
@@ -97,25 +97,25 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-10 pb-12 border-b border-border"
+          className="space-y-10 pb-12 border-b border-border text-right"
         >
-          <div className="flex items-center gap-3 text-primary mb-4">
+          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
             <Users className="w-8 h-8" />
-            <h2 className="text-2xl font-bold text-foreground">فريق العمل</h2>
+            <h2 className="text-2xl font-bold text-foreground">Meet the Team</h2>
           </div>
           <div className="space-y-6">
             <p className="text-lg text-muted-foreground">
-              نحن فريق من طلاب علوم الحاسب الشغوفين بالذكاء الاصطناعي والتكنولوجيا المالية:
+              We are a team of dedicated Computer Science students passionate about AI and Financial Technology:
             </p>
             <ul className="space-y-4 text-lg text-foreground font-medium pr-6">
-              <li>• شريدة الغنام (قائد الفريق)</li>
-              <li>• علي الإبراهيم</li>
-              <li>• قاسم العليوي</li>
-              <li>• عبد الله الخضير</li>
+              <li>• Sharidah AlGhannam (Team Leader)</li>
+              <li>• Ali Alibrahim</li>
+              <li>• Qasem Alolaywi</li>
+              <li>• Abdullah AlKhodir</li>
             </ul>
             <div className="pt-6">
-              <p className="text-lg font-bold text-primary">تحت إشراف: أ.د. آلاء صغير</p>
-              <p className="text-muted-foreground">كلية علوم الحاسب وتقنية المعلومات، جامعة الملك فيصل</p>
+              <p className="text-lg font-bold text-primary">Supervised by: Prof. Alaa Sagheer</p>
+              <p className="text-muted-foreground">College of Computer Sciences & Information Technology, KFU</p>
             </div>
           </div>
         </motion.section>
@@ -127,9 +127,9 @@ export function About(props: any) {
           viewport={{ once: true }}
           className="text-center py-12 space-y-6"
         >
-          <h2 className="text-xl font-bold text-primary">رؤيتنا</h2>
+          <h2 className="text-xl font-bold text-primary">Our Vision</h2>
           <p className="text-2xl md:text-3xl font-light italic text-foreground leading-relaxed">
-            "إضفاء الطابع الديمقراطي على التحليلات المالية المتقدمة، وتحويل بيانات السوق المعقدة إلى رؤى واضحة وقابلة للتنفيذ للمستثمر المعاصر."
+            "To democratize advanced financial analytics, turning complex market data into clear, actionable insights for the modern investor."
           </p>
         </motion.section>
 
