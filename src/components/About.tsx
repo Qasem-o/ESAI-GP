@@ -2,160 +2,137 @@ import React from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { motion } from "framer-motion";
-import { Brain, TrendingUp, Shield, Users, GraduationCap, Target, FileText } from "lucide-react";
+import { Brain, TrendingUp, Shield, Users, GraduationCap, Target, Award } from "lucide-react";
 
 export function About(props: any) {
   return (
-    <div className="min-h-screen flex flex-col bg-background font-serif">
+    <div className="min-h-screen flex flex-col bg-background" dir="rtl">
       <Header {...props} />
       
-      <main className="flex-1 container mx-auto px-8 py-20 max-w-5xl">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="space-y-24 text-left"
+      <main className="flex-1 container mx-auto px-6 py-16 max-w-4xl space-y-20">
+        
+        {/* Welcome Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6 pb-12 border-b border-border"
         >
-          {/* Report Title Section */}
-          <header className="border-b-2 border-primary/20 pb-12 space-y-4">
-            <div className="flex items-center gap-2 text-primary uppercase tracking-widest text-sm font-sans font-bold">
-              <FileText className="w-4 h-4" />
-              <span>Project Documentation</span>
-            </div>
-            <h1 className="text-5xl font-bold text-foreground tracking-tight">
-              EyeStocks AI: Executive Overview
+          <div className="flex items-center gap-3 text-primary mb-4">
+            <Target className="w-8 h-8" />
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              مرحباً بكم في EyeStocks AI
             </h1>
-            <p className="text-xl text-muted-foreground font-sans italic">
-              Empowering retail investors through advanced artificial intelligence and data-driven insights.
+          </div>
+          <p className="text-xl text-muted-foreground leading-relaxed">
+            نحن نؤمن بأن الاستثمار الناجح لا ينبغي أن يقتصر على خبراء وول ستريت. EyeStocks AI هي بوابتكم الذكية للأسواق المالية. نحن نجمع بين قوة الذكاء الاصطناعي المتقدم والتكنولوجيا المالية (FinTech) لتمكين المستثمرين الأفراد من اتخاذ قرارات تداول قائمة على البيانات وخالية من العواطف.
+          </p>
+        </motion.section>
+
+        {/* Our Story Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-6 pb-12 border-b border-border text-right"
+        >
+          <div className="flex items-center gap-3 text-primary mb-4">
+            <GraduationCap className="w-8 h-8" />
+            <h2 className="text-2xl font-bold text-foreground font-sans">قصتنا</h2>
+          </div>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            بدأت EyeStocks AI كمشروع تخرج طموح في كلية علوم الحاسب وتقنية المعلومات بجامعة الملك فيصل (KFU). لاحظنا فجوة كبيرة بين نماذج التنبؤ المعقدة بالذكاء الاصطناعي واحتياجات اتخاذ القرار العملية للمستثمرين العاديين. كان حلنا هو بناء محرك ذكي يتعلم من الماضي، ويحلل الحاضر، ويتنبأ بالمستقبل.
+          </p>
+        </motion.section>
+
+        {/* What We Offer Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-12 pb-12 border-b border-border"
+        >
+          <div className="flex items-center gap-3 text-primary mb-4">
+            <Award className="w-8 h-8" />
+            <h2 className="text-2xl font-bold text-foreground">ماذا نقدم</h2>
+          </div>
+          
+          <div className="space-y-12">
+            {[
+              {
+                title: "التنبؤ الذكي",
+                desc: "بدعم من بنية ذكاء اصطناعي هجينة (LSTM & XGBoost)، يقدم نظامنا تنبؤات دقيقة للغاية لاتجاهات الأسهم (دقة اتجاهية تزيد عن 83%) مع تصفية ضجيج السوق.",
+                icon: Brain
+              },
+              {
+                title: "محاكي خالي من المخاطر",
+                desc: "بيئة تداول افتراضية متكاملة تماماً تسمح لك باختبار استراتيجياتك بمحفظة افتراضية في ظل ظروف السوق الحقيقية.",
+                icon: TrendingUp
+              },
+              {
+                title: "مقاييس الثقة والمخاطر",
+                desc: "نحن لا نعطيك فقط سعراً مستهدفاً؛ بل نقدم \"درجة ثقة\" واضحة لمساعدتك في إدارة مخاطر التداول الخاصة بك مثل المحترفين.",
+                icon: Shield
+              },
+              {
+                title: "مجتمع تفاعلي",
+                desc: "مركز اجتماعي مخصص لمشاركة الرؤى، ومناقشة تحركات الأسهم، والتعلم من زملائك المستثمرين.",
+                icon: Users
+              }
+            ].map((item, idx) => (
+              <div key={idx} className="flex gap-6 items-start">
+                <div className="p-3 bg-primary/5 rounded-full text-primary shrink-0">
+                  <item.icon className="w-6 h-6" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Team Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-10 pb-12 border-b border-border"
+        >
+          <div className="flex items-center gap-3 text-primary mb-4">
+            <Users className="w-8 h-8" />
+            <h2 className="text-2xl font-bold text-foreground">فريق العمل</h2>
+          </div>
+          <div className="space-y-6">
+            <p className="text-lg text-muted-foreground">
+              نحن فريق من طلاب علوم الحاسب الشغوفين بالذكاء الاصطناعي والتكنولوجيا المالية:
             </p>
-          </header>
-
-          {/* Section: Welcome */}
-          <section className="space-y-8">
-            <h2 className="text-3xl font-bold text-foreground border-l-4 border-primary pl-6">
-              I. Welcome to EyeStocks AI
-            </h2>
-            <div className="pl-10 space-y-6">
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                We believe that successful investing shouldn't be limited to Wall Street experts. EyeStocks AI is your intelligent gateway to the financial markets. 
-              </p>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                We combine the power of advanced Artificial Intelligence and FinTech to empower retail investors to make data-driven, emotion-free trading decisions. Our platform serves as a bridge between complex quantitative analysis and the modern individual investor.
-              </p>
+            <ul className="space-y-4 text-lg text-foreground font-medium pr-6">
+              <li>• شريدة الغنام (قائد الفريق)</li>
+              <li>• علي الإبراهيم</li>
+              <li>• قاسم العليوي</li>
+              <li>• عبد الله الخضير</li>
+            </ul>
+            <div className="pt-6">
+              <p className="text-lg font-bold text-primary">تحت إشراف: أ.د. آلاء صغير</p>
+              <p className="text-muted-foreground">كلية علوم الحاسب وتقنية المعلومات، جامعة الملك فيصل</p>
             </div>
-          </section>
+          </div>
+        </motion.section>
 
-          {/* Section: Our Story */}
-          <section className="space-y-8">
-            <h2 className="text-3xl font-bold text-foreground border-l-4 border-primary pl-6">
-              II. Our Story
-            </h2>
-            <div className="pl-10 space-y-6">
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                EyeStocks AI began as an ambitious graduation project at the College of Computer Sciences & Information Technology at King Faisal University (KFU). The initiative was born from a recognized gap between complex academic AI forecasting models and the practical decision-making needs of everyday investors.
-              </p>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Our solution was to build an intelligent engine that learns from the past, analyzes the present, and forecasts the future. What started as a scholarly pursuit has evolved into a comprehensive suite of tools designed for real-world financial navigation.
-              </p>
-            </div>
-          </section>
+        {/* Vision Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center py-12 space-y-6"
+        >
+          <h2 className="text-xl font-bold text-primary">رؤيتنا</h2>
+          <p className="text-2xl md:text-3xl font-light italic text-foreground leading-relaxed">
+            "إضفاء الطابع الديمقراطي على التحليلات المالية المتقدمة، وتحويل بيانات السوق المعقدة إلى رؤى واضحة وقابلة للتنفيذ للمستثمر المعاصر."
+          </p>
+        </motion.section>
 
-          {/* Section: Capabilities */}
-          <section className="space-y-8">
-            <h2 className="text-3xl font-bold text-foreground border-l-4 border-primary pl-6">
-              III. Core Capabilities
-            </h2>
-            <div className="pl-10 grid gap-12 pt-4 font-sans">
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <Brain className="w-5 h-5 text-primary" />
-                  3.1 Intelligent Forecasting
-                </h3>
-                <p className="text-muted-foreground leading-relaxed pl-8">
-                  Powered by a Hybrid AI architecture (LSTM & XGBoost), our system delivers highly accurate stock trend predictions (over 83% directional accuracy) while filtering out market noise.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  3.2 Risk-Free Simulator
-                </h3>
-                <p className="text-muted-foreground leading-relaxed pl-8">
-                  A fully integrated virtual trading environment that allows you to test your strategies with a virtual portfolio under real market conditions.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-primary" />
-                  3.3 Confidence & Risk Metrics
-                </h3>
-                <p className="text-muted-foreground leading-relaxed pl-8">
-                  We don't just give you a price target; we provide a clear "Confidence Score" to help you manage your trading risk like a pro.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <Users className="w-5 h-5 text-primary" />
-                  3.4 Interactive Community
-                </h3>
-                <p className="text-muted-foreground leading-relaxed pl-8">
-                  A dedicated social hub to share insights, discuss stock movements, and learn from fellow investors.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section: Personnel */}
-          <section className="space-y-8">
-            <h2 className="text-3xl font-bold text-foreground border-l-4 border-primary pl-6">
-              IV. Project Personnel
-            </h2>
-            <div className="pl-10 space-y-12">
-              <div className="space-y-6">
-                <p className="text-lg text-muted-foreground font-sans">
-                  The project is spearheaded by a team of dedicated Computer Science students at KFU:
-                </p>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 text-lg font-medium font-sans">
-                  <li className="flex items-center gap-3 border-b pb-2">
-                    <span className="text-primary font-bold">01.</span> Sharidah AlGhannam (Team Leader)
-                  </li>
-                  <li className="flex items-center gap-3 border-b pb-2">
-                    <span className="text-primary font-bold">02.</span> Ali Alibrahim
-                  </li>
-                  <li className="flex items-center gap-3 border-b pb-2">
-                    <span className="text-primary font-bold">03.</span> Qasem Alolaywi
-                  </li>
-                  <li className="flex items-center gap-3 border-b pb-2">
-                    <span className="text-primary font-bold">04.</span> Abdullah AlKhodir
-                  </li>
-                </ul>
-              </div>
-
-              <div className="pt-8 border-t border-dashed border-primary/30">
-                <p className="text-sm uppercase tracking-widest text-muted-foreground mb-2 font-sans font-bold">Principal Supervisor</p>
-                <h3 className="text-2xl font-bold text-foreground">Prof. Alaa Sagheer</h3>
-                <p className="text-muted-foreground font-sans">College of Computer Sciences & Information Technology, KFU</p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section: Strategic Vision */}
-          <section className="space-y-8 pt-12">
-            <h2 className="text-3xl font-bold text-foreground border-l-4 border-primary pl-6 uppercase tracking-tight">
-              V. Strategic Vision
-            </h2>
-            <div className="pl-10 italic text-2xl text-foreground/80 leading-relaxed max-w-3xl">
-              "To democratize advanced financial analytics, turning complex market data into clear, actionable insights for the modern investor."
-            </div>
-          </section>
-
-          <footer className="pt-20 text-sm text-muted-foreground font-sans border-t">
-            <p>© 2026 EyeStocks AI Research & Development. All rights reserved.</p>
-          </footer>
-        </motion.div>
       </main>
 
       <Footer />
