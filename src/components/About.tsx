@@ -15,7 +15,7 @@ export function About(props: any) {
         <motion.section 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-6 pb-12 border-b border-border text-left"
+          className="space-y-6 pb-12 border-b border-border text-left pt-4"
         >
           <div className="flex items-center gap-3 text-primary mb-4">
             <Target className="w-8 h-8" />
@@ -33,7 +33,7 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-6 pb-12 border-b border-border text-left"
+          className="space-y-6 pb-12 border-b border-border text-left pt-8"
         >
           <div className="flex items-center gap-3 text-primary mb-4">
             <GraduationCap className="w-8 h-8" />
@@ -49,7 +49,7 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-12 pb-12 border-b border-border text-left"
+          className="space-y-12 pb-12 border-b border-border text-left pt-8"
         >
           <div className="flex items-center gap-3 text-primary mb-4">
             <Award className="w-8 h-8" />
@@ -97,7 +97,7 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-10 pb-12 border-b border-border text-left"
+          className="space-y-10 pb-12 border-b border-border text-left pt-8"
         >
           <div className="flex items-center gap-3 text-primary mb-4">
             <Users className="w-8 h-8" />
@@ -118,19 +118,6 @@ export function About(props: any) {
               <p className="text-muted-foreground">College of Computer Sciences & Information Technology, KFU</p>
             </div>
           </div>
-        </motion.section>
-
-        {/* Vision Section */}
-        <motion.section 
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center py-12 space-y-6"
-        >
-          <h2 className="text-xl font-bold text-primary">Our Vision</h2>
-          <p className="text-2xl md:text-3xl font-light italic text-foreground leading-relaxed">
-            "To democratize advanced financial analytics, turning complex market data into clear, actionable insights for the modern investor."
-          </p>
         </motion.section>
 
       </main>
