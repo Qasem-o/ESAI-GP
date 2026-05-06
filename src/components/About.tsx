@@ -6,7 +6,7 @@ import { Brain, TrendingUp, Shield, Users, GraduationCap, Target, Award } from "
 
 export function About(props: any) {
   return (
-    <div className="min-h-screen flex flex-col bg-background" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-background" dir="ltr">
       <Header {...props} />
       
       <main className="flex-1 container mx-auto px-6 py-16 max-w-4xl space-y-20">
@@ -15,9 +15,9 @@ export function About(props: any) {
         <motion.section 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-6 pb-12 border-b border-border text-right"
+          className="space-y-6 pb-12 border-b border-border text-left"
         >
-          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
+          <div className="flex items-center gap-3 text-primary mb-4">
             <Target className="w-8 h-8" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
               Welcome to EyeStocks AI
@@ -33,9 +33,9 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-6 pb-12 border-b border-border text-right"
+          className="space-y-6 pb-12 border-b border-border text-left"
         >
-          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
+          <div className="flex items-center gap-3 text-primary mb-4">
             <GraduationCap className="w-8 h-8" />
             <h2 className="text-2xl font-bold text-foreground">Our Story</h2>
           </div>
@@ -49,9 +49,9 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-12 pb-12 border-b border-border text-right"
+          className="space-y-12 pb-12 border-b border-border text-left"
         >
-          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
+          <div className="flex items-center gap-3 text-primary mb-4">
             <Award className="w-8 h-8" />
             <h2 className="text-2xl font-bold text-foreground">What We Offer</h2>
           </div>
@@ -79,11 +79,11 @@ export function About(props: any) {
                 icon: Users
               }
             ].map((item, idx) => (
-              <div key={idx} className="flex gap-6 items-start justify-start flex-row-reverse">
+              <div key={idx} className="flex gap-6 items-start">
                 <div className="p-3 bg-primary/5 rounded-full text-primary shrink-0">
                   <item.icon className="w-6 h-6" />
                 </div>
-                <div className="space-y-2 flex-1">
+                <div className="space-y-2">
                   <h3 className="text-xl font-bold text-foreground">{item.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
@@ -97,9 +97,9 @@ export function About(props: any) {
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="space-y-10 pb-12 border-b border-border text-right"
+          className="space-y-10 pb-12 border-b border-border text-left"
         >
-          <div className="flex items-center gap-3 text-primary mb-4 justify-start">
+          <div className="flex items-center gap-3 text-primary mb-4">
             <Users className="w-8 h-8" />
             <h2 className="text-2xl font-bold text-foreground">Meet the Team</h2>
           </div>
@@ -107,7 +107,7 @@ export function About(props: any) {
             <p className="text-lg text-muted-foreground">
               We are a team of dedicated Computer Science students passionate about AI and Financial Technology:
             </p>
-            <ul className="space-y-4 text-lg text-foreground font-medium pr-6">
+            <ul className="space-y-4 text-lg text-foreground font-medium pl-6">
               <li>• Sharidah AlGhannam (Team Leader)</li>
               <li>• Ali Alibrahim</li>
               <li>• Qasem Alolaywi</li>
