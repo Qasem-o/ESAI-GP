@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
@@ -8,13 +9,18 @@ export function About(props: any) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header {...props} />
-      
+
       <main className="flex-1 container mx-auto px-6 py-12 max-w-4xl">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-12"
         >
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold tracking-tight">About EyeStocks AI</h1>
+            <p className="text-xl text-muted-foreground">Your intelligent gateway to the financial markets.</p>
+          </div>
+
           <section className="prose prose-slate dark:prose-invert max-w-none text-center">
             <h2 className="text-2xl font-semibold">Welcome to EyeStocks AI</h2>
             <p className="text-lg">
