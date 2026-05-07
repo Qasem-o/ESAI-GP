@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { EmailVerification } from "./EmailVerification";
 import { SocialLogin } from "./SocialLogin";
+import { authAPI } from "../services/authApi";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 
@@ -29,6 +30,11 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
   const [password, setPassword] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [resetStep, setResetStep] = useState<1 | 2>(1);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [error, setError] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
 
@@ -56,14 +62,45 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
     onGoToDashboard();
   };
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock forgot password - in real app, this would send reset email
-    setResetSent(true);
-    setTimeout(() => {
-      setResetSent(false);
-      setResetEmail("");
-    }, 3000);
+    setResetError("");
+    setIsResetLoading(true);
+
+    try {
+      await authAPI.forgotPassword(resetEmail);
+      setResetStep(2);
+    } catch (err: any) {
+      setResetError(err.message || "Failed to send reset link");
+    } finally {
+      setIsResetLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError("");
+    setIsResetLoading(true);
+
+    try {
+      await authAPI.resetPassword({
+        email: resetEmail,
+        code: resetCode,
+        new_password: newPassword,
+      });
+      setResetSent(true);
+      setTimeout(() => {
+        setResetSent(false);
+        setResetStep(1);
+        setResetEmail("");
+        setResetCode("");
+        setNewPassword("");
+      }, 4000);
+    } catch (err: any) {
+      setResetError(err.message || "Failed to reset password");
+    } finally {
+      setIsResetLoading(false);
+    }
   };
 
   if (needsVerification) {
@@ -166,35 +203,95 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                         <DialogHeader>
                           <DialogTitle>Reset Password</DialogTitle>
                           <DialogDescription>
-                            Enter your email address and we'll send you a link to reset your password.
+                            {resetStep === 1 
+                              ? "Enter your email address and we'll send you a 6-digit code to reset your password."
+                              : "Enter the 6-digit code sent to your email and your new password."}
                           </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={handleForgotPassword} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="resetEmail">Email</Label>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+                        {resetError && (
+                          <Alert variant="destructive" className="py-2">
+                            <AlertDescription>{resetError}</AlertDescription>
+                          </Alert>
+                        )}
+
+                        {resetSent ? (
+                          <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+                            ✓ Password has been reset successfully! You can now log in.
+                          </div>
+                        ) : resetStep === 1 ? (
+                          <form onSubmit={handleForgotPassword} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="resetEmail">Email</Label>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  id="resetEmail"
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  value={resetEmail}
+                                  onChange={(e) => setResetEmail(e.target.value)}
+                                  className="pl-10 h-12"
+                                  required
+                                  disabled={isResetLoading}
+                                />
+                              </div>
+                            </div>
+                            <Button type="submit" className="w-full h-12" disabled={isResetLoading}>
+                              {isResetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                              Send Reset Code
+                            </Button>
+                          </form>
+                        ) : (
+                          <form onSubmit={handleResetPassword} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="resetCode">Verification Code</Label>
                               <Input
-                                id="resetEmail"
-                                type="email"
-                                placeholder="Enter your email"
-                                value={resetEmail}
-                                onChange={(e) => setResetEmail(e.target.value)}
-                                className="pl-10 h-12"
+                                id="resetCode"
+                                type="text"
+                                placeholder="123456"
+                                value={resetCode}
+                                onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="text-center tracking-widest text-lg h-12"
                                 required
+                                disabled={isResetLoading}
                               />
                             </div>
-                          </div>
-                          {resetSent ? (
-                            <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                              ✓ Password reset link sent to your email!
+                            <div className="space-y-2">
+                              <Label htmlFor="newPassword">New Password</Label>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  id="newPassword"
+                                  type="password"
+                                  placeholder="Enter new password"
+                                  value={newPassword}
+                                  onChange={(e) => setNewPassword(e.target.value)}
+                                  className="pl-10 h-12"
+                                  required
+                                  disabled={isResetLoading}
+                                  minLength={8}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
                             </div>
-                          ) : (
-                            <Button type="submit" className="w-full h-12">
-                              Send Reset Link
-                            </Button>
-                          )}
-                        </form>
+                            <div className="flex gap-2">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="w-full h-12" 
+                                onClick={() => setResetStep(1)}
+                                disabled={isResetLoading}
+                              >
+                                Back
+                              </Button>
+                              <Button type="submit" className="w-full h-12" disabled={isResetLoading}>
+                                {isResetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Reset Password
+                              </Button>
+                            </div>
+                          </form>
+                        )}
                       </DialogContent>
                     </Dialog>
                   </div>

@@ -106,3 +106,13 @@ class ErrorResponse(BaseModel):
     """Error response schema."""
     detail: str
     error_code: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    """Password reset request schema."""
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    """Password reset confirm schema."""
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    new_password: str = Field(..., min_length=8)

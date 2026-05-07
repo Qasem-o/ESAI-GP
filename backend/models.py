@@ -80,3 +80,22 @@ class AdminNotification(Base):
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+    
+    reset_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    reset_code = Column(String(6), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)
+    
+    # Relationships
+    user = relationship("User", backref="password_resets")
+    
+    __table_args__ = (
+        Index('idx_pwd_reset_email_code_used', 'email', 'reset_code', 'is_used'),
+    )
+

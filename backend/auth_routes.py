@@ -12,11 +12,11 @@ import os
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import User, OAuthProvider, EmailVerification
+from models import User, OAuthProvider, EmailVerification, PasswordReset
 from schemas import (
     UserSignup, UserLogin, EmailVerificationRequest, ResendVerificationRequest,
     GoogleAuthRequest, TelegramAuthRequest, TokenResponse, UserResponse, MessageResponse,
-    UpdateProfileRequest, RefreshTokenRequest
+    UpdateProfileRequest, RefreshTokenRequest, PasswordResetRequest, PasswordResetConfirm
 )
 from auth_utils import (
     hash_password, verify_password, validate_password_strength,
@@ -24,7 +24,7 @@ from auth_utils import (
     generate_verification_code, is_account_locked, calculate_lockout_time,
     verify_google_token, verify_telegram_auth
 )
-from email_service import send_verification_email, send_welcome_email
+from email_service import send_verification_email, send_welcome_email, send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -231,6 +231,105 @@ async def resend_verification(
         success=True
     )
 
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request_data: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a password reset code.
+    """
+    # Find user
+    user = db.query(User).filter(User.email == request_data.email).first()
+    if not user:
+        # Return success anyway to prevent email enumeration
+        return MessageResponse(
+            message=f"If an account exists with {request_data.email}, a reset code has been sent.",
+            success=True
+        )
+    
+    # Invalidate old reset codes
+    db.query(PasswordReset).filter(
+        PasswordReset.email == request_data.email,
+        PasswordReset.is_used == False
+    ).update({"is_used": True})
+    
+    # Generate new code
+    code = generate_verification_code()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Store new reset code
+    reset_entry = PasswordReset(
+        user_id=user.user_id,
+        email=user.email,
+        reset_code=code,
+        expires_at=expires_at
+    )
+    
+    db.add(reset_entry)
+    db.commit()
+    
+    # Send email
+    await send_password_reset_email(user.email, code, user.username)
+    
+    return MessageResponse(
+        message=f"If an account exists with {request_data.email}, a reset code has been sent.",
+        success=True
+    )
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    reset_data: PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """
+    Confirm password reset with code and new password.
+    """
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(reset_data.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+        
+    # Find user
+    user = db.query(User).filter(User.email == reset_data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find valid reset code
+    reset_entry = db.query(PasswordReset).filter(
+        PasswordReset.email == reset_data.email,
+        PasswordReset.reset_code == reset_data.code,
+        PasswordReset.is_used == False
+    ).order_by(PasswordReset.created_at.desc()).first()
+    
+    if not reset_entry:
+        raise HTTPException(status_code=400, detail="Invalid reset code")
+    
+    # Check if code expired
+    if reset_entry.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Reset code expired. Please request a new one.")
+    
+    # Check attempts
+    if reset_entry.attempts >= 3:
+        raise HTTPException(status_code=400, detail="Too many failed attempts. Please request a new code.")
+    
+    # Update password
+    user.password_hash = hash_password(reset_data.new_password)
+    
+    # Reset lockouts if any
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    
+    # Mark code as used
+    reset_entry.is_used = True
+    
+    db.commit()
+    
+    return MessageResponse(
+        message="Password has been reset successfully. You can now log in with your new password.",
+        success=True
+    )
 
 @router.post("/login", response_model=TokenResponse)
 async def login(login_data: UserLogin, db: Session = Depends(get_db)):

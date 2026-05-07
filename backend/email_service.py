@@ -137,3 +137,54 @@ async def send_welcome_email(email: str, username: str) -> bool:
     </html>
     """
     return await send_email(subject, email, html_content)
+
+async def send_password_reset_email(email: str, code: str, username: str) -> bool:
+    """Send password reset code via SMTP."""
+    subject = "Password Reset - EyeStocks AI"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            .email-body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333333; background-color: #f8fafc; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; }}
+            .header {{ background-color: #ffffff; color: #1e293b; padding: 40px 20px; text-align: center; border-bottom: 1px solid #f1f5f9; }}
+            .content {{ padding: 40px 30px; }}
+            .code-box {{ background-color: #f8fafc; border: 2px dashed #6366f1; padding: 30px; text-align: center; margin: 30px 0; border-radius: 12px; }}
+            .code {{ font-size: 36px; font-weight: bold; letter-spacing: 12px; color: #6366f1; margin: 0; }}
+            .footer {{ text-align: center; padding: 30px; color: #94a3b8; font-size: 13px; background-color: #fcfdfe; }}
+            .logo {{ width: 80px; height: auto; margin-bottom: 20px; }}
+        </style>
+    </head>
+    <body class="email-body">
+        <div class="container">
+            <div class="header">
+                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo">
+                <h1 style="margin:0; font-size: 24px; color: #1e293b;">Password Reset</h1>
+            </div>
+            <div class="content">
+                <h2 style="margin-top:0; color: #1e293b;">Hello, {username}!</h2>
+                <p>We received a request to reset your password. Please use the following code to reset your password:</p>
+                
+                <div class="code-box">
+                    <p class="code">{code}</p>
+                </div>
+                
+                <p style="color: #64748b; font-size: 14px; text-align: center;">This code will expire in 10 minutes. If you did not request a password reset, you can safely ignore this email.</p>
+                
+                <div style="margin-top: 30px;">
+                    <p style="margin-bottom:0;">Thanks,<br><strong>EyeStocks AI Team</strong></p>
+                </div>
+            </div>
+            <div class="footer">
+                <p>© 2025 EyeStocks AI. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    print(f"\n[EMAIL_LOG] Password reset code for {email}: {code}\n")
+    return await send_email(subject, email, html_content)

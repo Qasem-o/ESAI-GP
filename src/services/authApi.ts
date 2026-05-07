@@ -236,6 +236,36 @@ class AuthAPI {
             return null;
         }
     }
+
+    async forgotPassword(email: string): Promise<MessageResponse> {
+        const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ email }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to request password reset');
+        }
+
+        return response.json();
+    }
+
+    async resetPassword(data: any): Promise<MessageResponse> {
+        const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to reset password');
+        }
+
+        return response.json();
+    }
 }
 
 export const authAPI = new AuthAPI();
