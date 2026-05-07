@@ -246,18 +246,18 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
       setLoading(true);
       try {
         const [priceData, techData, predData, sentData, newsData] = await Promise.all([
-          fetchStockPrice(currentSymbol),
-          fetchStockTechnicals(currentSymbol),
-          fetchStockPrediction(currentSymbol),
-          fetchStockSentiment(currentSymbol),
-          fetchStockNews(currentSymbol, displayStockData.name)
+          fetchStockPrice(currentSymbol).catch(e => { console.error("Price error:", e); return null; }),
+          fetchStockTechnicals(currentSymbol).catch(e => { console.error("Tech error:", e); return []; }),
+          fetchStockPrediction(currentSymbol).catch(e => { console.error("Pred error:", e); return null; }),
+          fetchStockSentiment(currentSymbol).catch(e => { console.error("Sent error:", e); return null; }),
+          fetchStockNews(currentSymbol, displayStockData.name).catch(e => { console.error("News error:", e); return []; })
         ]);
 
-        setStockDetails(priceData);
-        setTechnicals(techData);
+        if (priceData) setStockDetails(priceData);
+        if (techData) setTechnicals(techData);
         setPrediction(predData);
-        setSentiment(sentData);
-        setNews(newsData);
+        if (sentData) setSentiment(sentData);
+        if (newsData) setNews(newsData);
         
         // Fetch posts for this stock
         try {
@@ -783,7 +783,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                           </>
                         ) : (
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-bold text-lg">Loading AI Insights...</h3>
+                            <h3 className="font-bold text-lg text-muted-foreground">AI Insights Unavailable</h3>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
@@ -1312,7 +1312,7 @@ export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoT
                   </>
                 ) : (
                   <div className="p-4 text-center">
-                    <p>Loading Prediction...</p>
+                    <p className="text-muted-foreground">Prediction unavailable for this stock.</p>
                   </div>
                 )}
                 <p className="text-xs text-center text-muted-foreground pt-2 border-t">

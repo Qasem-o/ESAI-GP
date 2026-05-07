@@ -518,35 +518,24 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
     # No model is re-run here.
     try:
         from prediction_models import PricePrediction
-        from datetime import date, timedelta
-        today = date.today()
+        from sqlalchemy import desc
+
+        # Get the latest prediction available, regardless of date, to always show something
         ai_pred = (
             db.query(PricePrediction)
             .filter(
                 PricePrediction.stock_id == stock.stock_id,
                 PricePrediction.is_test_set == False,
-                PricePrediction.prediction_date >= today,
-                PricePrediction.prediction_date <= today + timedelta(days=3),
             )
-            .order_by(PricePrediction.prediction_date)
+            .order_by(desc(PricePrediction.prediction_date))
             .first()
         )
         
         if ai_pred:
-            # Check for staleness: 
-            # Get latest price history date
-            from preparedata import PriceHistory
-            latest_hist = db.query(PriceHistory.date).filter(PriceHistory.stock_id == stock.stock_id).order_by(desc(PriceHistory.date)).first()
-            
-            # If we have history, and the model was trained BEFORE the latest history date, it's stale
-            # It means we downloaded new price data but haven't retrained the model yet.
-            if latest_hist and ai_pred.trained_at and ai_pred.trained_at.date() < latest_hist[0]:
-                raise HTTPException(status_code=404, detail="AI model needs retraining with latest data")
-
             predicted_price = float(ai_pred.predicted_price)
             change_percent  = float(ai_pred.change_percent or 0)
             direction       = ai_pred.direction or ("bullish" if change_percent > 0 else "bearish")
-            confidence      = float(ai_pred.confidence or 75.0)
+            confidence      = float(ai_pred.confidence) if ai_pred.confidence is not None else 75.0
             recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
             target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
             stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
