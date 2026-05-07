@@ -275,17 +275,17 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                               </div>
                               <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-3 pt-2">
                               <Button 
                                 type="button" 
                                 variant="outline" 
-                                className="w-full h-12" 
+                                className="flex-1 h-12" 
                                 onClick={() => setResetStep(1)}
                                 disabled={isResetLoading}
                               >
                                 Back
                               </Button>
-                              <Button type="submit" className="w-full h-12" disabled={isResetLoading}>
+                              <Button type="submit" className="flex-1 h-12" disabled={isResetLoading}>
                                 {isResetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Reset Password
                               </Button>
