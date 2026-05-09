@@ -1,36 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SocialLoginProps {
     mode: 'signup' | 'login';
 }
 
-declare global {
-    interface Window {
-        Telegram?: {
-            Login: {
-                auth: (options: any, callback: (user: any) => void) => void;
-            };
-        };
-    }
-}
-
 export function SocialLogin({ mode }: SocialLoginProps) {
-    const { loginWithGoogle, loginWithTelegram } = useAuth();
+    const { loginWithGoogle } = useAuth();
     const navigate = useNavigate();
+    const { language } = useLanguage();
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-    // Custom Google Login - uses access token flow (not iframe, so we control text)
     const handleGoogleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             setIsGoogleLoading(true);
             try {
                 await loginWithGoogle(tokenResponse.access_token);
-                // Trigger disclaimer for social login as well
                 localStorage.setItem('show_disclaimer', 'true');
                 navigate('/');
             } catch (error) {
@@ -41,54 +31,12 @@ export function SocialLogin({ mode }: SocialLoginProps) {
             }
         },
         onError: () => {
-            console.log('Google Login Failed');
             setIsGoogleLoading(false);
         },
     });
 
-    // Check if Telegram bot is configured
-    const telegramBotName = import.meta.env.VITE_TELEGRAM_BOT_NAME || '';
-    const isTelegramConfigured = telegramBotName && telegramBotName !== 'YOUR_TELEGRAM_BOT_NAME';
-
-    useEffect(() => {
-        if (!isTelegramConfigured) return;
-
-        // Load Telegram widget script dynamically
-        const script = document.createElement('script');
-        script.src = 'https://telegram.org/js/telegram-widget.js?22';
-        script.setAttribute('data-telegram-login', telegramBotName);
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-radius', '8');
-        script.setAttribute('data-request-access', 'write');
-        script.setAttribute('data-userpic', 'false');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        script.async = true;
-
-        (window as any).onTelegramAuth = async (user: any) => {
-            try {
-                await loginWithTelegram(user);
-                // Trigger disclaimer for social login as well
-                localStorage.setItem('show_disclaimer', 'true');
-                navigate('/');
-            } catch (error) {
-                console.error('Telegram login failed:', error);
-            }
-        };
-
-        const container = document.getElementById('telegram-login-container');
-        if (container) {
-            container.innerHTML = '';
-            container.appendChild(script);
-        }
-
-        return () => {
-            delete (window as any).onTelegramAuth;
-        };
-    }, [loginWithTelegram, navigate, isTelegramConfigured, telegramBotName]);
-
     return (
         <div className="flex flex-col gap-4 w-full">
-            {/* Google Login Button - Always English */}
             <Button
                 type="button"
                 variant="outline"
@@ -120,31 +68,13 @@ export function SocialLogin({ mode }: SocialLoginProps) {
                 )}
                 <span className="font-medium text-sm">
                     {isGoogleLoading
-                        ? 'Signing in...'
+                        ? (language === 'ar' ? 'جاري الدخول...' : 'Signing in...')
                         : mode === 'signup'
-                            ? 'Sign up with Google'
-                            : 'Sign in with Google'
+                            ? (language === 'ar' ? 'إنشاء حساب عبر Google' : 'Sign up with Google')
+                            : (language === 'ar' ? 'المتابعة باستخدام Google' : 'Sign in with Google')
                     }
                 </span>
             </Button>
-
-            {/* Only show Telegram section if configured */}
-            {isTelegramConfigured && (
-                <>
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-center w-full" id="telegram-login-container">
-                        {/* Telegram widget will be injected here */}
-                    </div>
-                </>
-            )}
         </div>
     );
 }

@@ -13,7 +13,7 @@ import string
 # JWT Configuration — load from config/env, with a safe fallback
 import os as _os
 _env_secret = _os.getenv("SECRET_KEY", "")
-SECRET_KEY = _env_secret if _env_secret else "9a589a8c2f1d44111222333444555666777888999aaabbbcccdddeeefff000"
+SECRET_KEY = _env_secret if _env_secret else "your-default-secret-key-for-development-only"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7

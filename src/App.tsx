@@ -9,6 +9,7 @@ import { Signup } from "./components/Signup";
 import { StockDetail } from "./components/StockDetail";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { DisclaimerModal } from "./components/DisclaimerModal";
@@ -22,6 +23,7 @@ import { About } from "./components/About";
 import { Terms } from "./components/Terms";
 import { Privacy } from "./components/Privacy";
 import { Help } from "./components/Help";
+import { Toaster } from "./components/ui/sonner";
 
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
@@ -59,15 +61,16 @@ export default function App() {
     onGoToStockDetails: (symbol: string) => navigate(`/stock/${symbol}`),
     onGoToStocks: () => navigate("/explore"),
     onGoToCommunity: () => navigate("/"),
-    onGoToNews: () => { },
-    onGoToLearn: () => { },
+
     onGoToDashboard: () => navigate("/"),
   };
 
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <AuthProvider>
         <DisclaimerModal />
+        <Toaster />
         <Routes>
           <Route path="/" element={<Community {...navigationProps} />} />
           <Route path="/explore" element={<Stocks {...navigationProps} />} />
@@ -89,8 +92,7 @@ export default function App() {
                   onGoToStocks={navigationProps.onGoToExplore}
                   onGoToPortfolio={navigationProps.onGoToPortfolio}
                   onGoToCommunity={navigationProps.onGoToCommunity}
-                  onGoToNews={navigationProps.onGoToNews}
-                  onGoToLearn={navigationProps.onGoToLearn}
+
                   onGoToSimulator={navigationProps.onGoToSimulator}
                   onGoToProfile={navigationProps.onGoToProfile}
                   onGoToSignup={navigationProps.onGoToSignup}
@@ -110,8 +112,7 @@ export default function App() {
                   onGoToStocks={navigationProps.onGoToExplore}
                   onGoToPortfolio={navigationProps.onGoToPortfolio}
                   onGoToCommunity={navigationProps.onGoToCommunity}
-                  onGoToNews={navigationProps.onGoToNews}
-                  onGoToLearn={navigationProps.onGoToLearn}
+
                   onGoToSimulator={navigationProps.onGoToSimulator}
                   onGoToProfile={navigationProps.onGoToProfile}
                   onGoToSignup={navigationProps.onGoToSignup}
@@ -163,5 +164,6 @@ export default function App() {
         </Routes>
       </AuthProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }

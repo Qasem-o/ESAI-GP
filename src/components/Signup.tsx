@@ -6,9 +6,10 @@ import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription } from "./ui/alert";
-import { TrendingUp, Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
+import { TrendingUp, Eye, EyeOff, Mail, Lock, User, Loader2, AtSign } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { EmailVerification } from "./EmailVerification";
 import { SocialLogin } from "./SocialLogin";
 import logoImg from "../assets/logo.png";
@@ -23,6 +24,7 @@ interface SignupProps {
 export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps) {
   const { signup, isLoading } = useAuth();
   const { theme } = useTheme();
+  const { t, language } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [verificationStep, setVerificationStep] = useState(false);
@@ -47,18 +49,17 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
     setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords don't match!");
+      setError(language === 'ar' ? 'كلمتا المرور غير متطابقتين!' : "Passwords don't match!");
       return;
     }
 
     if (!agreedToTerms) {
-      setError("Please agree to the terms and conditions");
+      setError(language === 'ar' ? 'يجب الموافقة على الشروط والأحكام' : "Please agree to the terms and conditions");
       return;
     }
 
-    // Basic password strength check before sending to backend
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
+      setError(language === 'ar' ? 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' : "Password must be at least 8 characters long");
       return;
     }
 
@@ -67,7 +68,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
       await signup(formData.email, formData.username, formData.fullName, formData.password);
       setVerificationStep(true);
     } catch (err: any) {
-      setError(err.message || "Failed to create account. Please try again.");
+      setError(err.message || (language === 'ar' ? 'فشل إنشاء الحساب. حاول مرة أخرى.' : 'Failed to create account. Please try again.'));
     }
   };
 
@@ -86,7 +87,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
           onVerified={handleVerificationSuccess}
         />
         <Button variant="ghost" className="mt-4" onClick={() => setVerificationStep(false)}>
-          Back to Signup
+          {language === 'ar' ? 'العودة للتسجيل' : 'Back to Signup'}
         </Button>
       </div>
     );
@@ -118,10 +119,10 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
 
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground hidden sm:inline">
-                Already have an account?
+                {language === 'ar' ? 'لديك حساب بالفعل؟' : 'Already have an account?'}
               </span>
               <Button variant="ghost" onClick={onGoToLogin}>
-                Sign In
+                {language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
               </Button>
             </div>
           </div>
@@ -148,9 +149,9 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 <span className="text-2xl font-semibold">EyeStocks AI</span>
               </div>
               <div>
-                <CardTitle className="text-xl">Create Your Account</CardTitle>
+                <CardTitle className="text-xl">{language === 'ar' ? 'إنشاء حساب جديد' : 'Create Your Account'}</CardTitle>
                 <CardDescription>
-                  Join thousands of traders using AI for smarter investments
+                  {language === 'ar' ? 'انضم لآلاف المتداولين الذين يستخدمون الذكاء الاصطناعي' : 'Join thousands of traders using AI for smarter investments'}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -165,13 +166,13 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
               {/* Signup Form */}
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{t.auth.fullName}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="fullName"
                       type="text"
-                      placeholder="e.g. Ali Ahmed"
+                      placeholder={language === 'ar' ? 'مثال: علي أحمد' : 'e.g. Ali Ahmed'}
                       value={formData.fullName}
                       onChange={(e) => handleInputChange("fullName", e.target.value)}
                       className="pl-10 h-12"
@@ -182,16 +183,16 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">{t.auth.username}</Label>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground font-medium text-sm">@</div>
+                    <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="username"
                       type="text"
                       placeholder="ali_21"
                       value={formData.username}
                       onChange={(e) => handleInputChange("username", e.target.value)}
-                      className="pl-8 h-12"
+                      className="pl-10 h-12"
                       required
                       minLength={3}
                       pattern="^[a-zA-Z0-9_-]+$"
@@ -199,17 +200,16 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                       disabled={isLoading}
                     />
                   </div>
-
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t.auth.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Enter your email"
+                      placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
                       value={formData.email}
                       onChange={(e) => handleInputChange("email", e.target.value)}
                       className="pl-10 h-12"
@@ -220,13 +220,13 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t.auth.password}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create a strong password"
+                      placeholder={language === 'ar' ? 'أنشئ كلمة مرور قوية' : 'Create a strong password'}
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
                       className="pl-10 pr-10 h-12"
@@ -251,13 +251,13 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
+                      placeholder={language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm your password'}
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                       className="pl-10 pr-10 h-12"
@@ -290,13 +290,13 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                     disabled={isLoading}
                   />
                   <Label htmlFor="terms" className="text-xs leading-5">
-                    I agree to the{" "}
+                    {language === 'ar' ? 'أوافق على' : 'I agree to the'}{" "}
                     <Button variant="link" className="p-0 h-auto text-xs" type="button">
-                      Terms of Service
+                      {language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}
                     </Button>{" "}
-                    and{" "}
+                    {language === 'ar' ? 'و' : 'and'}{" "}
                     <Button variant="link" className="p-0 h-auto text-xs" type="button">
-                      Privacy Policy
+                      {language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}
                     </Button>
                   </Label>
                 </div>
@@ -305,11 +305,11 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
+                      {language === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating Account...'}
                     </>
                   ) : (
                     <>
-                      Create Account
+                      {language === 'ar' ? 'إنشاء حساب' : 'Create Account'}
                       <TrendingUp className="w-4 h-4 ml-2" />
                     </>
                   )}
@@ -320,7 +320,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                 <Separator />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="bg-card px-2 text-xs text-muted-foreground">
-                    OR CONTINUE WITH
+                    {language === 'ar' ? 'أو تابع باستخدام' : 'OR CONTINUE WITH'}
                   </span>
                 </div>
               </div>
@@ -329,9 +329,9 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
               <SocialLogin mode="signup" />
 
               <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
+                {language === 'ar' ? 'لديك حساب بالفعل؟' : 'Already have an account?'}{" "}
                 <Button variant="link" className="p-0 h-auto" onClick={onGoToLogin}>
-                  Sign in here
+                  {language === 'ar' ? 'سجّل دخولك هنا' : 'Sign in here'}
                 </Button>
               </div>
             </CardContent>
@@ -342,7 +342,7 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
       {/* Footer */}
       <footer className="border-t bg-muted/30 py-6">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 EyeStocks AI. All rights reserved.</p>
+          <p>© 2025 EyeStocks AI. {t.footer.rights}</p>
         </div>
       </footer>
     </div>

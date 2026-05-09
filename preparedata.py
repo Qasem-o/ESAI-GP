@@ -36,11 +36,11 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     import urllib.parse
-    PG_USER = os.getenv("PG_USER", "postgres")
-    PG_PASS = os.getenv("PG_PASS", "123123")
+    PG_USER = os.getenv("PG_USER", "your_db_user")
+    PG_PASS = os.getenv("PG_PASS", "your_db_password")
     PG_HOST = os.getenv("PG_HOST", "localhost")
     PG_PORT = os.getenv("PG_PORT", "5432")
-    PG_DB = os.getenv("PG_DB", "Stocksdata")
+    PG_DB = os.getenv("PG_DB", "your_db_name")
     
     # URL encode the password to handle special characters like '@'
     encoded_pass = urllib.parse.quote_plus(PG_PASS)

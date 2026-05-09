@@ -15,10 +15,10 @@ SMTP_PORT = settings.SMTP_PORT or 587
 SMTP_USER = settings.SMTP_USER
 SMTP_PASS = settings.SMTP_PASS
 
-# If FROM_EMAIL is missing from env, use the verified Brevo sender email
-FROM_EMAIL = settings.FROM_EMAIL or "shareedh777.com@gmail.com"
+# If FROM_EMAIL is missing from env, use a generic placeholder
+FROM_EMAIL = settings.FROM_EMAIL or "no-reply@example.com"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
-LOGO_URL = settings.LOGO_URL or "https://gp-esai.netlify.app/logo.png"
+LOGO_URL = settings.LOGO_URL or "https://example.com/logo.png"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     """Generic helper to send email via SMTP."""

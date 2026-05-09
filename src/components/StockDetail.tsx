@@ -186,15 +186,14 @@ interface StockDetailProps {
   onGoToHome: () => void;
   onGoToStocks: () => void;
   onGoToCommunity: () => void;
-  onGoToNews: () => void;
-  onGoToLearn: () => void;
+
   onGoToSignup: () => void;
   onGoToLogin: () => void;
   onGoToPortfolio: () => void;
   currentPage: any;
 }
 
-export function StockDetail({ symbol: propSymbol, onGoBack, onGoToProfile, onGoToSimulator }: StockDetailProps) {
+export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoBack }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
   const { isAuthenticated, user } = useAuth();
   const currentSymbol = paramSymbol || propSymbol || "NVDA";

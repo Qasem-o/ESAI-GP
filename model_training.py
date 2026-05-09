@@ -72,10 +72,10 @@ def get_engine():
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
         import urllib.parse
-        pw = urllib.parse.quote_plus(os.getenv("PG_PASS", "123123"))
-        db_url = (f"postgresql+psycopg2://{os.getenv('PG_USER','postgres')}:{pw}"
+        pw = urllib.parse.quote_plus(os.getenv("PG_PASS", "your_db_password"))
+        db_url = (f"postgresql+psycopg2://{os.getenv('PG_USER','your_db_user')}:{pw}"
                   f"@{os.getenv('PG_HOST','localhost')}:{os.getenv('PG_PORT','5432')}"
-                  f"/{os.getenv('PG_DB','Stocksdata')}")
+                  f"/{os.getenv('PG_DB','your_db_name')}")
     elif db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
     elif "postgresql://" in db_url and "+psycopg2" not in db_url:

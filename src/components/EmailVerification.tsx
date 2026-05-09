@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, Mail, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface EmailVerificationProps {
     email: string;
@@ -14,6 +15,7 @@ interface EmailVerificationProps {
 
 export function EmailVerification({ email, onVerified }: EmailVerificationProps) {
     const { verifyEmail, resendVerification, isLoading } = useAuth();
+    const { language } = useLanguage();
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
     const [resendCooldown, setResendCooldown] = useState(0);
@@ -74,7 +76,7 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
         const codeToVerify = verificationCode || code.join('');
 
         if (codeToVerify.length !== 6) {
-            setError('Please enter the 6-digit code');
+        setError(language === 'ar' ? 'الرجاء إدخال الرمز المكون من 6 أرقام' : 'Please enter the 6-digit code');
             return;
         }
 
@@ -89,7 +91,7 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
                 onVerified();
             }, 1500);
         } catch (err: any) {
-            setError(err.message || 'Verification failed');
+            setError(err.message || (language === 'ar' ? 'فشل التحقق' : 'Verification failed'));
             // If failed, clear the code to let them try again
             if (!verificationCode) setCode(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
@@ -104,7 +106,7 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
             await resendVerification(email);
             setResendCooldown(60); // 60 seconds cooldown
         } catch (err: any) {
-            setError(err.message || 'Failed to resend code');
+            setError(err.message || (language === 'ar' ? 'فشل إعادة إرسال الرمز' : 'Failed to resend code'));
         }
     };
 
@@ -121,14 +123,14 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
                 <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
                     <Mail className="w-6 h-6 text-primary" />
                 </div>
-                <CardTitle className="text-2xl font-bold">Verify your email</CardTitle>
+                <CardTitle className="text-2xl font-bold">{language === 'ar' ? 'تحقق من بريدك الإلكتروني' : 'Verify your email'}</CardTitle>
                 <CardDescription>
-                    We've sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>
+                    {language === 'ar' ? 'أرسلنا رمزاً مكوناً من 6 أرقام إلى' : "We've sent a 6-digit code to"} <span className="font-medium text-foreground">{email}</span>
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="code-0" className="sr-only">Verification Code</Label>
+                    <Label htmlFor="code-0" className="sr-only">{language === 'ar' ? 'رمز التحقق' : 'Verification Code'}</Label>
                     <div className="flex justify-between gap-2">
                         {code.map((digit, index) => (
                             <Input
@@ -163,23 +165,23 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verifying...
+                            {language === 'ar' ? 'جاري التحقق...' : 'Verifying...'}
                         </>
                     ) : isSuccess ? (
                         <>
                             <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Verified Successfully!
+                            {language === 'ar' ? 'تم التحقق بنجاح!' : 'Verified Successfully!'}
                         </>
                     ) : (
                         <>
-                            Verify Email
+                            {language === 'ar' ? 'تحقق من البريد' : 'Verify Email'}
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </>
                     )}
                 </Button>
 
                 <div className="text-center text-sm">
-                    <p className="text-muted-foreground mb-2">Didn't receive the code?</p>
+                    <p className="text-muted-foreground mb-2">{language === 'ar' ? 'لم تستلم الرمز؟' : "Didn't receive the code?"}</p>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -189,12 +191,12 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
                     >
                         {resendCooldown > 0 ? (
                             <span className="flex items-center">
-                                Resend in {resendCooldown}s
+                                {language === 'ar' ? `إعادة الإرسال خلال ${resendCooldown}ث` : `Resend in ${resendCooldown}s`}
                             </span>
                         ) : (
                             <span className="flex items-center">
                                 <RefreshCw className="mr-2 h-3 w-3" />
-                                Resend Code
+                                {language === 'ar' ? 'إعادة إرسال الرمز' : 'Resend Code'}
                             </span>
                         )}
                     </Button>

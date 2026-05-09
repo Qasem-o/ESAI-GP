@@ -9,11 +9,11 @@ except ImportError:
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: Optional[str] = None
-    PG_USER: str = "postgres"
-    PG_PASS: str = "123123"
+    PG_USER: str = "your_db_user"
+    PG_PASS: str = "your_db_password"
     PG_HOST: str = "localhost"
     PG_PORT: str = "5432"
-    PG_DB: str = "Stocksdata"
+    PG_DB: str = "your_db_name"
     
     # JWT & Security
     SECRET_KEY: str = "your-secret-key-change-this-in-production-use-env-variable"
@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASS: Optional[str] = None
-    FROM_EMAIL: str = "shareedh777.com@gmail.com"
+    FROM_EMAIL: str = "no-reply@example.com"
     FROM_NAME: str = "EyeStocks AI"
-    LOGO_URL: str = "https://gp-esai.netlify.app/logo.png"
+    LOGO_URL: str = "https://example.com/logo.png"
 
     # Support extra fields to prevent crashes when new env vars are added
     if SettingsConfigDict:

@@ -11,16 +11,8 @@ import { StockLogo } from "./StockLogo";
 import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "../services/api";
 import { portfolioAPI } from "../services/portfolioApi";
 import { toast } from "sonner";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "./ui/drawer";
+import { useLanguage } from "../contexts/LanguageContext";
+
 import {
   TrendingUp,
   TrendingDown,
@@ -63,8 +55,7 @@ interface NavigationProps {
   onGoToStocks: () => void;
   onGoToPortfolio: () => void;
   onGoToCommunity: () => void;
-  onGoToNews: () => void;
-  onGoToLearn: () => void;
+
   onGoToSimulator: () => void;
   onGoToProfile: () => void;
   onGoToStockDetails: (symbol: string) => void;
@@ -107,7 +98,8 @@ interface StocksProps extends NavigationProps { }
 
 
 
-export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin, onGoToAdmin }: StocksProps) {
+export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin, onGoToAdmin }: StocksProps) {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSector, setSelectedSector] = useState("All");
   const [stocks, setStocks] = useState<StockPrice[]>([]);
@@ -275,7 +267,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Filter className="w-5 h-5" />
-                  Sectors
+                  {t.explore.sectors}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -327,9 +319,9 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
               <div>
-                <h1 className="text-2xl font-bold">Explore Stocks</h1>
+                <h1 className="text-2xl font-bold">{t.explore.title}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {filteredStocks.length} stocks • Real-time data
+                  {filteredStocks.length} {t.explore.subtitle.includes('data') ? 'stocks •' : 'سهم •'} {t.explore.realTimeData}
                 </p>
               </div>
 
@@ -406,8 +398,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                     className="col-span-full flex flex-col items-center justify-center py-20 text-muted-foreground"
                   >
                     <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
-                    <p className="text-lg font-medium text-foreground">Loading market data...</p>
-                    <p className="text-sm">Fetching real-time stock quotes and community insights.</p>
+                    <p className="text-lg font-medium text-foreground">{t.explore.loadingMarket}</p>
+                    <p className="text-sm">{t.explore.fetchingData}</p>
                   </motion.div>
                 ) : filteredStocks.length === 0 ? (
                   <motion.div 
@@ -418,8 +410,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                     className="col-span-full flex flex-col items-center justify-center py-20 text-muted-foreground"
                   >
                     <Search className="w-10 h-10 mb-4 opacity-20" />
-                    <p className="text-lg font-medium text-foreground">No stocks found</p>
-                    <p className="text-sm">Try adjusting your search or sector filter.</p>
+                    <p className="text-lg font-medium text-foreground">{t.explore.noStocksFound}</p>
+                    <p className="text-sm">{t.explore.adjustSearch}</p>
                   </motion.div>
                 ) : (
                   filteredStocks.map((stock) => (
@@ -520,11 +512,11 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                           <div className="flex gap-2">
                             <Button className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); onGoToSimulator(); }}>
                               <Zap className="w-4 h-4 mr-1" />
-                              Trade
+                              {t.explore.trade}
                             </Button>
                             <Button variant="outline" className="flex-1" size="sm" onClick={(e) => { e.stopPropagation(); onGoToStockDetails(stock.symbol); }}>
                               <BarChart2 className="w-4 h-4 mr-1" />
-                              Analyze
+                              {t.explore.analyze}
                             </Button>
                           </div>
                         </div>
@@ -551,7 +543,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
             {selectedStock && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Stock Details</CardTitle>
+                  <CardTitle className="text-lg">{t.explore.stockDetails}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center py-4">
@@ -575,25 +567,23 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
                   <div className="space-y-3 pt-3 border-t">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Volume</span>
+                      <span className="text-sm text-muted-foreground">{t.explore.volume}</span>
                       <span className="font-medium">{formatLargeNumber(selectedStock.volume)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Market Cap</span>
+                      <span className="text-sm text-muted-foreground">{t.explore.marketCap}</span>
                       <span className="font-medium">{formatLargeNumber(selectedStock.marketCap)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Sector</span>
+                      <span className="text-sm text-muted-foreground">{t.explore.sector}</span>
                       <span className="font-medium">{selectedStock.sector || 'N/A'}</span>
                     </div>
-                    {/* Social stats hidden if not available */}
-
                   </div>
 
                   <div className="space-y-2 pt-3 border-t">
                     <Button className="w-full" onClick={onGoToSimulator}>
                       <Zap className="w-4 h-4 mr-2" />
-                      Trade in Simulator
+                      {t.explore.tradeInSimulator}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -602,7 +592,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                       disabled={isToggling[selectedStock.symbol]}
                     >
                       <Star className={`w-4 h-4 mr-2 ${watchlisted[selectedStock.symbol] ? "fill-yellow-500 text-yellow-500" : ""}`} />
-                      {watchlisted[selectedStock.symbol] ? "Remove from Watchlist" : "Add to Watchlist"}
+                      {watchlisted[selectedStock.symbol] ? t.explore.removeFromWatchlist : t.explore.addToWatchlist}
                     </Button>
                   </div>
                 </CardContent>

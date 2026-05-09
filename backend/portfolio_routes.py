@@ -360,7 +360,7 @@ async def buy_stock(
     db.add(txn)
     db.commit()
 
-    print(f"DEBUG Portfolio: Buying {req.shares} of {req.symbol} at ${req.price} (input) -> ${usd_price} (USD)")
+
     return {
         "message": f"Successfully bought {req.shares} shares of {req.symbol.upper()} at ${req.price:.2f}",
         "total_cost": round(total_cost, 2),

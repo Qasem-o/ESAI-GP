@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { communityAPI, FeedPost, TopTrader, PostComment as CommentType } from "../services/communityApi";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -42,7 +43,7 @@ function timeAgo(dateStr: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSecs = Math.floor(diffMs / 1000);
-  if (diffSecs < 5) return "just now";
+  if (diffSecs < 5) return "justNow"; // Placeholder replaced in renderPost
   if (diffSecs < 60) return `${diffSecs}s ago`;
   const diffMins = Math.floor(diffSecs / 60);
   if (diffMins < 60) return `${diffMins}m ago`;
@@ -64,8 +65,7 @@ interface NavigationProps {
   onGoToStocks: () => void;
   onGoToPortfolio: () => void;
   onGoToCommunity: () => void;
-  onGoToNews: () => void;
-  onGoToLearn: () => void;
+
   onGoToSimulator: () => void;
   onGoToProfile: () => void;
   onGoToSignup?: () => void;
@@ -75,9 +75,10 @@ interface NavigationProps {
 
 interface CommunityProps extends NavigationProps { }
 
-export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToNews, onGoToLearn, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoToAdmin }: CommunityProps) {
+export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoToAdmin }: CommunityProps) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { t, isRTL } = useLanguage();
 
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [topTraders, setTopTraders] = useState<TopTrader[]>([]);
@@ -359,21 +360,21 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Zap className="w-5 h-5 text-primary" />
-                  Quick Actions
+                  {t.community.quickActions}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button onClick={onGoToSimulator} variant="outline" className="w-full justify-start cursor-pointer">
                   <Zap className="w-4 h-4 mr-2" />
-                  Practice Trading
+                  {t.community.practiceTrading}
                 </Button>
                 <Button onClick={onGoToStocks} variant="outline" className="w-full justify-start cursor-pointer">
                   <Target className="w-4 h-4 mr-2" />
-                  Explore Stocks
+                  {t.community.exploreStocks}
                 </Button>
                 <Button onClick={onGoToPortfolio} variant="outline" className="w-full justify-start cursor-pointer">
                   <BarChart2 className="w-4 h-4 mr-2" />
-                  View Portfolio
+                  {t.community.viewPortfolio}
                 </Button>
               </CardContent>
             </Card>
@@ -383,16 +384,16 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Users className="w-5 h-5 text-blue-500" />
-                  Community
+                  {t.community.title}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Posts</span>
+                  <span className="text-muted-foreground">{t.community.totalPosts}</span>
                   <span className="font-semibold">{posts.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Active Traders</span>
+                  <span className="text-muted-foreground">{t.community.activeTraders}</span>
                   <span className="font-semibold">{topTraders.length}</span>
                 </div>
               </CardContent>
@@ -422,14 +423,14 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                         {!isInputExpanded && !postContent ? (
                           <button
                             onClick={() => setIsInputExpanded(true)}
-                            className="w-full text-left text-muted-foreground bg-muted/30 px-3 py-2.5 rounded-md text-sm hover:bg-muted/50 transition-colors cursor-pointer"
+                            className="w-full text-left rtl:text-right text-muted-foreground bg-muted/30 px-3 py-2.5 rounded-md text-sm hover:bg-muted/50 transition-colors cursor-pointer"
                           >
-                            Share your trading idea or market analysis...
+                            {t.community.shareIdea}
                           </button>
                         ) : (
                           <div className="space-y-3">
                             <Textarea
-                              placeholder="Share your trading idea or market analysis..."
+                              placeholder={t.community.shareIdea}
                               value={postContent}
                               onChange={(e) => setPostContent(e.target.value)}
                               autoFocus
@@ -438,7 +439,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             <div className="flex items-center gap-2">
                               <input
                                 type="text"
-                                placeholder="Attach stock symbol (optional, e.g. AAPL)"
+                                placeholder={t.community.attachStock}
                                 value={postStock}
                                 onChange={(e) => setPostStock(e.target.value.toUpperCase())}
                                 className="flex-1 px-3 py-1.5 rounded-md border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -465,7 +466,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                                   size="sm"
                                   className="px-6 cursor-pointer"
                                 >
-                                  {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+                                  {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.community.post}
                                 </Button>
                               </div>
                             </div>
@@ -482,15 +483,15 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
             <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full">
               <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="all" className="cursor-pointer">
-                  All Posts
+                  {t.community.allPosts}
                 </TabsTrigger>
                 <TabsTrigger value="trending" className="cursor-pointer">
                   <Flame className="w-4 h-4 mr-1" />
-                  Trending
+                  {t.community.trending}
                 </TabsTrigger>
                 <TabsTrigger value="following" className="cursor-pointer">
                   <Users className="w-4 h-4 mr-1" />
-                  Following
+                  {t.community.following}
                 </TabsTrigger>
               </TabsList>
 
@@ -503,12 +504,12 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : posts.length === 0 ? (
                   <Card className="p-8 text-center">
                     <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Posts Yet</h3>
+                    <h3 className="text-xl font-semibold mb-2">{t.community.noPosts}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Be the first to share your trading insights!
+                      {isRTL ? "كن أول من يشارك رؤيته في السوق!" : "Be the first to share your trading insights!"}
                     </p>
                     {!isAuthenticated && (
-                      <Button onClick={onGoToLogin} className="cursor-pointer">Sign In to Post</Button>
+                      <Button onClick={onGoToLogin} className="cursor-pointer">{t.community.signInToPost}</Button>
                     )}
                   </Card>
                 ) : (
@@ -524,8 +525,8 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : posts.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500 opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Trending Posts</h3>
-                    <p className="text-muted-foreground">Start liking posts to see trends!</p>
+                    <h3 className="text-xl font-semibold mb-2">{t.community.noTrendingPosts}</h3>
+                    <p className="text-muted-foreground">{isRTL ? "ابدأ بالإعجاب بالمنشورات لرؤية الرائج!" : "Start liking posts to see trends!"}</p>
                   </Card>
                 ) : (
                   posts.map(post => renderPost(post))
@@ -536,9 +537,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 {!isAuthenticated ? (
                   <Card className="p-8 text-center">
                     <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">Sign In Required</h3>
-                    <p className="text-muted-foreground mb-4">Sign in to see posts from people you follow.</p>
-                    <Button onClick={onGoToLogin} className="cursor-pointer">Sign In</Button>
+                    <h3 className="text-xl font-semibold mb-2">{t.community.signInRequired}</h3>
+                    <p className="text-muted-foreground mb-4">{t.community.signInToFollow}</p>
+                    <Button onClick={onGoToLogin} className="cursor-pointer">{t.nav.login}</Button>
                   </Card>
                 ) : isLoading ? (
                   <div className="flex justify-center py-20">
@@ -547,8 +548,8 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : posts.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Posts from Following</h3>
-                    <p className="text-muted-foreground">Follow traders to see their posts here!</p>
+                    <h3 className="text-xl font-semibold mb-2">{t.community.noFollowingPosts}</h3>
+                    <p className="text-muted-foreground">{isRTL ? "تابع متداولين لعرض منشوراتهم هنا!" : "Follow traders to see their posts here!"}</p>
                   </Card>
                 ) : (
                   posts.map(post => renderPost(post))
@@ -564,7 +565,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Award className="w-5 h-5 text-yellow-500" />
-                  Top Traders
+                  {t.community.topTraders}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -591,7 +592,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                               @{trader.username.toLowerCase()}
                             </p>
                             <p className="text-xs font-semibold text-green-500 mt-1">
-                              Virtual Value: ${trader.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                              {t.community.virtualValue}: ${trader.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                             </p>
                           </div>
                         </div>
@@ -602,7 +603,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             className="text-xs cursor-pointer"
                             onClick={() => handleToggleFollow(trader.user_id)}
                           >
-                            {trader.is_following ? "Following" : "Follow"}
+                            {trader.is_following ? t.community.following_btn : t.community.follow}
                           </Button>
                         )}
                       </div>
@@ -623,7 +624,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           <div className="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Comments</h3>
+              <h3 className="text-lg font-semibold">{isRTL ? "التعليقات" : "Comments"}</h3>
               <Button variant="ghost" size="icon" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
                 <X className="w-5 h-5" />
               </Button>
@@ -636,7 +637,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-center text-muted-foreground py-10">No comments yet. Be the first!</p>
+                <p className="text-center text-muted-foreground py-10">
+                  {isRTL ? "لا توجد تعليقات بعد. كن أول من يعلق!" : "No comments yet. Be the first!"}
+                </p>
               ) : (
                 comments.map((c) => {
                   const cPicUrl = c.author.profile_picture_url?.startsWith('/')

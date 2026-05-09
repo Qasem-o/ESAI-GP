@@ -1,5 +1,61 @@
 @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&family=Tajawal:wght@200;300;400;500;700;800;900&display=swap");
 
+/* ─── Thmanyah Sans Font ──────────────────────────────────────────── */
+@font-face {
+  font-family: 'ThmanyahSans';
+  src: url('./assets/fonts/thmanyahsans-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ThmanyahSans';
+  src: url('./assets/fonts/thmanyahsans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ThmanyahSans';
+  src: url('./assets/fonts/thmanyahsans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ThmanyahSans';
+  src: url('./assets/fonts/thmanyahsans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Apply Thmanyah font when Arabic is active ───────────────────── */
+html.lang-ar,
+html.lang-ar body,
+html.lang-ar *:not(.exclude-arabic-font) {
+  font-family: 'ThmanyahSans', 'Cairo', 'Tajawal', sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+/* Numbers and code blocks keep original font */
+html.lang-ar input[type="number"],
+html.lang-ar .font-mono {
+  font-family: monospace !important;
+}
+
+/* Smooth language transition */
+html {
+  transition: direction 0.2s ease;
+}
+
+/* Force hide mobile elements on PC (screens wider than 768px) */
+@media (min-width: 769px) {
+  .force-hide-on-pc {
+    display: none !important;
+  }
+}
+
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {

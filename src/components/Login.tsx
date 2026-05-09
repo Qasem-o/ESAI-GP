@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { TrendingUp, Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { EmailVerification } from "./EmailVerification";
 import { SocialLogin } from "./SocialLogin";
 import { authAPI } from "../services/authApi";
@@ -25,6 +26,7 @@ interface LoginProps {
 export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps) {
   const { login, resendVerification, isLoading } = useAuth();
   const { theme } = useTheme();
+  const { t, language } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -111,7 +113,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
           onVerified={handleVerificationSuccess}
         />
         <Button variant="ghost" className="mt-4" onClick={() => setNeedsVerification(false)}>
-          Back to Login
+          {t.auth.backToLogin}
         </Button>
       </div>
     );
@@ -159,7 +161,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
               </div>
               <div>
                 <CardDescription>
-                  Sign in to continue your trading journey
+                  {language === 'ar' ? 'سجّل دخولك لمواصلة رحلتك في التداول' : 'Sign in to continue your trading journey'}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -174,13 +176,13 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
               {/* Login Form */}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t.auth.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Enter your email"
+                      placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 h-12"
@@ -192,20 +194,20 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">{t.auth.password}</Label>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="link" className="p-0 h-auto text-xs" type="button">
-                          Forgot password?
+                          {t.auth.forgotPassword}
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Reset Password</DialogTitle>
+                          <DialogTitle>{t.auth.resetPassword}</DialogTitle>
                           <DialogDescription>
-                            {resetStep === 1 
-                              ? "Enter your email address and we'll send you a 6-digit code to reset your password."
-                              : "Enter the 6-digit code sent to your email and your new password."}
+                            {resetStep === 1
+                              ? (language === 'ar' ? 'أدخل بريدك الإلكتروني وسنرسل لك رمزاً مكوناً من 6 أرقام.' : "Enter your email address and we'll send you a 6-digit code to reset your password.")
+                              : (language === 'ar' ? 'أدخل الرمز المكون من 6 أرقام المرسل إلى بريدك وكلمة المرور الجديدة.' : 'Enter the 6-digit code sent to your email and your new password.')}
                           </DialogDescription>
                         </DialogHeader>
 
@@ -217,18 +219,18 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
 
                         {resetSent ? (
                           <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                            ✓ Password has been reset successfully! You can now log in.
+                            ✓ {language === 'ar' ? 'تمت إعادة تعيين كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.' : 'Password has been reset successfully! You can now log in.'}
                           </div>
                         ) : resetStep === 1 ? (
                           <form onSubmit={handleForgotPassword} className="space-y-4">
                             <div className="space-y-2">
-                              <Label htmlFor="resetEmail">Email</Label>
+                              <Label htmlFor="resetEmail">{t.auth.email}</Label>
                               <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   id="resetEmail"
                                   type="email"
-                                  placeholder="Enter your email"
+                                  placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
                                   value={resetEmail}
                                   onChange={(e) => setResetEmail(e.target.value)}
                                   className="pl-10 h-12"
@@ -239,13 +241,13 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                             </div>
                             <Button type="submit" className="w-full h-12" disabled={isResetLoading}>
                               {isResetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                              Send Reset Code
+                              {language === 'ar' ? 'إرسال رمز الاستعادة' : 'Send Reset Code'}
                             </Button>
                           </form>
                         ) : (
                           <form onSubmit={handleResetPassword} className="space-y-4">
                             <div className="space-y-2">
-                              <Label htmlFor="resetCode">Verification Code</Label>
+                              <Label htmlFor="resetCode">{language === 'ar' ? 'رمز التحقق' : 'Verification Code'}</Label>
                               <Input
                                 id="resetCode"
                                 type="text"
@@ -258,13 +260,13 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="newPassword">New Password</Label>
+                              <Label htmlFor="newPassword">{language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}</Label>
                               <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   id="newPassword"
                                   type="password"
-                                  placeholder="Enter new password"
+                                  placeholder={language === 'ar' ? 'أدخل كلمة المرور الجديدة' : 'Enter new password'}
                                   value={newPassword}
                                   onChange={(e) => setNewPassword(e.target.value)}
                                   className="pl-10 h-12"
@@ -273,7 +275,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                                   minLength={8}
                                 />
                               </div>
-                              <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
+                              <p className="text-xs text-muted-foreground">{language === 'ar' ? 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' : 'Password must be at least 8 characters'}</p>
                             </div>
                             <div className="flex gap-3 pt-2">
                               <Button 
@@ -283,11 +285,11 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                                 onClick={() => setResetStep(1)}
                                 disabled={isResetLoading}
                               >
-                                Back
+                                {t.common.back}
                               </Button>
                               <Button type="submit" className="flex-1 h-12" disabled={isResetLoading}>
                                 {isResetLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                Reset Password
+                                {t.auth.resetPassword}
                               </Button>
                             </div>
                           </form>
@@ -300,7 +302,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder={language === 'ar' ? 'أدخل كلمة المرورك' : 'Enter your password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10 pr-10 h-12"
@@ -328,11 +330,11 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing In...
+                      {language === 'ar' ? 'جاري تسجيل الدخول...' : 'Signing In...'}
                     </>
                   ) : (
                     <>
-                      Sign In
+                      {language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
                       <TrendingUp className="w-4 h-4 ml-2" />
                     </>
                   )}
@@ -343,7 +345,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
                 <Separator />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="bg-card px-2 text-xs text-muted-foreground">
-                    OR CONTINUE WITH
+                    {language === 'ar' ? 'أو تابع باستخدام' : 'OR CONTINUE WITH'}
                   </span>
                 </div>
               </div>
@@ -352,9 +354,9 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
               <SocialLogin mode="login" />
 
               <div className="text-center text-sm text-muted-foreground">
-                Don't have an account?{" "}
+                {language === 'ar' ? 'ليس لديك حساب؟' : "Don't have an account?"}{" "}
                 <Button variant="link" className="p-0 h-auto" onClick={onGoToSignup}>
-                  Sign up for free
+                  {language === 'ar' ? 'سجّل مجاناً' : 'Sign up for free'}
                 </Button>
               </div>
             </CardContent>
@@ -365,7 +367,7 @@ export function Login({ onGoToHome, onGoToSignup, onGoToDashboard }: LoginProps)
       {/* Footer */}
       <footer className="border-t bg-muted/30 py-6">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 EyeStocks AI. All rights reserved.</p>
+          <p>© 2025 EyeStocks AI. {t.footer.rights}</p>
         </div>
       </footer>
     </div>

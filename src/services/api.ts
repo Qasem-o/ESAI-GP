@@ -327,7 +327,7 @@ export const fetchStockNews = async (symbol: string, name?: string): Promise<New
     const items = xmlDoc.querySelectorAll("item");
 
     if (items.length === 0) {
-      console.log(`No items found in RSS for ${symbol}`);
+
       return [];
     }
 

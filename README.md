@@ -1,70 +1,86 @@
-# EyeStocks AI - منصة تداول ومحاكاة ذكية
+# EyeStocks AI - Intelligent Trading & Simulation Platform
 
-هذا المشروع هو منصة متكاملة لتحليل الأسهم، تتبع المحافظ الاستثمارية، ومحاكاة التداول الافتراضي باستخدام الذكاء الاصطناعي.
-
----
-
-## 🚀 الميزات الرئيسية
-
-- **محاكي التداول (Virtual Trading):** ابدأ بميزانية 2,000 دولار وحاول الوصول إلى هدف 10,000 دولار.
-- **إدارة المحفظة (Portfolio Management):** تتبع استثماراتك الحقيقية، الأرباح، والخسائر بشكل ديناميكي.
-- **تحليل الذكاء الاصطناعي:** توقعات مدعومة بنماذج تعلم آلي لأسعار الأسهم.
-- **نظام حسابات متكامل:** تسجيل دخول، ملف شخصي، ورفع صور شخصية.
-- **وضع الدارك مود:** تصميم عصري ومريح للعين.
+EyeStocks AI is a comprehensive full-stack platform designed for stock analysis, portfolio tracking, and virtual trading simulation, powered by machine learning insights.
 
 ---
 
-## 🛠️ متطلبات التشغيل (Prerequisites)
+## 🚀 Key Features
 
-1. **Node.js** (للواجهة الأمامية)
-2. **Python 3.10+** (للواجهة الخلفية)
-3. **PostgreSQL** (قاعدة البيانات الأساسية)
-
----
-
-## ⚙️ طريقة التثبيت والتشغيل
-
-### 1. إعداد قاعدة البيانات (PostgreSQL)
-- قم بإنشاء قاعدة بيانات باسم `Stocksdata` في PostgreSQL.
-- تأكد من بيانات الوصول في ملف `backend/main.py`:
-  - `PG_USER`: postgres
-  - `PG_PASS`: 123123 (أو كلمة مرورك الخاصة)
-
-### 2. تشغيل الواجهة الخلفية (Backend)
-افتح تيرمينال جديد داخل مجلد `backend`:
-```bash
-cd backend
-pip install fastapi uvicorn sqlalchemy psycopg2 jose python-dotenv passlib[bcrypt] python-multipart
-# لتشغيل السيرفر:
-python -m uvicorn main:app --reload
-```
-*سيعمل سيرفر الباك‌اند على: `http://localhost:8000`*
-
-### 3. تشغيل الواجهة الأمامية (Frontend)
-افتح تيرمينال جديد في المجلد الرئيسي للمشروع:
-```bash
-npm install
-npm run dev
-```
-*ستعمل الواجهة الأمامية على: `http://localhost:3000` (أو 5173 حسب الإعداد)*
+- **Virtual Trading Simulator:** Start with a virtual budget of $2,000 and test your strategies to reach a $10,000 goal.
+- **Portfolio Management:** Real-time tracking of investments, dynamic P&L calculation, and performance analytics.
+- **AI-Powered Insights:** Stock price predictions driven by advanced machine learning models (LSTM & XGBoost).
+- **Integrated Community:** Share trading ideas, follow top traders, and discuss market trends.
+- **Full User System:** Secure JWT authentication, profile management, and social login (Google).
+- **Premium Design:** Modern, responsive interface with full Dark Mode support and smooth animations.
+- **Admin Dashboard:** Comprehensive tools for managing assets, users, and monitoring AI model health.
 
 ---
 
-## 📁 هيكلة المشروع
+## 🛠️ Technology Stack
 
-- `/src`: تحتوي على مكونات React وواجهات TypeScript.
-- `/backend`: يحتوي على مسارات الـ API (FastAPI) ومنطق قاعدة البيانات.
-- `/public`: الصور والملفات العامة.
-- `model_training.py`: كود تدريب نماذج الذكاء الاصطناعي.
-- `preparedata.py`: سكريبت معالجة وسحب بيانات الأسهم الأصلية.
+### Frontend
+- **Framework:** React.js (Vite)
+- **Styling:** Tailwind CSS & Shadcn UI
+- **Animations:** Framer Motion
+- **Icons:** Lucide React
+- **State Management:** Context API
+
+### Backend
+- **Framework:** FastAPI (Python)
+- **Database:** PostgreSQL with SQLAlchemy ORM
+- **Security:** JWT Authentication & Rate Limiting
+- **Email:** Brevo SMTP for password recovery
+- **Validation:** Pydantic (v2)
 
 ---
 
-## 🔐 ملاحظة حول الأمان
-- تم تعديل نظام الجلسات ليكون "أبدياً" للتسهيل في بيئة التطوير (JWT No Expiration).
-- يرجى إنشاء ملف `.env` بناءً على `.env.example` لإضافة مفاتيح الأمان الخاصة بك.
+## ⚙️ Installation & Setup
+
+For detailed instructions on how to set up the environment, database, and API keys, please refer to:
+👉 **[setup.md](./setup.md)**
+
+### Quick Start (Local Development)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/esai-project.git
+   cd ESAI-Firstdraft
+   ```
+
+2. **Backend Setup:**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   uvicorn main:app --reload
+   ```
+
+3. **Frontend Setup:**
+   ```bash
+   # From the root directory
+   npm install
+   npm run dev
+   ```
 
 ---
 
-## 📄 رخصة المشروع
-هذا المشروع تم تطويره لصالح EyeStocks AI. جميع الحقوق محفوظة لعام 2026.
+## 📁 Project Structure
+
+- `/src`: React frontend components and logic.
+- `/backend`: FastAPI application, database models, and routes.
+- `/backend/prediction_models`: Machine learning training and inference logic.
+- `schema.sql`: Complete database structure for easy migration.
+
+---
+
+## 📜 Disclaimer
+This platform is for educational and simulation purposes only. The AI predictions provided are based on historical data and do not constitute financial advice.
+
+---
+
+## 🎓 University Submission
+Developed as a final project for **EyeStocks AI**.
+- **Year:** 2024-2025
+- **Status:** Final Submission Ready
+- **Security:** All sensitive credentials have been removed and moved to environment variables.
