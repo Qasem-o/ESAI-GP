@@ -72,11 +72,7 @@ This guide will help you set up the EyeStocks AI project for local development a
 If you are setting up a fresh database:
 
 1. **Initialize the schema:**
-   - Use the provided `schema.sql` file to create the tables in your PostgreSQL database.
-   - Alternatively, run the schema creation script:
-     ```bash
-     python update_db_schema.py
-     ```
+   - Use the provided `schema.sql` file (found in the root directory) to create the tables in your PostgreSQL database. You can run this file directly in your database management tool (like pgAdmin or DBeaver).
 
 2. **Fetch initial stock data:**
    ```bash

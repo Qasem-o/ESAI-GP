@@ -267,86 +267,94 @@ def health_check(db: Session = Depends(get_db)):
 
 @app.get("/stocks", response_model=List[StockBase])
 def get_stocks(db: Session = Depends(get_db)):
-    from community_models import Post
-    from sqlalchemy import func, and_
-    
-    # 1. Fetch all stocks
-    stocks = db.query(Stock).all()
-    if not stocks:
-        return []
-
-    stock_ids = [s.stock_id for s in stocks]
-    symbols = [s.symbol for s in stocks]
-
-    # 2. Optimized: Get latest TWO history records for all stocks in one go
-    # We use a subquery with ROW_NUMBER() to get the top 2 for each stock_id
-    from sqlalchemy import text
-    latest_history_query = text("""
-        SELECT stock_id, date, open, high, low, close, volume
-        FROM (
-            SELECT *, ROW_NUMBER() OVER (PARTITION BY stock_id ORDER BY date DESC) as rn
-            FROM price_history
-            WHERE stock_id IN :ids
-        ) t
-        WHERE rn <= 2
-    """)
-    history_rows = db.execute(latest_history_query, {"ids": tuple(stock_ids)}).fetchall()
-    
-    # Group history by stock_id
-    history_map = {}
-    for row in history_rows:
-        if row.stock_id not in history_map:
-            history_map[row.stock_id] = []
-        history_map[row.stock_id].append(row)
-
-    # 3. Optimized: Get mention counts for all symbols
-    mentions_query = db.query(Post.stock_symbol, func.count(Post.post_id).label('count'))\
-        .filter(Post.stock_symbol.in_(symbols))\
-        .group_by(Post.stock_symbol).all()
-    mentions_map = {m.stock_symbol: m.count for m in mentions_query}
-
-    # 4. Enrich stocks
-    enriched_stocks = []
-    for stock in stocks:
-        history = history_map.get(stock.stock_id, [])
-        stock_dict = stock.__dict__.copy()
+    try:
+        from community_models import Post
+        from sqlalchemy import func, and_, text
         
-        # Price and Change
-        if len(history) >= 1:
-            latest = history[0]
-            stock_dict['volume'] = latest.volume
+        # 1. Fetch all stocks
+        stocks = db.query(Stock).all()
+        if not stocks:
+            return []
+
+        stock_ids = [s.stock_id for s in stocks]
+        symbols = [s.symbol for s in stocks]
+
+        # 2. Optimized: Get latest TWO history records for all stocks
+        history_map = {}
+        if stock_ids:
+            latest_history_query = text("""
+                SELECT stock_id, date, open, high, low, close, volume
+                FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY stock_id ORDER BY date DESC) as rn
+                    FROM price_history
+                    WHERE stock_id IN :ids
+                ) t
+                WHERE rn <= 2
+            """)
+            try:
+                history_rows = db.execute(latest_history_query, {"ids": tuple(stock_ids)}).fetchall()
+                for row in history_rows:
+                    if row.stock_id not in history_map:
+                        history_map[row.stock_id] = []
+                    history_map[row.stock_id].append(row)
+            except Exception as e:
+                print(f"Error fetching history rows: {e}")
+
+        # 3. Optimized: Get mention counts
+        mentions_map = {}
+        try:
+            mentions_query = db.query(Post.stock_symbol, func.count(Post.post_id).label('count'))\
+                .filter(Post.stock_symbol.in_(symbols))\
+                .group_by(Post.stock_symbol).all()
+            mentions_map = {m.stock_symbol: m.count for m in mentions_query}
+        except Exception as e:
+            print(f"Error fetching mentions: {e}")
+
+        # 4. Enrich stocks
+        enriched_stocks = []
+        for stock in stocks:
+            history = history_map.get(stock.stock_id, [])
+            stock_dict = stock.__dict__.copy()
             
-            if len(history) >= 2:
-                prev = history[1]
-                prev_close = float(prev.close)
-                curr_price = float(stock.current_price) if stock.current_price else float(latest.close)
+            # Default values
+            stock_dict['day_change'] = 0.0
+            stock_dict['change_percent'] = 0.0
+            stock_dict['volume'] = 0
+            
+            if len(history) >= 1:
+                latest = history[0]
+                stock_dict['volume'] = latest.volume or 0
                 
-                if prev_close > 0:
-                    day_change = curr_price - prev_close
-                    stock_dict['day_change'] = round(day_change, 2)
-                    stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
-            else:
-                stock_dict['day_change'] = 0.0
-                stock_dict['change_percent'] = 0.0
-        
-        # Currency info
-        curr_info = get_stock_currency(stock.symbol)
-        stock_dict['currency'] = curr_info['code']
-        stock_dict['currency_symbol'] = curr_info['symbol']
-        price = float(stock.current_price) if stock.current_price else 0.0
-        stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
-        
-        # Social stats
-        mentions_count = mentions_map.get(stock.symbol, 0)
-        stock_dict['mentions'] = mentions_count
-        
-        # Sentiment fallback (don't fetch posts content here for performance)
-        # We can use a deterministic but pseudo-random value or a simpler metric
-        stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 15)
-        
-        enriched_stocks.append(StockBase(**stock_dict))
-        
-    return enriched_stocks
+                if len(history) >= 2:
+                    prev = history[1]
+                    prev_close = float(prev.close) if prev.close else 0
+                    curr_price = float(stock.current_price) if stock.current_price else float(latest.close)
+                    
+                    if prev_close > 0:
+                        day_change = curr_price - prev_close
+                        stock_dict['day_change'] = round(day_change, 2)
+                        stock_dict['change_percent'] = round((day_change / prev_close) * 100, 2)
+            
+            # Currency info
+            curr_info = get_stock_currency(stock.symbol)
+            stock_dict['currency'] = curr_info['code']
+            stock_dict['currency_symbol'] = curr_info['symbol']
+            price = float(stock.current_price) if stock.current_price else 0.0
+            stock_dict['usd_price'] = round(price * curr_info['rate_to_usd'], 2)
+            
+            # Social stats
+            stock_dict['mentions'] = mentions_map.get(stock.symbol, 0)
+            stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 15)
+            
+            enriched_stocks.append(StockBase(**stock_dict))
+            
+        return enriched_stocks
+    except Exception as e:
+        print(f"CRITICAL ERROR in /stocks: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback: return raw stocks if enrichment fails
+        return []
 
 @app.get("/stocks/{symbol}", response_model=StockBase)
 def get_stock_details(symbol: str, db: Session = Depends(get_db)):
