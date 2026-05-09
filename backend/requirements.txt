@@ -16,8 +16,3 @@ pandas
 yfinance
 email-validator
 httpx
-numpy
-scikit-learn
-tensorflow
-matplotlib
-ta
