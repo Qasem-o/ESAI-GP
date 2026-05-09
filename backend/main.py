@@ -74,15 +74,7 @@ from fastapi import Request
 
 # CORS Configuration
 # We include variations with/without trailing slashes and 127.0.0.1 just in case
-allowed_origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-    "https://your-frontend-app.netlify.app",
-    "https://your-backend-app.onrender.com",
-    "https://your-custom-domain.com"
-]
+allowed_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,

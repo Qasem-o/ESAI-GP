@@ -31,8 +31,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = 60  # time window in seconds
     
     async def dispatch(self, request: Request, call_next):
+        # Bypass for OPTIONS
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Get client IP
-        client_ip = request.client.host
+        client_ip = request.client.host if request.client else "unknown"
         path = request.url.path
         
         # Determine rate limit based on path
@@ -83,6 +87,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     
     async def dispatch(self, request: Request, call_next):
+        # Bypass for OPTIONS
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         response = await call_next(request)
         
         # Security headers
