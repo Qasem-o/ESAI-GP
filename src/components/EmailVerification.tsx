@@ -31,17 +31,29 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
     }, [resendCooldown]);
 
     const handleChange = (index: number, value: string) => {
-        // Take only the last character if multiple are entered (e.g. overwrite)
-        const char = value.slice(-1);
-        
-        // Only allow numbers
-        if (char && !/^\d+$/.test(char)) return;
+        // Remove any non-digit characters
+        const digits = value.replace(/\D/g, '');
 
+        // Handle pasting full code into a single input
+        if (digits.length > 1) {
+            const newCode = [...code];
+            digits.split('').forEach((d, i) => {
+                if (index + i < 6) newCode[index + i] = d;
+            });
+            setCode(newCode);
+            // Move focus to last filled or next empty
+            const nextIndex = Math.min(index + digits.length, 5);
+            inputRefs.current[nextIndex]?.focus();
+            return;
+        }
+
+        // Single digit entry — always take the new digit (last char typed)
+        const char = digits.slice(-1);
         const newCode = [...code];
         newCode[index] = char;
         setCode(newCode);
 
-        // Auto-focus next input if a value was entered
+        // Auto-advance to next input immediately after entering a digit
         if (char && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
