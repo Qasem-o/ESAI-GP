@@ -22,7 +22,7 @@ FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
 PLATFORM_URL = "https://esai-sa.me"
 
 # Common UI Tokens
-PRIMARY_COLOR = "#6366f1"
+PRIMARY_COLOR = "#000000"
 BG_COLOR = "#f8fafc"
 TEXT_COLOR = "#1e293b"
 
