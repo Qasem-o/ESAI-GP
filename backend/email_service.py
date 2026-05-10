@@ -20,6 +20,10 @@ async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     if not BREVO_API_KEY:
         print(f"⚠️ Brevo API Key (SMTP_PASS) not configured. Email suppressed for {recipient}")
         return False
+    
+    # Log masked key for debugging
+    masked_key = f"{BREVO_API_KEY[:5]}...{BREVO_API_KEY[-5:]}" if len(BREVO_API_KEY) > 10 else "TOO_SHORT"
+    print(f"🔍 [DEBUG] Using Brevo API Key: {masked_key} (Length: {len(BREVO_API_KEY)})")
 
     headers = {
         "accept": "application/json",
