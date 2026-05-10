@@ -6,6 +6,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import asyncio
 from typing import Optional
 from config import settings
 
@@ -21,27 +22,31 @@ FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
 LOGO_URL = settings.LOGO_URL or "https://example.com/logo.png"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
-    """Generic helper to send email via SMTP."""
+    """Generic helper to send email via SMTP (Runs in a separate thread to prevent blocking)."""
     if not SMTP_USER or not SMTP_PASS:
         print(f"⚠️ SMTP credentials not configured. Email suppressed for {recipient}")
         return False
 
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = recipient
-        msg['Subject'] = subject
-        msg.attach(MIMEText(html_content, 'html'))
+    def _send_sync():
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            msg.attach(MIMEText(html_content, 'html'))
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg)
-        
-        return True
-    except Exception as e:
-        print(f"[ERROR] Error sending email to {recipient}: {e}")
-        return False
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASS)
+                server.send_message(msg)
+            return True
+        except Exception as e:
+            print(f"[ERROR] SMTP Error sending email to {recipient}: {e}")
+            return False
+
+    # Run the synchronous SMTP code in a thread pool to avoid blocking the event loop
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _send_sync)
 
 async def send_verification_email(email: str, code: str, username: str) -> bool:
     """Send verification code email via SMTP."""

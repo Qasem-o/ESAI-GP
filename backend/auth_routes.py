@@ -2,7 +2,7 @@
 Authentication API routes for user signup, login, email verification, and OAuth.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Header, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Header, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -66,7 +66,7 @@ async def get_current_user(
 
 
 @router.post("/signup", response_model=MessageResponse)
-async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
+async def signup(user_data: UserSignup, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Register a new user account.
     Sends verification code to email.
@@ -118,8 +118,8 @@ async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
     db.add(verification)
     db.commit()
     
-    # Send verification email safely using request data to avoid DetachedInstanceError
-    await send_verification_email(user_data.email, code, user_data.username)
+    # Send verification email in background
+    background_tasks.add_task(send_verification_email, user_data.email, code, user_data.username)
     
     return MessageResponse(
         message=f"Account created successfully. Please check your email ({user_data.email}) for the verification code.",
@@ -130,6 +130,7 @@ async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
 @router.post("/verify-email", response_model=TokenResponse)
 async def verify_email(
     verification_data: EmailVerificationRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -172,8 +173,8 @@ async def verify_email(
     db.commit()
     db.refresh(user)
     
-    # Send welcome email
-    await send_welcome_email(user.email, user.username)
+    # Send welcome email in background
+    background_tasks.add_task(send_welcome_email, user.email, user.username)
     
     # Generate tokens
     access_token = create_access_token({"user_id": user.user_id})
@@ -189,6 +190,7 @@ async def verify_email(
 @router.post("/resend-verification", response_model=MessageResponse)
 async def resend_verification(
     request_data: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -223,8 +225,8 @@ async def resend_verification(
     db.add(verification)
     db.commit()
     
-    # Send verification email
-    await send_verification_email(user.email, code, user.username)
+    # Send verification email in background
+    background_tasks.add_task(send_verification_email, user.email, code, user.username)
     
     return MessageResponse(
         message=f"Verification code sent to {request_data.email}",
@@ -235,6 +237,7 @@ async def resend_verification(
 @router.post("/forgot-password", response_model=MessageResponse)
 async def forgot_password(
     request_data: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -270,8 +273,8 @@ async def forgot_password(
     db.add(reset_entry)
     db.commit()
     
-    # Send email
-    await send_password_reset_email(user.email, code, user.username)
+    # Send email in background
+    background_tasks.add_task(send_password_reset_email, user.email, code, user.username)
     
     return MessageResponse(
         message=f"If an account exists with {request_data.email}, a reset code has been sent.",
@@ -703,4 +706,3 @@ async def check_username_availability(
         "available": existing is None,
         "username": username
     }
-
