@@ -19,6 +19,7 @@ SMTP_PORT = 587
 
 FROM_EMAIL = settings.FROM_EMAIL or "no-reply@esai-sa.me"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
+PLATFORM_URL = "https://esai-sa.me"
 
 # Common UI Tokens
 PRIMARY_COLOR = "#6366f1"
@@ -92,12 +93,12 @@ def get_base_template(content_html: str) -> str:
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            .email-body {{ font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: {TEXT_COLOR}; background-color: {BG_COLOR}; padding: 40px 20px; }}
+            .email-body {{ font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: {TEXT_COLOR}; background-color: {BG_COLOR}; padding: 40px 20px; margin: 0; }}
             .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }}
             .header {{ background-color: #ffffff; padding: 40px 30px; text-align: center; border-bottom: 1px solid #f1f5f9; }}
             .content {{ padding: 50px 40px; }}
             .footer {{ text-align: center; padding: 40px; color: #94a3b8; font-size: 13px; background-color: #fcfdfe; }}
-            .btn {{ background-color: {PRIMARY_COLOR}; color: #ffffff !important; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; display: inline-block; margin: 30px 0; }}
+            .btn {{ background-color: {PRIMARY_COLOR}; color: #ffffff !important; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; display: inline-block; margin: 30px 0; font-size: 16px; }}
             .code-display {{ background: #f8fafc; border: 2px dashed {PRIMARY_COLOR}; border-radius: 16px; padding: 30px; margin: 30px 0; text-align: center; }}
             .code-text {{ font-size: 42px; font-weight: 800; color: {PRIMARY_COLOR}; letter-spacing: 12px; margin: 0; font-family: monospace; }}
         </style>
@@ -105,7 +106,7 @@ def get_base_template(content_html: str) -> str:
     <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="https://gp-esai.netlify.app/logo.png" alt="EyeStocks AI" style="width: 60px; height: auto; margin-bottom: 15px;">
+                <img src="https://gp-esai.netlify.app/logo.png" alt="EyeStocks AI" style="width: 60px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">
                 <h1 style="margin:0; font-size: 26px; color: #1e293b; font-weight: 800;">EyeStocks AI</h1>
                 <p style="margin:5px 0 0 0; color: #64748b; font-size: 14px;">Next-Gen Market Insights</p>
             </div>
@@ -120,44 +121,44 @@ def get_base_template(content_html: str) -> str:
     </html>
     """
 
-async def send_verification_email(email: str, code: str, username: str) -> bool:
+async def send_verification_email(email: str, code: str, full_name: str) -> bool:
     """Send verification code email."""
-    subject = f"Verify your EyeStocks AI Account"
+    subject = "Verify your EyeStocks AI Account"
     content = f"""
-        <h2 style="margin-top:0;">Hello, {username}!</h2>
+        <h2 style="margin-top:0;">Hello, {full_name}!</h2>
         <p>Welcome to the future of trading. Please use the verification code below to complete your registration:</p>
         <div class="code-display">
             <p class="code-text">{code}</p>
         </div>
-        <p style="color: #64748b; font-size: 14px;">This code is valid for 10 minutes. If you didn't request this, you can ignore this email.</p>
+        <p style="color: #64748b; font-size: 14px;">This code is valid for 10 minutes. If you didn't request this, you can safely ignore this email.</p>
         <p style="margin-top: 40px;">Best regards,<br><strong>EyeStocks AI Team</strong></p>
     """
     return await send_email(subject, email, get_base_template(content))
 
-async def send_welcome_email(email: str, username: str) -> bool:
+async def send_welcome_email(email: str, full_name: str) -> bool:
     """Send welcome email."""
     subject = "Welcome to EyeStocks AI family!"
     content = f"""
-        <h2 style="margin-top:0;">Welcome aboard, {username}!</h2>
+        <h2 style="margin-top:0;">Welcome aboard, {full_name}!</h2>
         <p>Your account is now fully verified. You're ready to explore AI-driven stock predictions and market insights.</p>
         <div style="text-align: center;">
-            <a href="https://gp-esai.netlify.app" class="btn">Launch Dashboard</a>
+            <a href="{PLATFORM_URL}" class="btn">Launch Dashboard</a>
         </div>
         <p>We're excited to see what you achieve with our platform.</p>
         <p style="margin-top: 40px;">Happy Trading,<br><strong>EyeStocks AI Team</strong></p>
     """
     return await send_email(subject, email, get_base_template(content))
 
-async def send_password_reset_email(email: str, code: str, username: str) -> bool:
+async def send_password_reset_email(email: str, code: str, full_name: str) -> bool:
     """Send password reset code."""
     subject = "Password Reset Request - EyeStocks AI"
     content = f"""
         <h2 style="margin-top:0;">Reset your password</h2>
-        <p>Hi {username}, we received a request to reset your password. Use the code below to proceed:</p>
+        <p>Hi {full_name}, we received a request to reset your password. Use the code below to proceed:</p>
         <div class="code-display">
             <p class="code-text">{code}</p>
         </div>
-        <p style="color: #64748b; font-size: 14px;">This code will expire in 10 minutes. If you did not make this request, please secure your account.</p>
+        <p style="color: #64748b; font-size: 14px;">This code will expire in 10 minutes. If you did not make this request, please secure your account immediately.</p>
         <p style="margin-top: 40px;">Thanks,<br><strong>EyeStocks AI Team</strong></p>
     """
     return await send_email(subject, email, get_base_template(content))

@@ -31,32 +31,25 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
     }, [resendCooldown]);
 
     const handleChange = (index: number, value: string) => {
-        // Remove any non-digit characters
+        // Remove non-digits
         const digits = value.replace(/\D/g, '');
-
-        // Handle pasting full code into a single input
+        // Handle paste of multiple digits
         if (digits.length > 1) {
             const newCode = [...code];
             digits.split('').forEach((d, i) => {
                 if (index + i < 6) newCode[index + i] = d;
             });
             setCode(newCode);
-            // Move focus to last filled or next empty
             const nextIndex = Math.min(index + digits.length, 5);
             inputRefs.current[nextIndex]?.focus();
             return;
         }
-
-        // Single digit entry — always take the new digit (last char typed)
+        // Single char — handled also via keyDown, this is fallback for mobile
         const char = digits.slice(-1);
         const newCode = [...code];
         newCode[index] = char;
         setCode(newCode);
-
-        // Auto-advance to next input immediately after entering a digit
-        if (char && index < 5) {
-            inputRefs.current[index + 1]?.focus();
-        }
+        if (char && index < 5) inputRefs.current[index + 1]?.focus();
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
@@ -72,17 +65,32 @@ export function EmailVerification({ email, onVerified }: EmailVerificationProps)
         }
     };
 
-    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-        // Handle backspace: move to previous field if current is empty
-        if (e.key === 'Backspace') {
-            if (!code[index] && index > 0) {
-                inputRefs.current[index - 1]?.focus();
-                const newCode = [...code];
+    const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (/^\d$/.test(e.key)) {
+            // Intercept digit key for instant auto-advance (no waiting for onChange)
+            e.preventDefault();
+            const newCode = [...code];
+            newCode[index] = e.key;
+            setCode(newCode);
+            if (index < 5) inputRefs.current[index + 1]?.focus();
+        } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            const newCode = [...code];
+            if (code[index]) {
+                newCode[index] = '';
+                setCode(newCode);
+            } else if (index > 0) {
                 newCode[index - 1] = '';
                 setCode(newCode);
+                inputRefs.current[index - 1]?.focus();
             }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
+
 
     const handleVerify = async (verificationCode?: string) => {
         const codeToVerify = verificationCode || code.join('');

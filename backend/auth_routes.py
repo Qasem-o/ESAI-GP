@@ -119,7 +119,7 @@ async def signup(user_data: UserSignup, background_tasks: BackgroundTasks, db: S
     db.commit()
     
     # Send verification email in background
-    background_tasks.add_task(send_verification_email, user_data.email, code, user_data.username)
+    background_tasks.add_task(send_verification_email, user_data.email, code, user_data.full_name or user_data.username)
     
     return MessageResponse(
         message=f"Account created successfully. Please check your email ({user_data.email}) for the verification code.",
