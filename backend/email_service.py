@@ -28,7 +28,8 @@ async def send_email(subject: str, recipient: str, html_content: str) -> bool:
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "api-key": BREVO_API_KEY
+        "api-key": BREVO_API_KEY,
+        "x-sib-api-key": BREVO_API_KEY
     }
 
     payload = {
