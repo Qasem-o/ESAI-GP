@@ -7,8 +7,8 @@ from typing import Optional
 from config import settings
 
 # Brevo API Configuration
-# We use the SMTP_PASS as the API Key since that's what the user provided
-BREVO_API_KEY = settings.SMTP_PASS
+# Use .strip() to ensure no hidden spaces or newlines from .env are included
+BREVO_API_KEY = settings.SMTP_PASS.strip() if settings.SMTP_PASS else None
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 FROM_EMAIL = settings.FROM_EMAIL or "no-reply@esai-sa.me"
