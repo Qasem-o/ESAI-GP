@@ -105,6 +105,7 @@ def get_base_template(content_html: str) -> str:
     <body class="email-body">
         <div class="container">
             <div class="header">
+                <img src="https://gp-esai.netlify.app/logo.png" alt="EyeStocks AI" style="width: 60px; height: auto; margin-bottom: 15px;">
                 <h1 style="margin:0; font-size: 26px; color: #1e293b; font-weight: 800;">EyeStocks AI</h1>
                 <p style="margin:5px 0 0 0; color: #64748b; font-size: 14px;">Next-Gen Market Insights</p>
             </div>
