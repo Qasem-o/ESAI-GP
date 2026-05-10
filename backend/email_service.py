@@ -1,60 +1,62 @@
 """
-Email service for sending verification codes via Brevo SMTP.
+Email service for sending verification codes via Brevo API.
 """
 
-import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import asyncio
+import httpx
 from typing import Optional
 from config import settings
 
-# SMTP Configuration from central settings
-SMTP_SERVER = settings.SMTP_SERVER or "smtp-relay.brevo.com"
-SMTP_PORT = settings.SMTP_PORT or 587
-SMTP_USER = settings.SMTP_USER
-SMTP_PASS = settings.SMTP_PASS
+# Brevo API Configuration
+# We use the SMTP_PASS as the API Key since that's what the user provided
+BREVO_API_KEY = settings.SMTP_PASS
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
-# If FROM_EMAIL is missing from env, use a generic placeholder
-FROM_EMAIL = settings.FROM_EMAIL or "no-reply@example.com"
+FROM_EMAIL = settings.FROM_EMAIL or "no-reply@esai-sa.me"
 FROM_NAME = settings.FROM_NAME or "EyeStocks AI"
-LOGO_URL = settings.LOGO_URL or "https://example.com/logo.png"
+LOGO_URL = settings.LOGO_URL or "https://gp-esai.netlify.app/logo.png"
 
 async def send_email(subject: str, recipient: str, html_content: str) -> bool:
-    """Generic helper to send email via SMTP (Runs in a separate thread to prevent blocking)."""
-    if not SMTP_USER or not SMTP_PASS:
-        print(f"⚠️ SMTP credentials not configured. Email suppressed for {recipient}")
+    """Generic helper to send email via Brevo API."""
+    if not BREVO_API_KEY:
+        print(f"⚠️ Brevo API Key (SMTP_PASS) not configured. Email suppressed for {recipient}")
         return False
 
-    def _send_sync():
-        try:
-            msg = MIMEMultipart()
-            msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-            msg['To'] = recipient
-            msg['Subject'] = subject
-            msg.attach(MIMEText(html_content, 'html'))
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": BREVO_API_KEY
+    }
 
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASS)
-                server.send_message(msg)
-            return True
-        except Exception as e:
-            print(f"[ERROR] SMTP Error sending email to {recipient}: {e}")
-            return False
+    payload = {
+        "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
+        "to": [{"email": recipient}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
 
-    # Run the synchronous SMTP code in a thread pool to avoid blocking the event loop
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _send_sync)
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(BREVO_API_URL, headers=headers, json=payload)
+            
+            if response.status_code in [200, 201, 202]:
+                print(f"✅ Email sent successfully to {recipient}")
+                return True
+            else:
+                print(f"❌ [BREVO API ERROR] Failed to send email to {recipient}")
+                print(f"❌ [STATUS]: {response.status_code}")
+                print(f"❌ [RESPONSE]: {response.text}")
+                return False
+    except Exception as e:
+        print(f"❌ [SYSTEM ERROR] Exception during email sending to {recipient}: {str(e)}")
+        return False
 
 async def send_verification_email(email: str, code: str, username: str) -> bool:
-    """Send verification code email via SMTP."""
+    """Send verification code email via Brevo API."""
     subject = "Verify your email address - EyeStocks AI"
     
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html dir="ltr">
     <head>
         <meta charset="UTF-8">
         <style>
@@ -71,7 +73,6 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo">
                 <h1 style="margin:0; font-size: 24px; color: #1e293b;">Login Verification</h1>
             </div>
             <div class="content">
@@ -96,7 +97,7 @@ async def send_verification_email(email: str, code: str, username: str) -> bool:
     </html>
     """
     
-    print(f"\n[EMAIL_LOG] Verification code for {email}: {code}\n")
+    print(f"\n[EMAIL_LOG] Sending verification code to {email}...\n")
     return await send_email(subject, email, html_content)
 
 async def send_welcome_email(email: str, username: str) -> bool:
@@ -104,7 +105,7 @@ async def send_welcome_email(email: str, username: str) -> bool:
     subject = "Welcome to EyeStocks AI!"
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html dir="ltr">
     <head>
         <meta charset="UTF-8">
         <style>
@@ -113,14 +114,12 @@ async def send_welcome_email(email: str, username: str) -> bool:
             .header {{ background-color: #ffffff; color: #1e293b; padding: 40px 20px; text-align: center; border-bottom: 1px solid #f1f5f9; }}
             .content {{ padding: 40px 30px; }}
             .footer {{ text-align: center; padding: 30px; color: #94a3b8; font-size: 13px; background-color: #fcfdfe; }}
-            .logo {{ width: 80px; height: auto; margin-bottom: 20px; }}
             .btn {{ background-color: #6366f1; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2); }}
         </style>
     </head>
     <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo">
                 <h1 style="margin:0; font-size: 24px; color: #1e293b;">Welcome to the Future</h1>
             </div>
             <div class="content">
@@ -144,12 +143,12 @@ async def send_welcome_email(email: str, username: str) -> bool:
     return await send_email(subject, email, html_content)
 
 async def send_password_reset_email(email: str, code: str, username: str) -> bool:
-    """Send password reset code via SMTP."""
+    """Send password reset code via Brevo API."""
     subject = "Password Reset - EyeStocks AI"
     
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html dir="ltr">
     <head>
         <meta charset="UTF-8">
         <style>
@@ -160,13 +159,11 @@ async def send_password_reset_email(email: str, code: str, username: str) -> boo
             .code-box {{ background-color: #f8fafc; border: 2px dashed #6366f1; padding: 30px; text-align: center; margin: 30px 0; border-radius: 12px; }}
             .code {{ font-size: 36px; font-weight: bold; letter-spacing: 12px; color: #6366f1; margin: 0; }}
             .footer {{ text-align: center; padding: 30px; color: #94a3b8; font-size: 13px; background-color: #fcfdfe; }}
-            .logo {{ width: 80px; height: auto; margin-bottom: 20px; }}
         </style>
     </head>
     <body class="email-body">
         <div class="container">
             <div class="header">
-                <img src="{LOGO_URL}" alt="EyeStocks AI" class="logo">
                 <h1 style="margin:0; font-size: 24px; color: #1e293b;">Password Reset</h1>
             </div>
             <div class="content">
@@ -191,5 +188,5 @@ async def send_password_reset_email(email: str, code: str, username: str) -> boo
     </html>
     """
     
-    print(f"\n[EMAIL_LOG] Password reset code for {email}: {code}\n")
+    print(f"\n[EMAIL_LOG] Sending password reset code to {email}...\n")
     return await send_email(subject, email, html_content)
