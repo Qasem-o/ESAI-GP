@@ -492,8 +492,8 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                               <span className="text-sm font-medium">{stock.mentions || 0} mentions</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Target className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm font-medium">{stock.sentiment || 0}% bullish</span>
+                              <Sparkles className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium">{stock.directionalAccuracy || 0}% Accuracy</span>
                             </div>
                           </div>
 

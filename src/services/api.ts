@@ -23,6 +23,7 @@ export interface StockPrice {
   volume?: string | number;
   mentions?: number;
   sentiment?: number;
+  directionalAccuracy?: number;
   topPost?: {
     author: string;
     content: string;
@@ -64,6 +65,30 @@ export interface StockPrediction {
   stop_loss?: number;
   risk_level?: string;
   analysis?: string[];
+  prediction_date?: string;
+}
+
+export interface MonthlyPrediction {
+  date: string;
+  predicted_price: number;
+  change_percent: number;
+  direction: "bullish" | "bearish" | "neutral";
+  confidence: number;
+}
+
+export interface MonthlyPredictionsResponse {
+  predictions: MonthlyPrediction[];
+  prediction_month: string | null;
+  trained_at: string | null;
+  total_days: number;
+  remaining_days: number;
+}
+
+export interface UpdateInfo {
+  last_update: string | null;
+  next_update: string;
+  stocks_updated: number;
+  schedule: string;
 }
 
 export interface StockSentiment {
@@ -112,6 +137,7 @@ export const fetchStocks = async (): Promise<StockPrice[]> => {
       changePercent: item.change_percent || 0,
       mentions: item.mentions || 0,
       sentiment: item.sentiment || 0,
+      directionalAccuracy: item.directional_accuracy || 0,
       volume: item.volume || "N/A",
       marketCap: item.market_cap || "N/A"
     }));
@@ -192,6 +218,26 @@ export const fetchStockPrediction = async (symbol: string): Promise<StockPredict
   const response = await fetch(`${API_BASE_URL}/stocks/${symbol}/prediction`);
   if (!response.ok) throw new Error("Failed to fetch prediction");
   return response.json();
+};
+
+export const fetchMonthlyPredictions = async (symbol: string): Promise<MonthlyPredictionsResponse | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/stocks/${symbol}/monthly-predictions`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+};
+
+export const fetchUpdateInfo = async (): Promise<UpdateInfo | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/stocks/update-info`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
 };
 
 export const fetchStockMetrics = async (symbol: string): Promise<StockMetric[]> => {

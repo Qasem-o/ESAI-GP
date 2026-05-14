@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 import sys
 import os
 from dotenv import load_dotenv
@@ -190,14 +190,15 @@ class StockBase(BaseModel):
     day_change: Optional[float] = 0.0
     mentions: Optional[int] = 0
     sentiment: Optional[int] = 50
+    directional_accuracy: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
 
 class PricePoint(BaseModel):
     date: date
-    close: float
-    volume: Optional[int]
+    close: Optional[float] = None
+    volume: Optional[int] = None
     prediction: Optional[float] = None
 
     class Config:
@@ -239,6 +240,27 @@ class PredictionResponse(BaseModel):
     stop_loss: float
     risk_level: str
     analysis: List[str]
+    prediction_date: Optional[str] = None
+
+class MonthlyPredictionItem(BaseModel):
+    date: str
+    predicted_price: float
+    change_percent: float
+    direction: str
+    confidence: float
+
+class MonthlyPredictionsResponse(BaseModel):
+    predictions: List[MonthlyPredictionItem]
+    prediction_month: Optional[str] = None
+    trained_at: Optional[str] = None
+    total_days: int
+    remaining_days: int
+
+class UpdateInfoResponse(BaseModel):
+    last_update: Optional[str] = None
+    next_update: str
+    stocks_updated: int
+    schedule: str
 
 class SentimentResponse(BaseModel):
     bullish_percent: int
@@ -279,7 +301,26 @@ def get_stocks(db: Session = Depends(get_db)):
         stock_ids = [s.stock_id for s in stocks]
         symbols = [s.symbol for s in stocks]
 
-        # 2. Optimized: Get latest TWO history records for all stocks
+        # 1.5 Get latest prediction confidence for all stocks
+        from prediction_models import PricePrediction
+        from sqlalchemy import desc
+        
+        confidence_map = {}
+        try:
+            # Get latest prediction for each stock
+            latest_preds_query = text("""
+                SELECT stock_id, confidence
+                FROM (
+                    SELECT stock_id, confidence, ROW_NUMBER() OVER (PARTITION BY stock_id ORDER BY prediction_date DESC) as rn
+                    FROM price_predictions
+                    WHERE is_test_set = false
+                ) t
+                WHERE rn = 1
+            """)
+            confidence_rows = db.execute(latest_preds_query).fetchall()
+            confidence_map = {row.stock_id: row.confidence for row in confidence_rows}
+        except Exception as e:
+            print(f"Error fetching confidence map: {e}")
         history_map = {}
         if stock_ids:
             latest_history_query = text("""
@@ -345,6 +386,7 @@ def get_stocks(db: Session = Depends(get_db)):
             # Social stats
             stock_dict['mentions'] = mentions_map.get(stock.symbol, 0)
             stock_dict['sentiment'] = 50 + (sum(ord(c) for c in stock.symbol) % 15)
+            stock_dict['directional_accuracy'] = confidence_map.get(stock.stock_id, 0.0)
             
             enriched_stocks.append(StockBase(**stock_dict))
             
@@ -433,8 +475,9 @@ def get_stock_details(symbol: str, db: Session = Depends(get_db)):
 def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_db)):
     """
     Returns price history (up to `limit` days) with AI prediction overlay.
-    The prediction overlay comes ONLY from stored test-set rows (is_test_set=True).
-    No model is re-run at request time.
+    Backtest rows (is_test_set=True) overlay historical dates.
+    Future monthly predictions (is_test_set=False, date > last history) are
+    appended as extra points so the chart line extends into the future.
     """
     stock = db.query(Stock).filter(Stock.symbol == symbol).first()
     if not stock:
@@ -450,7 +493,7 @@ def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_d
         .all()
     )
 
-    # Prioritize real forecasts (is_test_set=False) over backtest rows
+    # Prioritize real forecasts (is_test_set=False) over backtest rows on historical dates
     hist_dates = [h.date for h in history]
     all_preds = (
         db.query(PricePrediction)
@@ -458,16 +501,15 @@ def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_d
             PricePrediction.stock_id == stock.stock_id,
             PricePrediction.prediction_date.in_(hist_dates),
         )
-        .order_by(PricePrediction.is_test_set.desc()) # True first, False last
+        .order_by(PricePrediction.is_test_set.desc())  # True first, False last
         .all()
     ) if hist_dates else []
 
-    # Mapping: the last one seen for a date will win. 
-    # Since we ordered True first and False last, the False (real forecast) will overwrite if both exist.
     pred_map = {p.prediction_date: float(p.predicted_price) for p in all_preds}
 
-    # Chronological order for chart
+    # Chronological historical points
     results = []
+    last_hist_date = None
     for h in history[::-1]:
         results.append({
             "date":       h.date,
@@ -475,6 +517,29 @@ def get_stock_history(symbol: str, limit: int = 120, db: Session = Depends(get_d
             "volume":     h.volume,
             "prediction": pred_map.get(h.date),
         })
+        last_hist_date = h.date
+
+    # Append future monthly predictions beyond the last history date
+    if last_hist_date:
+        today = datetime.now(timezone.utc).date()
+        future_preds = (
+            db.query(PricePrediction)
+            .filter(
+                PricePrediction.stock_id == stock.stock_id,
+                PricePrediction.is_test_set == False,
+                PricePrediction.actual_price == None,
+                PricePrediction.prediction_date > last_hist_date,
+            )
+            .order_by(PricePrediction.prediction_date.asc())
+            .all()
+        )
+        for fp in future_preds:
+            results.append({
+                "date":       fp.prediction_date,
+                "close":      None,
+                "volume":     None,
+                "prediction": float(fp.predicted_price),
+            })
 
     return results
 
@@ -513,16 +578,20 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
     # No model is re-run here.
     try:
         from prediction_models import PricePrediction
-        from sqlalchemy import desc
+        from sqlalchemy import asc
+        from datetime import datetime, timezone
+        
+        today = datetime.now(timezone.utc).date()
 
-        # Get the latest prediction available, regardless of date, to always show something
+        # Get the nearest future prediction available
         ai_pred = (
             db.query(PricePrediction)
             .filter(
                 PricePrediction.stock_id == stock.stock_id,
                 PricePrediction.is_test_set == False,
+                PricePrediction.prediction_date >= today
             )
-            .order_by(desc(PricePrediction.prediction_date))
+            .order_by(asc(PricePrediction.prediction_date))
             .first()
         )
         
@@ -534,6 +603,7 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
             recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
             target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
             stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
+            pred_date_str   = str(ai_pred.prediction_date) if ai_pred.prediction_date else None
 
             # ... rest of the logic ...
             latest_tech = (
@@ -575,6 +645,7 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
                 "stop_loss": stop_loss,
                 "risk_level": "Low" if confidence > 85 else ("Medium" if confidence > 70 else "High"),
                 "analysis": analysis_points,
+                "prediction_date": pred_date_str,
             }
             
         raise HTTPException(status_code=404, detail="No fresh prediction available. Please run training.")
@@ -584,6 +655,134 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"⚠️ Prediction error for {symbol}: {e}")
         raise HTTPException(status_code=404, detail="Prediction unavailable")
+
+@app.get("/stocks/{symbol}/monthly-predictions", response_model=MonthlyPredictionsResponse)
+def get_monthly_predictions(symbol: str, db: Session = Depends(get_db)):
+    """
+    Returns all forward predictions for the current month (is_test_set=False, date >= today).
+    Used by the frontend to display the full monthly forecast chart & table.
+    """
+    stock = db.query(Stock).filter(Stock.symbol == symbol).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    from prediction_models import PricePrediction
+
+    today = datetime.now(timezone.utc).date()
+    current_month = today.strftime("%Y-%m")
+
+    future_preds = (
+        db.query(PricePrediction)
+        .filter(
+            PricePrediction.stock_id == stock.stock_id,
+            PricePrediction.is_test_set == False,
+            PricePrediction.actual_price == None,
+        )
+        .order_by(PricePrediction.prediction_date.asc())
+        .all()
+    )
+
+    items = [
+        MonthlyPredictionItem(
+            date=str(p.prediction_date),
+            predicted_price=float(p.predicted_price),
+            change_percent=float(p.change_percent or 0),
+            direction=p.direction or "neutral",
+            confidence=float(p.confidence or 0),
+        )
+        for p in future_preds
+    ]
+
+    trained_at_str = None
+    if future_preds:
+        trained_at_str = future_preds[0].trained_at.isoformat() if future_preds[0].trained_at else None
+
+    return MonthlyPredictionsResponse(
+        predictions=items,
+        prediction_month=current_month,
+        trained_at=trained_at_str,
+        total_days=len(items),
+        remaining_days=len(items),
+    )
+
+
+@app.get("/stocks/update-info", response_model=UpdateInfoResponse)
+def get_update_info(db: Session = Depends(get_db)):
+    """Returns daily auto-fetch schedule information for the UI banner."""
+    from prediction_models import SystemSetting
+
+    setting = db.query(SystemSetting).filter(SystemSetting.key == "last_daily_fetch").first()
+    last_update = setting.value if setting else None
+
+    # Next fetch: tonight 8 PM UTC (= 11 PM Saudi)
+    now_utc = datetime.now(timezone.utc)
+    next_fetch = now_utc.replace(hour=20, minute=0, second=0, microsecond=0)
+    if now_utc.hour >= 20:
+        next_fetch = next_fetch + timedelta(days=1)
+
+    # Count stocks updated today
+    today = now_utc.date()
+    from preparedata import PriceHistory
+    updated_count = (
+        db.query(Stock)
+        .join(PriceHistory, PriceHistory.stock_id == Stock.stock_id)
+        .filter(PriceHistory.date == today)
+        .distinct(Stock.stock_id)
+        .count()
+    )
+
+    return UpdateInfoResponse(
+        last_update=last_update,
+        next_update=next_fetch.isoformat(),
+        stocks_updated=updated_count,
+        schedule="Daily at 11:00 PM Saudi time (08:00 PM UTC)",
+    )
+
+
+@app.post("/cron/daily-fetch")
+async def cron_daily_fetch(request: Request, db: Session = Depends(get_db)):
+    """
+    Called by Supabase Edge Function (pg_cron) every night to trigger data fetch.
+    Protected by a shared secret header.
+    """
+    secret = request.headers.get("X-Cron-Secret", "")
+    expected = os.getenv("CRON_SECRET", "")
+    if not expected or secret != expected:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    import threading
+    import admin_routes as _ar
+
+    with _ar._training_lock:
+        if _ar._training_state["status"] == "running":
+            return {"message": "Already running", "status": "running"}
+        _ar._training_state["status"] = "running"
+        _ar._training_state["started_at"] = datetime.now(timezone.utc).isoformat()
+        _ar._training_state["log"] = ["[AUTO-FETCH] Daily cron job triggered..."]
+
+    def _run_with_log():
+        _ar._fill_missing_bg()
+        # After fill-missing, record the timestamp
+        try:
+            from prediction_models import SystemSetting
+            from sqlalchemy.orm import sessionmaker
+            DBSession = sessionmaker(bind=engine)
+            s = DBSession()
+            setting = s.query(SystemSetting).filter(SystemSetting.key == "last_daily_fetch").first()
+            ts = datetime.now(timezone.utc).isoformat()
+            if setting:
+                setting.value = ts
+                setting.updated_at = datetime.now(timezone.utc)
+            else:
+                s.add(SystemSetting(key="last_daily_fetch", value=ts))
+            s.commit()
+            s.close()
+        except Exception as e:
+            print(f"[CRON] Failed to save last_daily_fetch: {e}")
+
+    threading.Thread(target=_run_with_log, daemon=True).start()
+    return {"message": "Daily fetch started", "status": "running"}
+
 
 @app.get("/stocks/{symbol}/sentiment", response_model=SentimentResponse)
 def get_stock_sentiment(symbol: str, db: Session = Depends(get_db)):

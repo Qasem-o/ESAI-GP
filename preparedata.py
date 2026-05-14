@@ -351,7 +351,10 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame, store_fro
 
             # 3. Update Actual Price in Predictions (NEW)
             # Find any prediction made for this date and update its actual_price
-            from prediction_models import PricePrediction
+            import sys
+            if 'backend' not in sys.path:
+                sys.path.append('backend')
+            from backend.prediction_models import PricePrediction
             pred = session.query(PricePrediction).filter(
                 PricePrediction.stock_id == stock.stock_id,
                 PricePrediction.prediction_date == d

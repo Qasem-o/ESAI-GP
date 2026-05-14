@@ -1,7 +1,7 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { DefaultAvatar } from "./DefaultAvatar";
-import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData, fetchChartData } from "../services/api";
+import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData, fetchChartData, MonthlyPredictionsResponse, UpdateInfo, fetchMonthlyPredictions, fetchUpdateInfo } from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
@@ -210,6 +210,8 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
 
   const [stockDetails, setStockDetails] = useState<StockPrice | null>(null);
   const [prediction, setPrediction] = useState<StockPrediction | null>(null);
+  const [monthlyPredictions, setMonthlyPredictions] = useState<MonthlyPredictionsResponse | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [technicals, setTechnicals] = useState<StockTechnical[]>([]);
   const [history, setHistory] = useState<ChartData | null>(null);
   const [sentiment, setSentiment] = useState<StockSentiment | null>(null);
@@ -223,8 +225,9 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [isPostLoading, setIsPostLoading] = useState(false);
   const [isWatchlisted, setIsWatchlisted] = useState(false);
-  const [activeTimeRange, setActiveTimeRange] = useState("1W");
+  const [activeTimeRange, setActiveTimeRange] = useState("1M");
   const [isInputExpanded, setIsInputExpanded] = useState(false);
+  const [showMonthlyTable, setShowMonthlyTable] = useState(false);
 
   // Reset scroll position when component mounts or symbol changes
   useEffect(() => {
@@ -244,42 +247,52 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
     const loadData = async () => {
       setLoading(true);
       try {
-        const [priceData, techData, predData, sentData, newsData] = await Promise.all([
+        const [priceData, techData, predData, sentData, monthlyData, infoData] = await Promise.all([
           fetchStockPrice(currentSymbol).catch(e => { console.error("Price error:", e); return null; }),
           fetchStockTechnicals(currentSymbol).catch(e => { console.error("Tech error:", e); return []; }),
           fetchStockPrediction(currentSymbol).catch(e => { console.error("Pred error:", e); return null; }),
           fetchStockSentiment(currentSymbol).catch(e => { console.error("Sent error:", e); return null; }),
-          fetchStockNews(currentSymbol, displayStockData.name).catch(e => { console.error("News error:", e); return []; })
+          fetchMonthlyPredictions(currentSymbol).catch(() => null),
+          fetchUpdateInfo().catch(() => null),
         ]);
 
         if (priceData) setStockDetails(priceData);
         if (techData) setTechnicals(techData);
         setPrediction(predData);
         if (sentData) setSentiment(sentData);
-        if (newsData) setNews(newsData);
+        if (monthlyData) setMonthlyPredictions(monthlyData);
+        if (infoData) setUpdateInfo(infoData);
         
-        // Fetch posts for this stock
-        try {
-          const postData = await communityAPI.getStockPosts(currentSymbol);
-          setPosts(postData);
-        } catch (e) {
-          console.error("Failed to load stock posts", e);
-        }
+        // Stop loading as soon as the critical data is here!
+        setLoading(false);
 
-        // Fetch related stocks (same sector)
-        try {
-          const allStocks = await fetchStocks();
-          const currentSector = priceData.sector || "";
-          const related = allStocks
-            .filter(s => s.symbol !== currentSymbol && s.sector === currentSector)
-            .slice(0, 3);
-          setRelatedStocksState(related);
-        } catch (e) {
-          console.error(e);
-        }
+        // Fetch news asynchronously
+        setIsLoadingNews(true);
+        fetchStockNews(currentSymbol, priceData?.name)
+          .then(newsData => {
+            if (newsData) setNews(newsData);
+          })
+          .catch(e => console.error("News error:", e))
+          .finally(() => setIsLoadingNews(false));
+
+        // Fetch posts for this stock in background
+        communityAPI.getStockPosts(currentSymbol)
+          .then(postData => setPosts(postData))
+          .catch(e => console.error("Failed to load stock posts", e));
+
+        // Fetch related stocks (same sector) in background
+        fetchStocks()
+          .then(allStocks => {
+            const currentSector = priceData?.sector || "";
+            const related = allStocks
+              .filter(s => s.symbol !== currentSymbol && s.sector === currentSector)
+              .slice(0, 3);
+            setRelatedStocksState(related);
+          })
+          .catch(e => console.error(e));
+
       } catch (err) {
         console.error("Failed to load stock data", err);
-      } finally {
         setLoading(false);
       }
     };
@@ -292,18 +305,13 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
     const loadChart = async () => {
       let limit = 30;
       switch (activeTimeRange) {
-        case '1D': limit = 2; break;
         case '1W': limit = 7; break;
         case '1M': limit = 30; break;
         case '3M': limit = 90; break;
-        case 'YTD':
-          const start = new Date(new Date().getFullYear(), 0, 1);
-          const now = new Date();
-          const diff = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          limit = diff;
-          break;
+        case '6M': limit = 180; break;
         case '1Y': limit = 365; break;
         case 'ALL': limit = 5000; break;
+        case 'توقع الشهر': limit = 30; break;
         default: limit = 30;
       }
 
@@ -455,76 +463,47 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
 
   const getChartDataWithPrediction = () => {
     if (!history?.data || history.data.length === 0) return [];
+
+    const allData = history.data;
     
-    // 1. Map historical data
-    // We only show historical predictions for the last 60 points to avoid "messy" chart starts
-    const historyData = history.data;
-    const baseData = historyData.map((d, idx) => {
-      const item: any = { 
-        time: d.time, 
-        price: d.price 
-      };
-      // Include historical prediction only if it's recent and valid
-      if (idx >= historyData.length - 60 && d.prediction != null && d.prediction > 0) {
-        item.ai_prediction = d.prediction;
+    // The backend returns 'limit' historical points + ALL future predictions (price == null).
+    const futureStartIndex = allData.findIndex((d: any) => d.price == null);
+    
+    let histData = allData;
+    let futureData: any[] = [];
+    if (futureStartIndex !== -1) {
+      histData = allData.slice(0, futureStartIndex);
+      futureData = allData.slice(futureStartIndex);
+    }
+
+    // Only show future predictions if "Monthly Forecast" is selected
+    const isForecastMode = activeTimeRange === 'Monthly Forecast';
+    const slicedFuture = isForecastMode ? futureData : [];
+    const combinedData = [...histData, ...slicedFuture];
+
+    // Map the combined data
+    return combinedData.map((d: any, idx: number) => {
+      const item: any = { time: d.date || d.time, price: d.price };
+      // Include backtest overlay or future predictions
+      if (d.prediction != null && d.prediction > 0) {
+        if (d.price == null && !isForecastMode) {
+           // Skip future predictions if not in forecast mode
+        } else {
+           item.ai_prediction = d.prediction;
+        }
       }
       return item;
     });
-    
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const lastHistoryItem = baseData[baseData.length - 1];
-    const market = getMarketInfo(displayStockData.symbol);
-    
-    // 2. Fill gaps between last history and today
-    // Only add points if the market is open or price has changed significantly
-    const priceMoved = Math.abs(displayStockData.price - lastHistoryItem.price) > 0.01;
-    
-    if (lastHistoryItem.time < todayStr && (market.isOpen || priceMoved)) {
-      let currentGapDate = new Date(lastHistoryItem.time);
-      currentGapDate.setHours(0,0,0,0);
-      const targetDate = new Date(todayStr);
-      targetDate.setHours(0,0,0,0);
+  };
 
-      while (currentGapDate < targetDate) {
-        currentGapDate.setDate(currentGapDate.getDate() + 1);
-        const gapDateStr = currentGapDate.toISOString().split('T')[0];
-        
-        const isToday = gapDateStr === todayStr;
-        
-        baseData.push({
-          time: gapDateStr,
-          price: isToday ? displayStockData.price : lastHistoryItem.price,
-          // We don't copy historical predictions into the gap
-        });
-      }
-    }
-    
-    // 3. Add tomorrow's point
-    const finalLastIdx = baseData.length - 1;
-    if (finalLastIdx >= 0) {
-      const lastPoint = baseData[finalLastIdx];
-
-      if (prediction && prediction.tomorrow_price) {
-        // Calculate tomorrow's date relative to the last point's time
-        const nextDay = new Date(lastPoint.time);
-        nextDay.setDate(nextDay.getDate() + 1);
-        
-        // Basic weekend skip logic for a cleaner future point
-        if (nextDay.getDay() === 6) nextDay.setDate(nextDay.getDate() + 2); // Sat -> Mon
-        if (nextDay.getDay() === 0) nextDay.setDate(nextDay.getDate() + 1); // Sun -> Mon
-        
-        const nextDayStr = nextDay.toISOString().split('T')[0];
-        
-        baseData.push({
-          time: nextDayStr,
-          price: null as any,
-          ai_prediction: prediction.tomorrow_price
-        });
-      }
-    }
-    
-    return baseData;
+  // Helpers for the update banner
+  const formatDateTime = (iso: string | null | undefined) => {
+    if (!iso) return 'N/A';
+    try {
+      return new Date(iso).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    } catch { return iso; }
   };
 
 
@@ -592,8 +571,15 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
 
           {/* Center - Chart & Detail Tabs */}
           <div className="lg:col-span-8 lg:order-1 space-y-6">
+
+
             {/* Main Price Chart */}
             <Card className="p-6 border overflow-hidden relative shadow-md">
+              {updateInfo?.last_update && (
+                <div className="absolute top-3 right-4 text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-border/50">
+                  Last update: <span className="font-medium text-foreground/80">{formatDateTime(updateInfo.last_update)}</span>
+                </div>
+              )}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
                   <p className="text-muted-foreground text-sm font-medium mb-1">Current Price</p>
@@ -620,17 +606,24 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                   </div>
                 </div>
                 <div className="flex gap-1 bg-muted p-1 rounded-lg">
-                  {['1D', '1W', '1M', '3M', 'YTD', '1Y', 'ALL'].map((period) => (
+                  {['1W', '1M', '3M', '6M', '1Y', 'ALL', 'Monthly Forecast'].map((period) => (
                     <Button
                       key={period}
                       variant={activeTimeRange === period ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setActiveTimeRange(period)}
-                      style={activeTimeRange === period ? { backgroundColor: '#000000', color: 'white' } : {}}
-                      className={`h-8 text-xs transition-all duration-200 ${activeTimeRange === period
-                        ? 'bg-black text-white hover:bg-black/90 shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                      style={activeTimeRange === period && period !== 'Monthly Forecast' ? { backgroundColor: '#000000', color: 'white' } : {}}
+                      className={`h-8 text-xs transition-all duration-200 ${
+                        period === 'Monthly Forecast'
+                          ? activeTimeRange === period
+                            ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-500/20'
+                            : 'text-purple-600 hover:text-purple-700 hover:bg-purple-100/50'
+                          : activeTimeRange === period
+                            ? 'bg-black text-white hover:bg-black/90 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
                     >
+                      {period === 'Monthly Forecast' && <Sparkles className="w-3 h-3 mr-1.5" />}
                       {period}
                     </Button>
                   ))}
@@ -741,12 +734,13 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-bold text-lg">AI Market Insight</h3>
                               <Badge variant="secondary" className="text-xs">
-                                {prediction.confidence}% Confidence
+                                {prediction.confidence}% Directional Accuracy
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-3">
-                              Our AI predicts <span className="font-semibold text-purple-600">${prediction.tomorrow_price.toFixed(2)}</span> for tomorrow
-                              ({prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}% from today).
+                              Nearest forecast: <span className="font-semibold text-purple-600">${prediction.tomorrow_price.toFixed(2)}</span>
+                              {prediction.prediction_date ? ` on ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                              {' '}({prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}% from today).
                               Direction: <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
                                 prediction.direction === 'bearish' ? 'text-red-500' : 'text-yellow-500'
                                 }`}>{prediction.direction.toUpperCase()}</span>.
@@ -1221,7 +1215,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                   </div>
                   <span>AI Prediction</span>
                   <Badge variant="outline" className="ml-auto text-xs">
-                    {prediction ? prediction.confidence : 0}% Confidence
+                    {prediction ? prediction.confidence : 0}% Directional Accuracy
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -1232,7 +1226,9 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                     <div className="bg-muted/50 rounded-lg p-4 border text-center">
                       <p className="text-sm text-muted-foreground mb-2 flex items-center justify-center gap-2">
                         <Brain className="w-4 h-4" />
-                        AI Predicted Price (Tomorrow)
+                        {prediction.prediction_date
+                          ? `Forecast — ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                          : 'AI Predicted Price'}
                       </p>
                       <p className="font-bold text-3xl">${prediction.tomorrow_price.toFixed(2)}</p>
                     </div>
@@ -1306,6 +1302,53 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+                    {/* Monthly Forecast Table Toggle */}
+                    {monthlyPredictions && monthlyPredictions.predictions.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setShowMonthlyTable(v => !v)}
+                          className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors py-1 border-t pt-3"
+                        >
+                          <span className="font-semibold flex items-center gap-1">
+                            <Activity className="w-3.5 h-3.5" />
+                            Monthly Forecast ({monthlyPredictions.prediction_month})
+                          </span>
+                          {showMonthlyTable ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        <AnimatePresence>
+                          {showMonthlyTable && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.25 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">
+                                {monthlyPredictions.predictions.map((mp, i) => (
+                                  <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-0">
+                                    <span className="text-muted-foreground">
+                                      {new Date(mp.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold">${mp.predicted_price.toFixed(2)}</span>
+                                      <span className={`font-medium ${mp.change_percent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {mp.change_percent >= 0 ? '+' : ''}{mp.change_percent.toFixed(2)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {monthlyPredictions.trained_at && (
+                                <p className="text-[10px] text-muted-foreground/60 mt-1 text-right">
+                                  Trained: {formatDateTime(monthlyPredictions.trained_at)}
+                                </p>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     )}
                   </>

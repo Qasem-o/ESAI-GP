@@ -2,8 +2,8 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta, timezone
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone, date
+import calendar
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -122,6 +122,38 @@ def _build_lstm(look_back: int):
     m.compile(optimizer="adam", loss="mean_squared_error")
     return m
 
+
+def get_remaining_business_days(last_date: date, ticker: str) -> list:
+    """
+    Returns a list of business day dates from last_date+1 to the end of the
+    current calendar month. Saudi tickers (.SR) use Sun-Thu schedule;
+    all others use Mon-Fri.
+    """
+    is_saudi = ticker.upper().endswith(".SR")
+    # Sun=6,Mon=0,Tue=1,Wed=2,Thu=3,Fri=4,Sat=5
+    if is_saudi:
+        work_days = {6, 0, 1, 2, 3}   # Sun-Thu
+    else:
+        work_days = {0, 1, 2, 3, 4}   # Mon-Fri
+
+    today = datetime.now(timezone.utc).date()
+    # Start from the day after last data, but at least today
+    start = max(last_date + timedelta(days=1), today)
+
+    # End of current calendar month
+    _, month_end_day = calendar.monthrange(today.year, today.month)
+    month_end = date(today.year, today.month, month_end_day)
+
+    bdays = []
+    current = start
+    while current <= month_end:
+        if current.weekday() in work_days:
+            bdays.append(current)
+        current += timedelta(days=1)
+
+    return bdays
+
+
 def train_xgboost_for_ticker(ticker, force_lstm=False):
     import pandas as pd
     import numpy as np
@@ -140,12 +172,8 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
 
     # Use globals from the module instead of re-importing
     from preparedata import Stock, ModelMetric
-    from model_training import get_engine
-    try:
-        from backend.prediction_models import PricePrediction
-    except ImportError:
-        sys.path.append(os.path.join(os.getcwd(), 'backend'))
-        from prediction_models import PricePrediction
+    from model_training import get_engine, get_remaining_business_days
+    from prediction_models import PricePrediction
 
     engine = get_engine()
     Session = sessionmaker(bind=engine)
@@ -180,7 +208,7 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
         ticker_dir = os.path.join(MODEL_DIR, ticker)
         os.makedirs(ticker_dir, exist_ok=True)
 
-        lstm_path = os.path.join(ticker_dir, "lstm_model.h5")
+        lstm_path   = os.path.join(ticker_dir, "lstm_model.h5")
         scaler_path = os.path.join(ticker_dir, "scaler.pkl")
         marker_path = os.path.join(ticker_dir, "lstm_trained_at.txt")
         
@@ -188,7 +216,7 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
         if os.path.exists(marker_path):
             with open(marker_path) as f:
                 ts = datetime.fromisoformat(f.read().strip())
-            needs_lstm = (datetime.utcnow() - ts).days >= 7
+            needs_lstm = (datetime.now(timezone.utc).replace(tzinfo=None) - ts).days >= 7
 
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled = scaler.fit_transform(df[["close"]])
@@ -216,7 +244,7 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
             )
             lstm_model.save(lstm_path)
             joblib.dump(scaler, scaler_path)
-            with open(marker_path, "w") as f: f.write(datetime.utcnow().isoformat())
+            with open(marker_path, "w") as f: f.write(datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
             print(f"[{ticker}] LSTM model saved.")
         else:
             print(f"[{ticker}] Using existing LSTM model.")
@@ -261,80 +289,134 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
         )
         hybrid.save_model(os.path.join(ticker_dir, "hybrid_corrector.json"))
 
+        # ── Backtest rows (is_test_set=True) ────────────────────────────────
         use_n = min(len(X_full), LOOK_BACK)
         test_start_idx = LOOK_BACK + len(X_full) - use_n
         
         test_actual = df["close"].iloc[test_start_idx:].values[:use_n]
-        test_dates = df.index[test_start_idx:][:use_n]
+        test_dates  = df.index[test_start_idx:][:use_n]
         X_feat_test = df[FEATURE_COLS].iloc[test_start_idx - 1 : test_start_idx + use_n - 1]
         
         lstm_test_slice = lstm_full_pred[-use_n:]
         hybrid_corr = hybrid.predict(X_feat_test)
-        test_preds = lstm_test_slice + hybrid_corr
+        test_preds  = lstm_test_slice + hybrid_corr
 
-        mape = float(mean_absolute_percentage_error(test_actual, test_preds))
-        rmse = float(np.sqrt(mean_squared_error(test_actual, test_preds)))
+        mape    = float(mean_absolute_percentage_error(test_actual, test_preds))
+        rmse    = float(np.sqrt(mean_squared_error(test_actual, test_preds)))
         dir_acc = float(np.mean((np.diff(test_actual) > 0) == (np.diff(test_preds) > 0)) * 100) if len(test_actual) > 1 else 0.0
 
-        last_seq = scaled[-LOOK_BACK:].reshape(1, LOOK_BACK, 1)
-        lstm_next = float(scaler.inverse_transform(lstm_model.predict(last_seq, verbose=0))[0][0])
-        last_feat = df[FEATURE_COLS].iloc[[-1]]
-        corr_next = float(hybrid.predict(last_feat)[0])
-        next_price = round(lstm_next + corr_next, 4)
-        
-        curr_price = float(df["close"].iloc[-1])
-        chg_pct = round(((next_price - curr_price) / curr_price) * 100, 4) if curr_price else 0.0
-        direction = "bullish" if chg_pct > 0 else ("bearish" if chg_pct < 0 else "neutral")
-        
-        last_date = df.index[-1].date()
-        pred_date = last_date + timedelta(days=1)
-        is_saudi = ticker.endswith(".SR")
-        if is_saudi:
-            while pred_date.weekday() in [4, 5]: pred_date += timedelta(days=1)
-        else:
-            while pred_date.weekday() in [5, 6]: pred_date += timedelta(days=1)
+        # ── Monthly forward predictions (is_test_set=False) ─────────────────
+        last_date    = df.index[-1].date()
+        last_feat    = df[FEATURE_COLS].iloc[[-1]]
+        curr_price   = float(df["close"].iloc[-1])
 
+        business_days = get_remaining_business_days(last_date, ticker)
+        print(f"[{ticker}] Generating {len(business_days)} forward predictions for rest of month...")
+
+        # Current month tag e.g. "2026-06"
+        today_utc     = datetime.now(timezone.utc)
+        pred_month    = today_utc.strftime("%Y-%m")
+
+        # Iterative multi-step forecast
+        current_seq  = scaled.copy()        # shape (N, 1)
+        current_feat = df[FEATURE_COLS].values[-1].copy()  # last known features
+
+        monthly_preds = []   # list of (pred_date, predicted_price, change_pct, direction)
+        prev_price    = curr_price
+
+        for pred_date in business_days:
+            seq_input  = current_seq[-LOOK_BACK:].reshape(1, LOOK_BACK, 1)
+            lstm_scaled = lstm_model.predict(seq_input, verbose=0)
+            lstm_price  = float(scaler.inverse_transform(lstm_scaled)[0][0])
+
+            # XGBoost correction uses last known features
+            xgb_corr   = float(hybrid.predict(last_feat)[0])
+            final_price = round(lstm_price + xgb_corr, 4)
+
+            chg_pct    = round(((final_price - prev_price) / prev_price) * 100, 4) if prev_price else 0.0
+            direction  = "bullish" if chg_pct > 0 else ("bearish" if chg_pct < 0 else "neutral")
+
+            monthly_preds.append((pred_date, final_price, chg_pct, direction))
+
+            # Roll the sequence: append new scaled prediction, drop oldest
+            new_scaled  = scaler.transform([[final_price]])
+            current_seq = np.vstack([current_seq, new_scaled])
+            prev_price  = final_price
+
+        # ── Database writes ──────────────────────────────────────────────────
         session = Session()
         try:
             stock = session.query(Stock).filter(Stock.symbol == ticker).one()
-            metric = session.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id, ModelMetric.model_type == "Hybrid").one_or_none()
+
+            # Update model metrics
+            metric = session.query(ModelMetric).filter(
+                ModelMetric.stock_id == stock.stock_id,
+                ModelMetric.model_type == "Hybrid"
+            ).one_or_none()
             if not metric:
                 metric = ModelMetric(stock_id=stock.stock_id, model_type="Hybrid")
                 session.add(metric)
-            metric.rmse, metric.mape, metric.directional_accuracy = round(rmse,4), round(mape,4), round(dir_acc,2)
-            metric.created_at = datetime.now(timezone.utc) # Update the "Last Evaluated" time
+            metric.rmse               = round(rmse, 4)
+            metric.mape               = round(mape, 4)
+            metric.directional_accuracy = round(dir_acc, 2)
+            metric.created_at         = datetime.now(timezone.utc)
 
-            true_history_dates = {r.prediction_date for r in session.query(PricePrediction.prediction_date).filter(
-                PricePrediction.stock_id == stock.stock_id, PricePrediction.is_test_set == False, PricePrediction.actual_price != None
-            ).all()}
+            # Preserve rows where actual_price was already filled in (real history)
+            true_history_dates = {
+                r.prediction_date
+                for r in session.query(PricePrediction.prediction_date).filter(
+                    PricePrediction.stock_id == stock.stock_id,
+                    PricePrediction.is_test_set == False,
+                    PricePrediction.actual_price != None
+                ).all()
+            }
 
+            # Delete old backtest rows + old future predictions (this month)
             session.query(PricePrediction).filter(
-                PricePrediction.stock_id == stock.stock_id, (PricePrediction.is_test_set == True) | (PricePrediction.actual_price == None)
+                PricePrediction.stock_id == stock.stock_id,
+                (PricePrediction.is_test_set == True) |
+                (
+                    (PricePrediction.is_test_set == False) &
+                    (PricePrediction.actual_price == None)
+                )
             ).delete()
 
-            now_utc = datetime.now(timezone.utc)
-            to_insert = []
-            
+            now_utc    = datetime.now(timezone.utc)
+            to_insert  = []
+
+            # Backtest rows
             for i in range(use_n):
                 d = test_dates[i].date()
-                if d in true_history_dates: continue
+                if d in true_history_dates:
+                    continue
                 pred_p, act_p = float(test_preds[i]), float(test_actual[i])
                 prev_p = float(test_actual[i-1]) if i > 0 else act_p
-                chg = round(((pred_p - prev_p)/prev_p)*100, 4) if prev_p else 0.0
+                chg    = round(((pred_p - prev_p) / prev_p) * 100, 4) if prev_p else 0.0
                 to_insert.append(PricePrediction(
-                    stock_id=stock.stock_id, prediction_date=d, predicted_price=pred_p, actual_price=act_p,
-                    confidence=round(dir_acc, 2), direction=("bullish" if chg > 0 else "bearish"),
-                    change_percent=chg, model_type="Hybrid", trained_at=now_utc, is_test_set=True
+                    stock_id=stock.stock_id, prediction_date=d,
+                    predicted_price=pred_p, actual_price=act_p,
+                    confidence=round(dir_acc, 2),
+                    direction=("bullish" if chg > 0 else "bearish"),
+                    change_percent=chg, model_type="Hybrid",
+                    trained_at=now_utc, is_test_set=True,
+                    prediction_month=pred_month
                 ))
 
-            to_insert.append(PricePrediction(
-                stock_id=stock.stock_id, prediction_date=pred_date, predicted_price=next_price, actual_price=None,
-                confidence=round(dir_acc, 2), direction=direction, change_percent=chg_pct,
-                model_type="Hybrid", trained_at=now_utc, is_test_set=False
-            ))
+            # Monthly forward predictions
+            for pred_date, final_price, chg_pct, direction in monthly_preds:
+                to_insert.append(PricePrediction(
+                    stock_id=stock.stock_id, prediction_date=pred_date,
+                    predicted_price=final_price, actual_price=None,
+                    confidence=round(dir_acc, 2),
+                    direction=direction, change_percent=chg_pct,
+                    model_type="Hybrid", trained_at=now_utc,
+                    is_test_set=False, prediction_month=pred_month
+                ))
+
             session.bulk_save_objects(to_insert)
             session.commit()
-            return {"ticker": ticker, "status": "ok", "msg": "success"}
+            print(f"[{ticker}] Saved {len(monthly_preds)} monthly predictions + {use_n} backtest rows.")
+            return {"ticker": ticker, "status": "ok", "msg": f"success — {len(monthly_preds)} forward days"}
         except Exception as e:
             session.rollback()
             return {"ticker": ticker, "status": "error", "msg": str(e)}
@@ -349,6 +431,7 @@ def train_xgboost_for_ticker(ticker, force_lstm=False):
         return {"ticker": ticker, "status": "error", "msg": str(e)}
 
 def run_daily(tickers: list, workers: int = 1, force_lstm: bool = False):
+    from concurrent.futures import ProcessPoolExecutor, as_completed
     results = {"ok": [], "skip": [], "error": []}
     if workers > 1:
         with ProcessPoolExecutor(max_workers=workers) as pool:
@@ -371,23 +454,34 @@ def get_stocks_needing_training(tickers: list) -> list:
     Session = sessionmaker(bind=engine)
     session = Session()
     needing = []
+    today = datetime.now(timezone.utc).date()
+    current_month = today.strftime("%Y-%m")
     try:
         for t in tickers:
-            res_h = session.execute(text("SELECT MAX(date) FROM price_history ph JOIN stocks s ON s.stock_id = ph.stock_id WHERE s.symbol = :t"), {"t": t}).scalar()
-            res_p = session.execute(text("SELECT MAX(trained_at) FROM price_predictions pp JOIN stocks s ON s.stock_id = pp.stock_id WHERE s.symbol = :t"), {"t": t}).scalar()
-            
+            # Check if we already have forward predictions for this month
+            res_month = session.execute(text(
+                """SELECT COUNT(*) FROM price_predictions pp
+                   JOIN stocks s ON s.stock_id = pp.stock_id
+                   WHERE s.symbol = :t AND pp.is_test_set = false
+                     AND pp.prediction_month = :month AND pp.actual_price IS NULL"""
+            ), {"t": t, "month": current_month}).scalar()
+
+            if res_month and res_month > 0:
+                print(f"Skipping {t}: Already has {res_month} forward predictions for {current_month}.")
+                continue
+
+            res_h = session.execute(text(
+                "SELECT MAX(date) FROM price_history ph JOIN stocks s ON s.stock_id = ph.stock_id WHERE s.symbol = :t"
+            ), {"t": t}).scalar()
+
             if not res_h:
                 print(f"Skipping {t}: No price history found.")
                 continue
-            
-            if not res_p:
-                needing.append(t)
-            elif res_h >= res_p.date():
-                needing.append(t)
-            else:
-                print(f"Skipping {t}: Already trained on latest data (History: {res_h}, Trained: {res_p.date()}).")
+
+            needing.append(t)
         return needing
-    finally: session.close()
+    finally:
+        session.close()
 
 def main():
     import argparse
@@ -401,10 +495,11 @@ def main():
     create_tables()
     all_tickers = get_all_tickers()
     tickers = [t for t in all_tickers if t in [s.upper() for s in args.symbols]] if args.symbols else all_tickers
-    if args.skip_trained_today: tickers = get_stocks_needing_training(tickers)
+    if args.skip_trained_today:
+        tickers = get_stocks_needing_training(tickers)
     
     if not tickers:
-        print("All stocks up to date.")
+        print("All stocks already have monthly predictions for this month.")
         return
 
     print(f"Training {len(tickers)} stocks (Force LSTM: {args.force_lstm})...")
