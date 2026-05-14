@@ -13,7 +13,7 @@ export function Footer() {
             © {new Date().getFullYear()} EyeStocks AI (ESAI). {t.footer.rights}
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link to="/about" className="hover:text-primary transition-colors">{t.footer.about}</Link>
+            <Link to="/our-story" className="hover:text-primary transition-colors">{t.footer.about}</Link>
             <span className="hidden md:inline">•</span>
             <Link to="/terms" className="hover:text-primary transition-colors">{t.footer.terms}</Link>
             <span className="hidden md:inline">•</span>

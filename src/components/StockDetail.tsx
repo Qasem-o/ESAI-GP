@@ -311,7 +311,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
         case '6M': limit = 180; break;
         case '1Y': limit = 365; break;
         case 'ALL': limit = 5000; break;
-        case 'توقع الشهر': limit = 30; break;
+        case 'Monthly Forecast': limit = 30; break;
         default: limit = 30;
       }
 
@@ -430,8 +430,8 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
              <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
              <Activity className="absolute inset-0 m-auto w-8 h-8 text-primary animate-pulse" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Analyzing {currentSymbol}</h2>
-          <p className="text-muted-foreground animate-pulse">Fetching real-time market insights...</p>
+          <h2 className="text-2xl font-bold mb-2">Preparing Analysis</h2>
+          <p className="text-muted-foreground animate-pulse">Fetching real-time insights for {currentSymbol}...</p>
         </motion.div>
       </div>
     );
@@ -459,6 +459,15 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
     }
     const isOpen = sDay >= 1 && sDay <= 5 && sTimeVal >= 1630 && sTimeVal <= 2300;
     return { name: 'US Market', open: '16:30', close: '23:00', isOpen };
+  };
+
+  const getCurrency = (symbol: string) => {
+    if (symbol.endsWith(".SR")) return "SAR";
+    if (symbol.endsWith(".KW")) return "KWD";
+    if (symbol.endsWith(".QA")) return "QAR";
+    if (symbol.endsWith(".AD") || symbol.endsWith(".DU")) return "AED";
+    if (symbol.endsWith(".CA")) return "EGP";
+    return "$";
   };
 
   const getChartDataWithPrediction = () => {
@@ -520,8 +529,8 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
               <div className="flex items-center gap-3">
                 <StockLogo symbol={displayStockData.symbol} name={displayStockData.name} />
                 <div>
-                  <h1 className="font-bold text-lg">${displayStockData.symbol}</h1>
-                  <p className="text-xs text-muted-foreground hidden sm:block">{displayStockData.name}</p>
+                  <h1 className="font-bold text-lg">{displayStockData.name}</h1>
+                  <p className="text-xs text-muted-foreground hidden sm:block">{displayStockData.symbol}</p>
                 </div>
               </div>
             </div>
@@ -583,7 +592,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
                   <p className="text-muted-foreground text-sm font-medium mb-1">Current Price</p>
-                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight">${displayStockData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
+                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{getCurrency(displayStockData.symbol)} {displayStockData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
                   <div className="flex items-center gap-3 mt-2">
                     <Badge className={`text-base px-2 py-1 ${displayStockData.change >= 0
                       ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-none border-0"
@@ -661,7 +670,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                       }}
                       itemStyle={{ color: 'hsl(var(--foreground))' }}
                       formatter={(value: any, name: string) => {
-                        const formattedValue = `$${parseFloat(value).toFixed(2)}`;
+                        const formattedValue = `${getCurrency(displayStockData.symbol)} ${parseFloat(value).toFixed(2)}`;
                         return [formattedValue, name === 'ai_prediction' ? 'AI Prediction' : 'Price'];
                       }}
                       labelFormatter={(label) => new Date(label).toDateString()}
@@ -738,7 +747,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-3">
-                              Nearest forecast: <span className="font-semibold text-purple-600">${prediction.tomorrow_price.toFixed(2)}</span>
+                              Nearest forecast: <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price.toFixed(2)}</span>
                               {prediction.prediction_date ? ` on ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                               {' '}({prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}% from today).
                               Direction: <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
@@ -752,11 +761,11 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                               </div>
                               <div className="bg-background/40 p-2 rounded">
                                 <span className="text-muted-foreground block">Target Price</span>
-                                <span className="font-bold">${prediction.target_price || "N/A"}</span>
+                                <span className="font-bold">{getCurrency(displayStockData.symbol)} {prediction.target_price || "N/A"}</span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
                                 <span className="text-muted-foreground block">Stop Loss</span>
-                                <span className="font-bold text-red-400">${prediction.stop_loss || "N/A"}</span>
+                                <span className="font-bold text-red-400">{getCurrency(displayStockData.symbol)} {prediction.stop_loss || "N/A"}</span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
                                 <span className="text-muted-foreground block">Risk Level</span>
@@ -1083,15 +1092,15 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Open</p>
-                          <p className="font-semibold">${typeof displayStockData.open === 'number' ? displayStockData.open.toFixed(2) : "N/A"}</p>
+                          <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.open === 'number' ? displayStockData.open.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">High</p>
-                          <p className="font-semibold">${typeof displayStockData.high === 'number' ? displayStockData.high.toFixed(2) : "N/A"}</p>
+                          <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.high === 'number' ? displayStockData.high.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Low</p>
-                          <p className="font-semibold">${typeof displayStockData.low === 'number' ? displayStockData.low.toFixed(2) : "N/A"}</p>
+                          <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.low === 'number' ? displayStockData.low.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Volume</p>
@@ -1115,11 +1124,11 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">52W High</p>
-                          <p className="font-semibold">{displayStockData.week52High ? "$" + Number(displayStockData.week52High).toFixed(2) : "N/A"}</p>
+                          <p className="font-semibold">{displayStockData.week52High ? getCurrency(displayStockData.symbol) + " " + Number(displayStockData.week52High).toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">52W Low</p>
-                          <p className="font-semibold">{displayStockData.week52Low ? "$" + Number(displayStockData.week52Low).toFixed(2) : "N/A"}</p>
+                          <p className="font-semibold">{displayStockData.week52Low ? getCurrency(displayStockData.symbol) + " " + Number(displayStockData.week52Low).toFixed(2) : "N/A"}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1230,7 +1239,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                           ? `Forecast — ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                           : 'AI Predicted Price'}
                       </p>
-                      <p className="font-bold text-3xl">${prediction.tomorrow_price.toFixed(2)}</p>
+                      <p className="font-bold text-3xl">{getCurrency(currentSymbol)} {prediction.tomorrow_price.toFixed(2)}</p>
                     </div>
 
                     {/* Prediction Details */}
@@ -1240,7 +1249,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                           <p className="text-sm text-muted-foreground mb-1">Predicted Change</p>
                           <div className="flex items-center gap-2">
                             <p className={`text-2xl font-bold ${prediction.change_percent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {prediction.change_percent >= 0 ? '+' : ''}${(prediction.tomorrow_price - displayStockData.price).toFixed(2)}
+                              {prediction.change_percent >= 0 ? '+' : ''}{getCurrency(currentSymbol)} {(prediction.tomorrow_price - displayStockData.price).toFixed(2)}
                             </p>
                             <Badge variant={prediction.change_percent >= 0 ? "default" : "destructive"}>
                               {prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}%
@@ -1274,11 +1283,11 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Target Price</span>
-                          <span className="font-semibold text-green-500">${prediction.target_price || "N/A"}</span>
+                          <span className="font-semibold text-green-500">{getCurrency(currentSymbol)} {prediction.target_price || "N/A"}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Stop Loss</span>
-                          <span className="font-semibold text-red-500">${prediction.stop_loss || "N/A"}</span>
+                          <span className="font-semibold text-red-500">{getCurrency(currentSymbol)} {prediction.stop_loss || "N/A"}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Risk Level</span>

@@ -19,9 +19,11 @@ interface SignupProps {
   onGoToHome: () => void;
   onGoToLogin: () => void;
   onGoToDashboard: () => void;
+  onGoToTerms?: () => void;
+  onGoToPrivacy?: () => void;
 }
 
-export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps) {
+export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard, onGoToTerms, onGoToPrivacy }: SignupProps) {
   const { signup, isLoading } = useAuth();
   const { theme } = useTheme();
   const { t, language } = useLanguage();
@@ -291,11 +293,21 @@ export function Signup({ onGoToHome, onGoToLogin, onGoToDashboard }: SignupProps
                   />
                   <Label htmlFor="terms" className="text-xs leading-5">
                     {language === 'ar' ? 'أوافق على' : 'I agree to the'}{" "}
-                    <Button variant="link" className="p-0 h-auto text-xs" type="button">
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs" 
+                      type="button"
+                      onClick={onGoToTerms}
+                    >
                       {language === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}
                     </Button>{" "}
                     {language === 'ar' ? 'و' : 'and'}{" "}
-                    <Button variant="link" className="p-0 h-auto text-xs" type="button">
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs" 
+                      type="button"
+                      onClick={onGoToPrivacy}
+                    >
                       {language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}
                     </Button>
                   </Label>

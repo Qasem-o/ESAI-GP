@@ -19,11 +19,12 @@ import { UserManagement } from "./components/admin/UserManagement";
 import { StockManagement } from "./components/admin/StockManagement";
 import { ModelManagement } from "./components/admin/ModelManagement";
 import { CommunityManagement } from "./components/admin/CommunityManagement";
-import { About } from "./components/About";
-import { Terms } from "./components/Terms";
-import { Privacy } from "./components/Privacy";
+import { AboutPage } from "./components/AboutPage";
+import { TermsPage } from "./components/TermsPage";
+import { PrivacyPage } from "./components/PrivacyPage";
 import { Help } from "./components/Help";
 import { Toaster } from "./components/ui/sonner";
+import ScrollToTop from "./components/ScrollToTop";
 
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
@@ -42,7 +43,6 @@ export default function App() {
     if (path === "/profile") return "profile";
     if (path === "/login") return "login";
     if (path === "/signup") return "signup";
-    // If it's none of the above, and likely a stock symbol, we treat it as stock/explore context
     return "stock";
   };
 
@@ -61,19 +61,29 @@ export default function App() {
     onGoToStockDetails: (symbol: string) => navigate(`/stock/${symbol}`),
     onGoToStocks: () => navigate("/explore"),
     onGoToCommunity: () => navigate("/"),
-
     onGoToDashboard: () => navigate("/"),
+    onGoToTerms: () => navigate("/terms"),
+    onGoToPrivacy: () => navigate("/privacy"),
   };
 
   return (
     <LanguageProvider>
     <ThemeProvider>
       <AuthProvider>
+        <ScrollToTop />
         <DisclaimerModal />
         <Toaster />
         <Routes>
+          {/* RADICAL FIX: Move info page to the absolute top with a unique path to avoid stock routing conflict */}
+          <Route path="/our-story" element={<AboutPage {...navigationProps} currentPage="about" />} />
+          <Route path="/terms" element={<TermsPage {...navigationProps} />} />
+          <Route path="/privacy" element={<PrivacyPage {...navigationProps} />} />
+
           <Route path="/" element={<Community {...navigationProps} />} />
           <Route path="/explore" element={<Stocks {...navigationProps} />} />
+
+
+          <Route path="/help" element={<Help {...navigationProps} />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -92,7 +102,6 @@ export default function App() {
                   onGoToStocks={navigationProps.onGoToExplore}
                   onGoToPortfolio={navigationProps.onGoToPortfolio}
                   onGoToCommunity={navigationProps.onGoToCommunity}
-
                   onGoToSimulator={navigationProps.onGoToSimulator}
                   onGoToProfile={navigationProps.onGoToProfile}
                   onGoToSignup={navigationProps.onGoToSignup}
@@ -102,7 +111,7 @@ export default function App() {
               }
             />
 
-            {/* Legacy/Short Stock Detail Route (Redirect or Handle) */}
+            {/* Legacy/Short Stock Detail Route (Catch-all - MUST BE LAST) */}
             <Route
               path="/:symbol"
               element={
@@ -112,7 +121,6 @@ export default function App() {
                   onGoToStocks={navigationProps.onGoToExplore}
                   onGoToPortfolio={navigationProps.onGoToPortfolio}
                   onGoToCommunity={navigationProps.onGoToCommunity}
-
                   onGoToSimulator={navigationProps.onGoToSimulator}
                   onGoToProfile={navigationProps.onGoToProfile}
                   onGoToSignup={navigationProps.onGoToSignup}
@@ -121,23 +129,6 @@ export default function App() {
                 />
               }
             />
-          </Route>
-
-          {/* Public Legal/Info Pages */}
-          <Route path="/about" element={<About {...navigationProps} />} />
-          <Route path="/terms" element={<Terms {...navigationProps} />} />
-          <Route path="/privacy" element={<Privacy {...navigationProps} />} />
-          <Route path="/help" element={<Help {...navigationProps} />} />
-
-          {/* Admin Routes - require admin role */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<AdminDashboard />}>
-              <Route index element={<AdminOverview />} />
-              <Route path="users"     element={<UserManagement />} />
-              <Route path="stocks"    element={<StockManagement />} />
-              <Route path="models"    element={<ModelManagement />} />
-              <Route path="community" element={<CommunityManagement />} />
-            </Route>
           </Route>
 
           <Route
@@ -158,6 +149,8 @@ export default function App() {
                 onGoToHome={navigationProps.onGoToHome}
                 onGoToLogin={navigationProps.onGoToLogin}
                 onGoToDashboard={navigationProps.onGoToDashboard}
+                onGoToTerms={navigationProps.onGoToTerms}
+                onGoToPrivacy={navigationProps.onGoToPrivacy}
               />
             }
           />

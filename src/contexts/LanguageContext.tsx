@@ -223,6 +223,45 @@ interface Translations {
     body: string;
     accept: string;
   };
+  about: {
+    badge: string;
+    hero: {
+      title: string;
+      subtitle: string;
+      highlight: string;
+    };
+    story: {
+      label: string;
+      title: string;
+      desc: string;
+    };
+    features: {
+      title: string;
+      items: Array<{ title: string; desc: string; bullets: string[] }>;
+    };
+    team: {
+      title: string;
+      roleLeader: string;
+      roleMember: string;
+    };
+  };
+  terms: {
+    badge: string;
+    title: string;
+    desc: string;
+    lastUpdated: string;
+    onThisPage: string;
+    showMore: string;
+    sections: Array<{ id: string; title: string; content: string }>;
+  };
+  privacy: {
+    badge: string;
+    title: string;
+    desc: string;
+    lastUpdated: string;
+    onThisPage: string;
+    sections: Array<{ id: string; title: string; content: string }>;
+  };
 }
 
 const translations: Record<Language, Translations> = {
@@ -435,6 +474,92 @@ const translations: Record<Language, Translations> = {
       body: "EyeStocks AI is an educational platform designed for learning and simulation purposes only. The AI predictions, market data, and any content on this platform do not constitute financial advice. Past performance is not indicative of future results. Always consult a qualified financial advisor before making any investment decisions.",
       accept: "I Understand",
     },
+    about: {
+      hero: {
+        welcome: "Welcome to EyeStocks AI",
+        title: "We believe successful investing should not be limited to",
+        subtitle: "Wall Street experts.",
+        desc: "Our mission is to make advanced market intelligence accessible to everyone through modern AI technologies and intuitive financial tools. By combining machine learning, predictive analytics, and real-time financial insights, we help investors reduce emotional decision-making and trade with greater confidence.",
+      },
+      story: {
+        label: "Our Mission",
+        missionDesc: "Make advanced market intelligence accessible to everyone through modern AI technologies and intuitive financial tools.",
+        storyLabel: "Our Story",
+        paragraph1: "EyeStocks AI started as an ambitious graduation project at King Faisal University under the College of Computer Sciences & Information Technology.",
+        paragraph2: "We identified a major challenge in the financial world: while many AI forecasting models are technically powerful, they are often too complex and impractical for everyday investors.",
+        goalTitle: "Our goal became clear:",
+        goalText: "Build an intelligent platform that learns from historical market behavior, analyzes current trends, and forecasts future stock movements in a simple and accessible way.",
+        footer: "Today, EyeStocks AI continues evolving into a complete intelligent investing ecosystem designed for modern traders and investors.",
+      },
+      features: {
+        badge: "What We Offer",
+        title: "Powerful Tools for Smarter Investing",
+        items: [
+          {
+            title: "Intelligent Forecasting",
+            desc: "Our Hybrid AI Engine combines LSTM Neural Networks and XGBoost models to generate highly accurate stock movement predictions while minimizing market noise.",
+            bullets: ["Advanced AI prediction models", "Trend forecasting with high accuracy", "Real-time market analysis", "Smart buy/sell insights"]
+          },
+          {
+            title: "Risk-Free Trading Simulator",
+            desc: "Practice before risking real capital. Our integrated virtual trading environment allows users to test strategies using simulated portfolios under real market conditions.",
+            bullets: ["Virtual portfolio management", "Realistic market simulations", "Strategy testing environment", "Beginner-friendly experience"]
+          },
+          {
+            title: "Confidence & Risk Metrics",
+            desc: "We believe transparency matters. Instead of only showing a predicted price, EyeStocks AI provides confidence indicators and risk metrics to support smarter trading decisions.",
+            bullets: ["AI confidence scoring", "Risk awareness indicators", "Market volatility analysis", "Decision-support insights"]
+          },
+          {
+            title: "Interactive Community",
+            desc: "Investing becomes better when knowledge is shared. Our social hub allows investors and traders to discuss market trends, exchange insights, and learn collaboratively.",
+            bullets: ["Community discussions", "Shared market insights", "Investor engagement", "Collaborative learning"]
+          }
+        ]
+      },
+      team: {
+        badge: "Meet the Team",
+        title: "The Minds Behind EyeStocks AI",
+        roleLeader: "Team Leader",
+        roleMember: "Team Member",
+        supervisorLabel: "Academic Supervision",
+        supervisorBy: "Supervised by:",
+        supervisorName: "Prof. Alaa Sagheer",
+      }
+    },
+    terms: {
+      badge: "Legal",
+      title: "Terms of Service",
+      desc: "These terms govern your access to and use of EyeStocks AI. By using our platform, you agree to these terms and our commitment to transparency.",
+      lastUpdated: "Last Updated: May 2026",
+      onThisPage: "On this page",
+      showMore: "Show more",
+      sections: [
+        { id: "intro", title: "1. Introduction", content: "Welcome to EyeStocks AI. These Terms of Service (\"Terms\") govern your access to and use of our website, AI-driven stock prediction tools, virtual trading simulator, and community features. By creating an account or using our services, you agree to be bound by these Terms. If you do not agree, please do not use the platform." },
+        { id: "user", title: "2. User Responsibilities", content: "To maintain a secure environment, you agree to: Provide accurate and complete information during registration. Maintain the confidentiality of your account credentials. Be solely responsible for all activities that occur under your account. Notify us immediately of any unauthorized use of your account." },
+        { id: "use", title: "3. Acceptable Use", content: "You agree not to use EyeStocks AI to: Attempt to bypass, crawl, or \"scrape\" our AI prediction models or data pipelines. Post offensive, defamatory, or unlawful content within the community social feed. Manipulate the virtual trading simulator through technical exploits. Impersonate financial advisors or provide professional financial advice to other users." },
+        { id: "intellectual", title: "4. Intellectual Property", content: "All content on this platform—including the Hybrid AI models (LSTM & XGBoost), proprietary algorithms, user interface design, logos, and documentation—is the intellectual property of the EyeStocks AI development team and protected by copyright and academic integrity laws. You are granted a limited, non-exclusive license to use the platform for personal, non-commercial educational purposes." },
+        { id: "disclaimer", title: "5. Disclaimers (IMPORTANT)", content: "Educational Use Only: EyeStocks AI is a graduation project developed for academic purposes. It is not a licensed financial advisory service. No Financial Advice: The AI predictions and community insights are for informational and simulation purposes only. They do not constitute investment advice. Simulation vs. Reality: The virtual trading simulator uses real-market data, but all \"trades\" are executed with virtual currency. No real money is ever at risk. Accuracy: While we strive for high precision (64%+ directional accuracy), stock markets are inherently volatile. We do not guarantee the accuracy of any prediction. Limitation of Liability: The developers and King Faisal University (KFU) are not liable for any financial losses incurred in real-world trading based on information from this platform." },
+        { id: "contact", title: "6. Contact Information", content: "For questions regarding these Terms, please contact us at: Email: support@eyestocks-ai.com" }
+      ]
+    },
+    privacy: {
+      badge: "Privacy",
+      title: "Privacy Policy",
+      desc: "Your privacy is important to us. This policy explains how EyeStocks AI collects, uses, and protects your personal information.",
+      lastUpdated: "Last Updated: May 2026",
+      onThisPage: "On this page",
+      sections: [
+        { id: "intro", title: "1. Introduction", content: "At EyeStocks AI, your privacy is a priority. This Privacy Policy explains how we collect, use, and protect your information when you interact with our platform." },
+        { id: "collect", title: "2. Information We Collect", content: "We collect information to provide a personalized and functional experience: Personal Information (Name, email address, and profile details during sign-up), Usage Data (Details of your virtual trades, watchlist preferences, and interactions within the community feed), and Technical Data (IP address, browser type, and device information collected via our cloud hosting service providers)." },
+        { id: "usage", title: "3. How We Use Information", content: "We use the data collected for the following purposes: To manage your virtual portfolio and sync your trading history. To improve our AI prediction models by analyzing aggregate user trends. To maintain the security and integrity of the community social feed. To provide technical support and platform updates." },
+        { id: "cookies", title: "4. Cookies & Tracking", content: "EyeStocks AI uses essential cookies and local storage to: Keep you logged in across sessions (using JWT tokens), remember your UI preferences (e.g., dark mode), and analyze platform traffic through basic analytics tools. You can disable cookies in your browser settings, but some features of the platform may stop functioning." },
+        { id: "sharing", title: "5. Data Sharing", content: "We do not sell your personal data to third parties. We only share information with service providers necessary for our operations: Database Management (Your data is securely stored via our database service provider), Hosting Providers (Technical logs are managed by our cloud hosting service providers), and Legal Requirements (We may disclose information if required by law or to protect our academic and legal rights)." },
+        { id: "security", title: "6. Data Security", content: "We implement industry-standard security measures, including Encryption (All data transmission is secured via HTTPS/SSL), Safe Authentication (We use stateless JSON Web Tokens for secure user sessions), and Database Security (Row Level Security is applied to ensure you can only access your own portfolio data)." },
+        { id: "rights", title: "7. Your Rights", content: "You have the right to: Access the personal data we hold about you. Request the correction of inaccurate data. Request the deletion of your account and all associated trading data. Opt-out of any non-essential communications." },
+        { id: "contact", title: "8. Contact Information", content: "For privacy-related inquiries or to exercise your data rights, please reach out: Email: privacy@eyestocks-ai.com" }
+      ]
+    },
   },
   ar: {
     nav: {
@@ -644,6 +769,92 @@ const translations: Record<Language, Translations> = {
       title: "إخلاء المسؤولية",
       body: "EyeStocks AI منصة تعليمية مصممة لأغراض التعلم والمحاكاة فقط. لا تُعدّ توقعات الذكاء الاصطناعي وبيانات السوق والمحتوى الموجود على هذه المنصة نصيحةً مالية. الأداء السابق لا يضمن النتائج المستقبلية. استشر مستشاراً مالياً مؤهلاً دائماً قبل اتخاذ أي قرارات استثمارية.",
       accept: "فهمت وأوافق",
+    },
+    about: {
+      hero: {
+        welcome: "مرحباً بكم في <span dir='ltr' class='isolate-term'>EyeStocks AI</span>",
+        title: "نؤمن بأن الاستثمار الناجح لا ينبغي أن يقتصر على",
+        subtitle: "خبراء وول ستريت.",
+        desc: "مهمتنا هي جعل ذكاء السوق المتقدم متاحاً للجميع من خلال تقنيات الذكاء الاصطناعي الحديثة والأدوات المالية البديهية. من خلال الجمع بين التعلم الآلي والتحليلات التنبؤية والرؤى المالية في الوقت الفعلي، نساعد المستثمرين على تقليل اتخاذ القرارات العاطفية والتداول بثقة أكبر.",
+      },
+      story: {
+        label: "مهمتنا",
+        missionDesc: "جعل ذكاء السوق المتقدم متاحاً للجميع من خلال تقنيات الذكاء الاصطناعي الحديثة والأدوات المالية البديهية.",
+        storyLabel: "قصتنا",
+        paragraph1: "بدأت <span dir='ltr' class='isolate-term'>EyeStocks AI</span> كمشروع تخرج طموح في <span class='font-bold text-slate-900 underline decoration-teal-500/30 underline-offset-4'>جامعة الملك فيصل</span> تحت <span class='font-bold text-slate-900'>كلية علوم الحاسب وتقنية المعلومات</span>.",
+        paragraph2: "لقد حددنا تحدياً كبيراً في العالم المالي: فبينما العديد من نماذج التنبؤ بالذكاء الاصطناعي قوية تقنياً، إلا أنها غالباً ما تكون معقدة للغاية وغير عملية للمستثمرين العاديين.",
+        goalTitle: "أصبح هدفنا واضحاً:",
+        goalText: "بناء منصة ذكية تتعلم من سلوك السوق التاريخي، وتحلل الاتجاهات الحالية، وتتنبأ بتحركات الأسهم المستقبلية بطريقة بسيطة وسهلة الوصول.",
+        footer: "اليوم، تستمر <span dir='ltr' class='isolate-term'>EyeStocks AI</span> في التطور لتصبح نظاماً استثمارياً ذكياً متكاملاً مصمماً للمتداولين والمستثمرين المعاصرين.",
+      },
+      features: {
+        badge: "ما نقدمه",
+        title: "أدوات قوية لاستثمار أذكى",
+        items: [
+          {
+            title: "تنبؤ ذكي",
+            desc: "محرك الذكاء الاصطناعي الهجين لدينا يجمع بين شبكات <span dir='ltr' class='isolate-term'>LSTM</span> العصبية ونماذج <span dir='ltr' class='isolate-term'>XGBoost</span> لإنشاء توقعات دقيقة للغاية لحركة الأسهم مع تقليل ضوضاء السوق.",
+            bullets: ["نماذج توقع متقدمة بالذكاء الاصطناعي", "توقع الاتجاهات بدقة عالية", "تحليل السوق في الوقت الفعلي", "رؤى ذكية للشراء والبيع"]
+          },
+          {
+            title: "محاكي تداول بدون مخاطر",
+            desc: "تدرب قبل المخاطرة برأس مال حقيقي. تتيح بيئة التداول الافتراضية المتكاملة للمستخدمين اختبار الاستراتيجيات باستخدام محافظ محاكاة تحت ظروف السوق الحقيقية.",
+            bullets: ["إدارة المحفظة الافتراضية", "محاكاة واقعية للسوق", "بيئة لاختبار الاستراتيجيات", "تجربة سهلة للمبتدئين"]
+          },
+          {
+            title: "مقاييس الثقة والمخاطر",
+            desc: "نحن نؤمن بأهمية الشفافية. بدلاً من عرض السعر المتوقع فقط، توفر <span dir='ltr' class='isolate-term'>EyeStocks AI</span> مؤشرات الثقة ومقاييس المخاطر لدعم قرارات التداول الأكثر ذكاءً.",
+            bullets: ["تسجيل درجة ثقة الذكاء الاصطناعي", "مؤشرات الوعي بالمخاطر", "تحليل تقلبات السوق", "رؤى لدعم القرار"]
+          },
+          {
+            title: "مجتمع تفاعلي",
+            desc: "يصبح الاستثمار أفضل عندما يتم تبادل المعرفة. يسمح مركزنا الاجتماعي للمستثمرين والمتداولين بمناقشة اتجاهات السوق وتبادل الرؤى والتعلم بشكل تعاوني.",
+            bullets: ["نقاشات مجتمعية", "مشاركة رؤى السوق", "تفاعل بين المستثمرين", "تعلم تعاوني"]
+          }
+        ]
+      },
+      team: {
+        badge: "فريق العمل",
+        title: "العقول الكامنة خلف <span dir='ltr' class='isolate-term'>EyeStocks AI</span>",
+        roleLeader: "قائد الفريق",
+        roleMember: "عضو الفريق",
+        supervisorLabel: "إشراف أكاديمي",
+        supervisorBy: "تحت إشراف:",
+        supervisorName: "أ.د. علاء المليجي",
+      }
+    },
+    terms: {
+      badge: "قانوني",
+      title: "شروط الخدمة",
+      desc: "تحكم هذه الشروط وصولك واستخدامك لـ EyeStocks AI. باستخدام منصتنا، فإنك توافق على هذه الشروط والتزامنا بالشفافية.",
+      lastUpdated: "آخر تحديث: مايو 2026",
+      onThisPage: "في هذه الصفحة",
+      showMore: "عرض المزيد",
+      sections: [
+        { id: "intro", title: "1. مقدمة", content: "مرحباً بك في <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span>. تحكم شروط الخدمة هذه (\"الشروط\") وصولك واستخدامك لموقعنا الإلكتروني وأدوات توقع الأسهم المدعومة بالذكاء الاصطناعي ومحاكي التداول الافتراضي وميزات المجتمع. من خلال إنشاء حساب أو استخدام خدماتنا، فإنك توافق على الالتزام بهذه الشروط. إذا كنت لا توافق، يرجى عدم استخدام المنصة." },
+        { id: "user", title: "2. مسؤوليات المستخدم", content: "للحفاظ على بيئة آمنة، فإنك توافق على: تقديم معلومات دقيقة وكاملة أثناء التسجيل. الحفاظ على سرية بيانات اعتماد حسابك. أن تكون مسؤولاً حصرياً عن جميع الأنشطة التي تحدث تحت حسابك. إخطارنا فوراً بأي استخدام غير مصرح به لحسابك." },
+        { id: "use", title: "3. الاستخدام المقبول", content: "أنت توافق على عدم استخدام <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span> من أجل: محاولة تجاوز أو الزحف أو \"كشط\" نماذج توقع الذكاء الاصطناعي أو خطوط أنابيب البيانات لدينا. نشر محتوى مسيء أو تشهيري أو غير قانوني داخل ساحة المشاركات الاجتماعية للمجتمع. التلاعب بمحاكي التداول الافتراضي من خلال الثغرات التقنية. انتحال شخصية المستشارين الماليين أو تقديم مشورة مالية احترافية لمستخدمين آخرين." },
+        { id: "intellectual", title: "4. الملكية الفكرية", content: "جميع المحتويات الموجودة على هذه المنصة - بما في ذلك نماذج الذكاء الاصطناعي الهجينة (<span dir='ltr' style='unicode-bidi: isolate'>LSTM & XGBoost</span>)، والخوارزميات المملوكة، وتصميم واجهة المستخدم، والشعارات، والوثائق - هي ملكية فكرية لفريق تطوير <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span> ومحمية بقوانين حقوق النشر والنزاهة الأكاديمية. تُمنح ترخيصاً محدوداً وغير حصري لاستخدام المنصة لأغراض تعليمية شخصية غير تجارية." },
+        { id: "disclaimer", title: "5. إخلاء المسؤولية (هام)", content: "للاستخدام التعليمي فقط: <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span> هو مشروع تخرج تم تطويره لأغراض أكاديمية. إنه ليس خدمة استشارية مالية مرخصة. لا توجد نصيحة مالية: توقعات الذكاء الاصطناعي ورؤى المجتمع هي لأغراض إعلامية ومحاكاة فقط. لا تشكل نصيحة استثمارية. المحاكاة مقابل الواقع: يستخدم محاكي التداول الافتراضي بيانات السوق الحقيقية، ولكن يتم تنفيذ جميع \"الصفقات\" بالعملة الافتراضية. لا يوجد أموال حقيقية في خطر أبداً. الدقة: بينما نسعى لتحقيق دقة عالية (+64% دقة اتجاهية)، فإن أسواق الأسهم متقلبة بطبيعتها. نحن لا نضمن دقة أي توقع. تحديد المسؤولية: المطورون وجامعة الملك فيصل (<span dir='ltr' style='unicode-bidi: isolate'>KFU</span>) ليسوا مسؤولين عن أي خسائر مالية يتم تكبدها في التداول في العالم الحقيقي بناءً على معلومات من هذه المنصة." },
+        { id: "contact", title: "6. معلومات التواصل", content: "للأسئلة المتعلقة بهذه الشروط، يرجى التواصل معنا عبر: البريد الإلكتروني: <span dir='ltr' style='unicode-bidi: isolate'>support@eyestocks-ai.com</span>" }
+      ]
+    },
+    privacy: {
+      badge: "الخصوصية",
+      title: "سياسة الخصوصية",
+      desc: "خصوصيتك هي أولويتنا في <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span>. تشرح سياسة الخصوصية هذه كيف نجمع معلوماتك ونستخدمها ونحميها عندما تتفاعل مع منصتنا.",
+      lastUpdated: "آخر تحديث: مايو 2026",
+      onThisPage: "في هذه الصفحة",
+      sections: [
+        { id: "intro", title: "1. مقدمة", content: "في <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span>، خصوصيتك هي أولوية. تشرح سياسة الخصوصية هذه كيف نجمع معلوماتك ونستخدمها ونحميها عندما تتفاعل مع منصتنا." },
+        { id: "collect", title: "2. المعلومات التي نجمعها", content: "نجمع المعلومات لتوفير تجربة مخصصة ووظيفية: المعلومات الشخصية (الاسم وعنوان البريد الإلكتروني وتفاصيل الملف الشخصي المقدمة أثناء التسجيل)، بيانات الاستخدام (تفاصيل صفقاتك الافتراضية وتفضيلات قائمة المراقبة والتفاعلات داخل مجتمع الموقع)، والبيانات التقنية (عنوان <span dir='ltr' style='unicode-bidi: isolate'>IP</span> ونوع المتصفح ومعلومات الجهاز التي يتم جمعها عبر موفري خدمة الاستضافة السحابية لدينا)." },
+        { id: "usage", title: "3. كيف نستخدم المعلومات", content: "نستخدم البيانات التي تم جمعها للأغراض التالية: لإدارة محفظتك الافتراضية ومزامنة سجل التداول الخاص بك. لتحسين نماذج توقع الذكاء الاصطناعي لدينا من خلال تحليل اتجاهات المستخدمين الإجمالية. للحفاظ على أمان وسلامة ساحة المشاركات الاجتماعية للمجتمع. لتقديم الدعم الفني وتحديثات المنصة." },
+        { id: "cookies", title: "4. ملفات تعريف الارتباط والتتبع", content: "تستخدم <span dir='ltr' style='unicode-bidi: isolate'>EyeStocks AI</span> ملفات تعريف الارتباط الأساسية والتخزين المحلي من أجل: إبقاءك مسجلاً للدخول عبر الجلسات (باستخدام رموز <span dir='ltr' style='unicode-bidi: isolate'>JWT</span>)، وتذكر تفضيلات واجهة المستخدم الخاصة بك (مثل الوضع الليلي)، وتحليل حركة المرور للمنصة من خلال أدوات التحليل الأساسية. يمكنك تعطيل ملفات تعريف الارتباط في إعدادات متصفحك، ولكن قد تتوقف بعض ميزات المنصة عن العمل." },
+        { id: "sharing", title: "5. مشاركة البيانات", content: "نحن لا نبيع بياناتك الشخصية لأطراف ثالثة. نحن نشارك المعلومات فقط مع مزودي الخدمة اللازمين لعملياتنا: إدارة قاعدة البيانات (يتم تخزين بياناتك بشكل آمن عبر موفر خدمة قواعد البيانات لدينا)، مزودو الاستضافة (يتم إدارة السجلات التقنية بواسطة موفري خدمة الاستضافة السحابية لدينا)، والمتطلبات القانونية (قد نفصح عن المعلومات إذا طُلب منا ذلك بموجب القانون أو لحماية حقوقنا الأكاديمية والقانونية)." },
+        { id: "security", title: "6. أمن البيانات", content: "نحن نطبق إجراءات أمنية قياسية في الصناعة، بما في ذلك: التشفير (يتم تأمين جميع عمليات نقل البيانات عبر <span dir='ltr' style='unicode-bidi: isolate'>HTTPS/SSL</span>)، والمصادقة الآمنة (نستخدم رموز <span dir='ltr' style='unicode-bidi: isolate'>JSON Web Tokens</span> الآمنة لجلسات المستخدم)، وأمن قاعدة البيانات (يتم تطبيق <span dir='ltr' style='unicode-bidi: isolate'>Row Level Security</span> لضمان وصولك فقط إلى بيانات محفظتك الخاصة)." },
+        { id: "rights", title: "7. حقوقك", content: "لديك الحق في: الوصول إلى البيانات الشخصية التي نحتفظ بها عنك. طلب تصحيح البيانات غير الدقيقة. طلب حذف حسابك وجميع بيانات التداول المرتبطة به. إلغاء الاشتراك في أي اتصالات غير أساسية." },
+        { id: "contact", title: "8. معلومات التواصل", content: "للاستفسارات المتعلقة بالخصوصية أو لممارسة حقوق البيانات الخاصة بك، يرجى التواصل عبر: البريد الإلكتروني: <span dir='ltr' style='unicode-bidi: isolate'>privacy@eyestocks-ai.com</span>" }
+      ]
     },
   },
 };
