@@ -1,4 +1,9 @@
-# EyeStocks AI - Intelligent Trading & Simulation Platform
+# EyeStocks AI (ESAI)
+
+Welcome to the EyeStocks AI (ESAI) project. This is a comprehensive stock analysis and prediction platform.
+
+### 📚 Getting Started
+If you are a student or developer looking to set up the environment, database, or extend this project, please follow our **[Comprehensive Student Setup Guide (STUDENT_GUIDE.md)](./STUDENT_GUIDE.md)**.
 
 EyeStocks AI is a comprehensive full-stack platform designed for stock analysis, portfolio tracking, and virtual trading simulation, powered by machine learning insights.
 
