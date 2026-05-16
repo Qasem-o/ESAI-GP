@@ -261,6 +261,7 @@ interface Translations {
     placeSellOrder: string;
     change: string;
     loadingSimulator: string;
+    simulationPerformance: string;
     messages: {
       insufficientCash: string;
       alreadyWon: string;
@@ -656,6 +657,7 @@ const translations: Record<Language, Translations> = {
       placeSellOrder: "Place Sell Order",
       change: "Change",
       loadingSimulator: "Loading simulator...",
+      simulationPerformance: "Simulation Performance",
       messages: {
         insufficientCash: "Insufficient cash. Available: ${available}, Required: ${required}",
         alreadyWon: "You have already won the simulation. Reset to play again.",
@@ -1099,6 +1101,7 @@ const translations: Record<Language, Translations> = {
       placeSellOrder: "تنفيذ أمر بيع",
       change: "تغيير",
       loadingSimulator: "جاري تحميل المحاكي...",
+      simulationPerformance: "أداء المحاكاة",
       messages: {
         insufficientCash: "رصيد غير كافٍ. المتاح: ${available}، المطلوب: ${required}",
         alreadyWon: "لقد فزت بالفعل في التحدي. قم بإعادة الضبط للعب مرة أخرى.",

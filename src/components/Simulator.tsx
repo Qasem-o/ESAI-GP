@@ -313,7 +313,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
                       <Badge variant={(summary?.portfolio_change ?? 0) >= 0 ? "default" : "destructive"}>
                         {(summary?.portfolio_change ?? 0) >= 0 ? '+' : ''}{(summary?.portfolio_change ?? 0).toFixed(1)}%
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{t.profile.portfolioPerformance}</span>
+                      <span className="text-xs text-muted-foreground">{t.simulator.simulationPerformance}</span>
                     </div>
                   </div>
 
