@@ -317,30 +317,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-purple-500/10">
-                    <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.profile.tradesCount}</p>
-                      <p className="text-lg font-bold">{summary?.total_trades || 0}</p>
-                    </div>
-                    <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.profile.winRate}</p>
-                      <p className="text-lg font-bold">{summary?.win_rate || 0}%</p>
-                    </div>
-                    <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{isRTL ? 'متوسط العائد' : 'Avg Return'}</p>
-                      <p className={`text-lg font-bold ${(summary?.avg_return ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {(summary?.avg_return ?? 0) >= 0 ? '+' : ''}{(summary?.avg_return ?? 0).toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className={isRTL ? 'text-right' : 'text-left'}>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{isRTL ? 'أفضل صفقة' : 'Best Trade'}</p>
-                      <p className="text-lg font-bold text-green-500">
-                        +{(summary?.best_trade ?? 0).toFixed(0)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-3 border-t">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{t.portfolio.totalValue}</span>
                       <span className="font-bold">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>

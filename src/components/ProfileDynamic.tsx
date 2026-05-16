@@ -508,7 +508,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         {/* Trading Stats */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">{t.profile.portfolioPerformance}</CardTitle>
+                                <CardTitle className="text-lg">{t.profile.simulationPerformance}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">

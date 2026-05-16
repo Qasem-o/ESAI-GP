@@ -285,6 +285,7 @@ interface Translations {
     changePicture: string;
     saveChanges: string;
     portfolioPerformance: string;
+    simulationPerformance: string;
     totalReturn: string;
     winRate: string;
     tradesCount: string;
@@ -680,6 +681,7 @@ const translations: Record<Language, Translations> = {
       changePicture: "Change Picture",
       saveChanges: "Save Changes",
       portfolioPerformance: "Portfolio Performance",
+      simulationPerformance: "Simulation Performance",
       totalReturn: "Total Return",
       winRate: "Win Rate",
       tradesCount: "Trades",
@@ -1124,6 +1126,7 @@ const translations: Record<Language, Translations> = {
       changePicture: "تغيير الصورة",
       saveChanges: "حفظ التغييرات",
       portfolioPerformance: "أداء المحفظة",
+      simulationPerformance: "أداء المحاكاة",
       totalReturn: "العائد الكلي",
       winRate: "نسبة النجاح",
       tradesCount: "الصفقات",
