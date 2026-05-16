@@ -95,15 +95,18 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     useEffect(() => {
         if (!authLoading && targetUserId) {
             fetchUserData();
+        } else if (!authLoading && !targetUserId && !isAuthenticated) {
+            onGoToLogin();
         }
-    }, [authLoading, targetUserId]);
+    }, [authLoading, targetUserId, isAuthenticated]);
 
     const fetchUserData = async () => {
         if (!targetUserId) return;
 
         setIsLoadingData(true);
         try {
-            const [statsData, postsData, followersData, followingData, userData] = await Promise.all([
+            // Using Promise.allSettled to prevent one failure from crashing the whole page
+            const results = await Promise.allSettled([
                 profileAPI.getUserStats(targetUserId),
                 profileAPI.getUserPosts(targetUserId),
                 profileAPI.getFollowers(targetUserId),
@@ -111,16 +114,18 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                 urlUserId ? profileAPI.getUserById(targetUserId).catch(() => null) : null
             ]);
 
-            setStats(statsData);
-            setPosts(postsData);
-            setFollowers(followersData);
-            setFollowing(followingData);
+            if (results[0].status === 'fulfilled') setStats(results[0].value);
+            if (results[1].status === 'fulfilled') setPosts(results[1].value);
+            if (results[2].status === 'fulfilled') setFollowers(results[2].value);
+            if (results[3].status === 'fulfilled') setFollowing(results[3].value);
             
+            const userData = results[4].status === 'fulfilled' ? results[4].value : null;
+
             // If viewing someone else, we might need their basic user info too
             if (userData && urlUserId) {
                 // Combine into a display user object
                 setTargetUser(userData);
-            } else if (!urlUserId) {
+            } else if (!urlUserId && currentUser) {
                 setTargetUser(currentUser);
             }
         } catch (error) {
@@ -320,7 +325,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     }, [authLoading, isAuthenticated, onGoToLogin]);
 
     // Show loading state
-    if (authLoading || isLoadingData) {
+    if (authLoading) {
         return (
             <div className="bg-background min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -345,6 +350,30 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         </Button>
                     </CardContent>
                 </Card>
+            </div>
+        );
+    }
+
+    // Show data loading state only after auth is confirmed
+    if (isLoadingData) {
+        return (
+            <div className="bg-background min-h-screen flex flex-col">
+                <Header
+                    currentPage={currentPage}
+                    onGoToHome={onGoToHome}
+                    onGoToExplore={onGoToExplore}
+                    onGoToPortfolio={onGoToPortfolio}
+                    onGoToSimulator={onGoToSimulator}
+                    onGoToProfile={onGoToProfile}
+                    onGoToSignup={onGoToSignup}
+                    onGoToLogin={onGoToLogin}
+                />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-muted-foreground animate-pulse">{t.profile.loadingProfile}</p>
+                    </div>
+                </div>
             </div>
         );
     }
