@@ -291,12 +291,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     };
 
     const formatJoinDate = (dateString: string) => {
+        if (!dateString) return "...";
         const isoStr = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
         const date = new Date(isoStr);
         return date.toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'long', year: 'numeric' });
     };
 
     const formatTimeAgo = (dateString: string) => {
+        if (!dateString) return "...";
         const isoStr = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
         const date = new Date(isoStr);
         const now = new Date();
@@ -380,10 +382,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
     // Trading stats for display
     const tradingStats = [
-        { label: t.profile.tradesCount, value: stats?.total_trades.toString() || "0", icon: Target },
-        { label: t.profile.winRate, value: `${stats?.win_rate.toFixed(0) || 0}%`, icon: Trophy },
-        { label: language === "ar" ? "متوسط العائد" : "Avg Return", value: `+${stats?.avg_return.toFixed(1) || 0}%`, icon: TrendingUp },
-        { label: language === "ar" ? "أفضل صفقة" : "Best Trade", value: `+${stats?.best_trade.toFixed(0) || 0}%`, icon: Award }
+        { label: t.profile.tradesCount, value: stats?.total_trades?.toString() || "0", icon: Target },
+        { label: t.profile.winRate, value: `${stats?.win_rate?.toFixed(0) || 0}%`, icon: Trophy },
+        { label: language === "ar" ? "متوسط العائد" : "Avg Return", value: `+${stats?.avg_return?.toFixed(1) || 0}%`, icon: TrendingUp },
+        { label: language === "ar" ? "أفضل صفقة" : "Best Trade", value: `+${stats?.best_trade?.toFixed(0) || 0}%`, icon: Award }
     ];
 
     return (
@@ -526,10 +528,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-muted-foreground">{t.portfolio.totalValue}</span>
                                         <Badge variant={stats && stats.portfolio_change >= 0 ? "default" : "destructive"}>
-                                            {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change.toFixed(1) || 0}%
+                                            {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change?.toFixed(1) || 0}%
                                         </Badge>
                                     </div>
-                                    <p className="text-3xl font-bold">${stats?.portfolio_value.toLocaleString() || '0'}</p>
+                                    <p className="text-3xl font-bold">${stats?.portfolio_value?.toLocaleString() || '0'}</p>
                                     <Button onClick={onGoToPortfolio} variant="link" className="p-0 h-auto mt-2 text-primary cursor-pointer">
                                         {language === "ar" ? "عرض المحفظة الكاملة ←" : "View Full Portfolio →"}
                                     </Button>
@@ -539,7 +541,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm">{t.profile.winRate}</span>
-                                        <span className="text-sm font-bold">{stats?.win_rate.toFixed(0) || 0}%</span>
+                                        <span className="text-sm font-bold">{stats?.win_rate?.toFixed(0) || 0}%</span>
                                     </div>
                                     <Progress value={stats?.win_rate || 0} className="h-2" />
                                 </div>
@@ -620,9 +622,9 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                     <div className={`flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                         <span className="flex items-center gap-1">
                                                             <Eye className="w-4 h-4" />
-                                                            {post.views_count.toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
+                                                            {(post.views_count || 0).toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
                                                         </span>
-                                                        <span>{post.comments_count} {language === "ar" ? "تعليق" : "comments"}</span>
+                                                        <span>{(post.comments_count || 0)} {language === "ar" ? "تعليق" : "comments"}</span>
                                                     </div>
 
                                                     {/* Post Actions */}
