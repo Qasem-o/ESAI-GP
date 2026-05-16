@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, BookOpen, Clock, ChevronRight, Settings, Zap, Shield, CreditCard } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Clock, ChevronRight, Settings, Zap, Shield, CreditCard, Rocket, Brain, Gamepad2, Users, BarChart2, Star } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { helpCategories, helpArticles } from "../data/helpData";
 import "./HelpPage.css";
@@ -34,11 +34,13 @@ export function HelpCategoryPage(props: any) {
 
   const getIcon = (name: string) => {
     switch (name) {
-      case "BookOpen": return <BookOpen size={40} />;
-      case "Zap": return <Zap size={40} />;
-      case "Settings": return <Settings size={40} />;
+      case "Rocket": return <Rocket size={40} />;
+      case "Brain": return <Brain size={40} />;
+      case "Gamepad2": return <Gamepad2 size={40} />;
+      case "Users": return <Users size={40} />;
+      case "BarChart2": return <BarChart2 size={40} />;
       case "Shield": return <Shield size={40} />;
-      case "CreditCard": return <CreditCard size={40} />;
+      case "Star": return <Star size={40} />;
       default: return <BookOpen size={40} />;
     }
   };

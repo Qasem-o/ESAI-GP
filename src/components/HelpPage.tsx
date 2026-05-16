@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, BookOpen, Settings, Zap, Shield, CreditCard, ArrowLeft, ArrowRight, Clock, Lock, GraduationCap, Users, X } from "lucide-react";
+import { Search, BookOpen, Settings, Zap, Shield, CreditCard, ArrowLeft, ArrowRight, Clock, Lock, GraduationCap, Users, X, Rocket, Brain, Gamepad2, BarChart2, Star } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { helpCategories, helpArticles } from "../data/helpData";
@@ -121,11 +121,13 @@ export function HelpPage(props: any) {
                 onClick={() => navigate(`/help/category/${cat.id}`)}
               >
                 <div className="category-icon-box">
-                  {cat.icon === "BookOpen" && <BookOpen size={24} />}
-                  {cat.icon === "Zap" && <Zap size={24} />}
-                  {cat.icon === "Settings" && <Settings size={24} />}
+                  {cat.icon === "Rocket" && <Rocket size={24} />}
+                  {cat.icon === "Brain" && <Brain size={24} />}
+                  {cat.icon === "Gamepad2" && <Gamepad2 size={24} />}
+                  {cat.icon === "Users" && <Users size={24} />}
+                  {cat.icon === "BarChart2" && <BarChart2 size={24} />}
                   {cat.icon === "Shield" && <Shield size={24} />}
-                  {cat.icon === "CreditCard" && <CreditCard size={24} />}
+                  {cat.icon === "Star" && <Star size={24} />}
                 </div>
                 <h3>{cat.title[currentLanguage]}</h3>
                 <p>{cat.desc[currentLanguage]}</p>

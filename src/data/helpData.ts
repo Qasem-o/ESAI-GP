@@ -15,260 +15,209 @@ export interface HelpCategory {
 }
 
 export const helpArticles: Record<string, HelpArticle> = {
-  "predictions": {
-    id: "predictions",
-    category: "features",
-    title: {
-      ar: "كيف يقوم EyeStocks AI بتوقعات الأسهم",
-      en: "How EyeStocks AI Predicts Stocks"
-    },
-    content: {
-      ar: "يستخدم EyeStocks AI محرك ذكاء اصطناعي هجين يجمع بين شبكات LSTM العصبية ونماذج XGBoost. يقوم النظام بتحليل البيانات التاريخية للأسعار، المؤشرات الفنية، والمؤشرات الاقتصادية الكلية للتنبؤ باتجاه السعر في المستقبل.",
-      en: "EyeStocks AI uses a hybrid AI engine combining LSTM neural networks and XGBoost models. The system analyzes historical price data, technical indicators, and macroeconomic factors to predict future price trends."
-    },
-    readTime: 4
-  },
-  "simulator": {
-    id: "simulator",
-    category: "simulator",
-    title: {
-      ar: "كيف تستخدم محاكي التداول",
-      en: "How to Use the Trading Simulator"
-    },
-    content: {
-      ar: "محاكي التداول يسمح لك بممارسة التداول بأموال افتراضية. يمكنك شراء وبيع الأسهم بأسعار السوق الحقيقية، تتبع أداء محفظتك، واختبار استراتيجيات التداول الخاصة بك دون أي مخاطر مالية.",
-      en: "The trading simulator allows you to practice trading with virtual money. You can buy and sell stocks at real market prices, track your portfolio performance, and test your trading strategies without any financial risk."
-    },
-    readTime: 5
-  },
-  "confidence": {
-    id: "confidence",
-    category: "features",
-    title: {
-      ar: "فهم درجة الثقة",
-      en: "Understanding the Confidence Score"
-    },
-    content: {
-      ar: "درجة الثقة هي مقياس يعبر عن مدى يقين النموذج في التوقع الذي يقدمه. الدرجة العالية تعني أن البيانات التاريخية والاتجاهات الحالية تدعم التوقع بشكل قوي، بينما الدرجة المنخفضة تشير إلى وجود تقلبات عالية أو عدم وضوح في الاتجاه.",
-      en: "The confidence score is a metric that expresses the model's certainty in its prediction. A high score means historical data and current trends strongly support the prediction, while a low score indicates high volatility or unclear direction."
-    },
-    readTime: 3
-  },
-  "watchlist": {
-    id: "watchlist",
+  // Getting Started
+  "welcome": {
+    id: "welcome",
     category: "getting-started",
-    title: {
-      ar: "كيف تدير قائمة المراقبة الخاصة بك",
-      en: "How to Manage Your Watchlist"
-    },
+    title: { ar: "مرحباً بك في EyeStocks AI", en: "Welcome to EyeStocks AI" },
     content: {
-      ar: "يمكنك إضافة أي سهم إلى قائمة المراقبة بالضغط على أيقونة النجمة أو زر 'إضافة للمفضلة'. ستظهر لك هذه الأسهم في لوحة التحكم الخاصة بك لتتمكن من مراقبة تحركاتها بسرعة.",
-      en: "You can add any stock to your watchlist by clicking the star icon or the 'Add to Favorites' button. These stocks will appear on your dashboard so you can monitor their movements quickly."
-    },
-    readTime: 2
-  },
-  "security": {
-    id: "security",
-    category: "account",
-    title: {
-      ar: "أفضل ممارسات أمان الحساب",
-      en: "Account Security Best Practices"
-    },
-    content: {
-      ar: "لحماية حسابك، نوصي باستخدام كلمة مرور قوية وفريدة، تفعيل المصادقة الثنائية إن أمكن، وعدم مشاركة بيانات الدخول الخاصة بك مع أي شخص. كما يجب عليك مراقبة الجلسات النشطة باستمرار.",
-      en: "To protect your account, we recommend using a strong and unique password, enabling two-factor authentication if possible, and not sharing your login credentials with anyone. You should also constantly monitor active sessions."
+      ar: "مرحباً بك في أول منصة عربية ذكية لتحليل الأسهم. تم تصميم EyeStocks AI لمساعدتك على اتخاذ قرارات استثمارية مدروسة باستخدام أحدث تقنيات الذكاء الاصطناعي. في هذا الدليل، ستتعرف على كيفية التنقل في الموقع واستخدام الأدوات الأساسية لبدء رحلتك.",
+      en: "Welcome to the first intelligent Arabic stock analysis platform. EyeStocks AI is designed to help you make informed investment decisions using the latest AI technologies. In this guide, you'll learn how to navigate the site and use essential tools to start your journey."
     },
     readTime: 3
-  },
-  "buying": {
-    id: "buying",
-    category: "transactions",
-    title: {
-      ar: "كيفية شراء الأسهم",
-      en: "How to Buy Stocks"
-    },
-    content: {
-      ar: "تتيح لك منصة EyeStocks AI شراء الأسهم بسهولة من خلال النقر على زر \"شراء\" داخل صفحة تفاصيل السهم. قم بتحديد عدد الأسهم، ثم تأكيد الطلب. ستظهر لك تفاصيل الصفقة وتحديث رصيدك الفوري.",
-      en: "EyeStocks AI allows you to purchase stocks easily by clicking the \"Buy\" button on the stock detail page. Specify the number of shares, then confirm the order. Transaction details and your updated balance will be displayed instantly."
-    },
-    readTime: 3
-  },
-  "selling": {
-    id: "selling",
-    category: "transactions",
-    title: {
-      ar: "كيفية بيع الأسهم",
-      en: "How to Sell Stocks"
-    },
-    content: {
-      ar: "لبيع أسهمك، انتقل إلى محفظتك، اختر السهم الذي ترغب ببيعه، واضغط زر \"بيع\". حدد عدد الأسهم وسعر السوق، ثم أكد الصفقة لتتم معالجتها فورًا.",
-      en: "To sell your holdings, go to your portfolio, select the desired stock, and click the \"Sell\" button. Choose the quantity and market price, then confirm to execute the trade instantly."
-    },
-    readTime: 3
-  },
-  "jobs": {
-    id: "jobs",
-    category: "jobs",
-    title: {
-      ar: "وظائف في EyeStocks AI",
-      en: "Jobs at EyeStocks AI"
-    },
-    content: {
-      ar: "نحن نبحث عن مهندسين موهوبين، علماء بيانات، ومصممين لتطوير المنصة. يمكنك زيارة صفحة \"الوظائف\" على موقعنا لتقديم طلبك. نحن نقدم بيئة عمل مرنة ومكافآت تنافسية.",
-      en: "We are seeking talented engineers, data scientists, and designers to enhance the platform. Visit our \"Jobs\" page to apply. We offer a flexible work environment and competitive compensation."
-    },
-    readTime: 2
-  },
-  "trading-basics": {
-    id: "trading-basics",
-    category: "trading",
-    title: {
-      ar: "أساسيات التداول للمبتدئين",
-      en: "Trading Basics for Beginners"
-    },
-    content: {
-      ar: "التداول هو عملية شراء وبيع الأوراق المالية لتحقيق ربح من تقلبات الأسعار. الفرق الجوهري بين الاستثمار والتداول هو الفترة الزمنية؛ فالمستثمر يحتفظ بالسهم لسنوات، بينما المتداول يركز على الحركات القصيرة. من المهم فهم أن التداول ينطوي على مخاطر، لذا يجب دائمًا استخدام أوامر وقف الخسارة وإدارة رأس المال بحذر.",
-      en: "Trading is the process of buying and selling securities to profit from price fluctuations. The key difference between investing and trading is the time horizon; investors hold stocks for years, while traders focus on short-term movements. It's crucial to understand that trading involves risk, so always use stop-loss orders and manage your capital carefully."
-    },
-    readTime: 6
-  },
-  "metrics": {
-    id: "metrics",
-    category: "metrics",
-    title: {
-      ar: "دليل المقاييس المالية",
-      en: "Financial Metrics Guide"
-    },
-    content: {
-      ar: "المقاييس المالية تساعدك في تقييم أداء الشركة وقيمتها:\n1. P/E Ratio: يقارن سعر السهم بأرباح الشركة. السهم الرخيص قد يكون فرصة.\n2. EPS: نصيب السهم من الأرباح، وهو مؤشر على ربحية الشركة.\n3. Dividend Yield: العائد الذي توزعه الشركة كأرباح للمساهمين.\n4. Market Cap: القيمة السوقية الإجمالية للشركة (عدد الأسهم × سعر السهم).",
-      en: "Financial metrics help you evaluate a company's performance and value:\n1. P/E Ratio: Compares the stock price to company earnings. A lower ratio might indicate a bargain.\n2. EPS (Earnings Per Share): Shows how much profit is allocated to each share.\n3. Dividend Yield: The percentage of the stock price paid out as dividends annually.\n4. Market Cap: The total market value of the company (shares outstanding × share price)."
-    },
-    readTime: 8
-  },
-  "uniqueness": {
-    id: "uniqueness",
-    category: "about",
-    title: {
-      ar: "لماذا تختار EyeStocks AI؟",
-      en: "Why Choose EyeStocks AI?"
-    },
-    content: {
-      ar: "تتميز منصتنا بكونها أول منصة عربية تدمج الذكاء الاصطناعي المتقدم مع واجهة مستخدم بسيطة. نحن لا نقدم بيانات فقط، بل نقدم \"درجة ثقة\" لكل توقع، مما يقلل من الحيرة عند اتخاذ القرار. كما نوفر بيئة تعليمية متكاملة ومحاكي تداول يربطك بالواقع دون المخاطرة بمالك الحقيقي.",
-      en: "Our platform stands out as the first Arabic platform to integrate advanced AI with a simple user interface. We don't just provide data; we provide a 'Confidence Score' for every prediction, reducing uncertainty in decision-making. We also offer a complete educational environment and a trading simulator that connects you to reality without risking real money."
-    },
-    readTime: 4
-  },
-  "technical-indicators": {
-    id: "technical-indicators",
-    category: "metrics",
-    title: {
-      ar: "المؤشرات الفنية وكيفية استخدامها",
-      en: "Technical Indicators and How to Use Them"
-    },
-    content: {
-      ar: "المؤشرات الفنية هي أدوات حسابية تعتمد على السعر والحجم لتوقع الاتجاهات:\n1. RSI (مؤشر القوة النسبية): يخبرك إذا كان السهم مشبعاً بالشراء (فوق 70) أو مشبعاً بالبيع (تحت 30).\n2. Moving Averages: تساعد في تنعيم حركة السعر لتحديد الاتجاه العام (صاعد أم هابط).\n3. MACD: يقيس الزخم وقوة الاتجاه من خلال تقاطع متوسطين متحركين.\nاستخدام هذه المؤشرات يساعدك في تحديد نقاط الدخول والخروج بدقة أكبر.",
-      en: "Technical indicators are mathematical tools based on price and volume to predict trends:\n1. RSI (Relative Strength Index): Tells you if a stock is overbought (above 70) or oversold (below 30).\n2. Moving Averages: Help smooth out price action to identify the overall trend (upward or downward).\n3. MACD: Measures momentum and trend strength through the crossover of two moving averages.\nUsing these indicators helps you identify entry and exit points with greater precision."
-    },
-    readTime: 10
   },
   "dashboard-guide": {
     id: "dashboard-guide",
     category: "getting-started",
-    title: {
-      ar: "دليل لوحة التحكم",
-      en: "Dashboard Guide"
-    },
+    title: { ar: "شرح لوحة التحكم", en: "Dashboard Overview" },
     content: {
-      ar: "لوحة التحكم هي مركز القيادة الخاص بك. هنا يمكنك رؤية ملخص سريع لأداء محفظتك، قائمة المراقبة، وأهم التوقعات التي يقدمها الذكاء الاصطناعي. يمكنك تخصيص اللوحة لتظهر لك الأسهم التي تهتم بها فقط.",
-      en: "The dashboard is your command center. Here you can see a quick summary of your portfolio performance, your watchlist, and the top AI predictions. You can customize the dashboard to show only the stocks you are interested in."
+      ar: "لوحة التحكم هي مركز القيادة الخاص بك. يمكنك من خلالها متابعة ملخص السوق، آخر التوقعات من الذكاء الاصطناعي، وأداء محفظتك الافتراضية. كما تظهر لك أهم الأخبار والمشاركات من المجتمع في الوقت الفعلي.",
+      en: "The dashboard is your command center. From here, you can monitor market summaries, the latest AI predictions, and your virtual portfolio performance. It also displays top news and community posts in real-time."
     },
     readTime: 4
   },
-  "portfolio-guide": {
-    id: "portfolio-guide",
+  "watchlist": {
+    id: "watchlist",
+    category: "getting-started",
+    title: { ar: "إدارة قائمة المراقبة", en: "Managing Your Watchlist" },
+    content: {
+      ar: "قائمة المراقبة تسمح لك بتتبع الأسهم التي تهتم بها دون الحاجة للبحث عنها في كل مرة. يمكنك إضافة أي سهم للقائمة عبر الضغط على أيقونة النجمة في صفحة تفاصيل السهم. ستظهر هذه الأسهم في لوحة التحكم لتتمكن من مراقبة تحركاتها بسرعة.",
+      en: "The watchlist allows you to track stocks you're interested in without searching for them every time. You can add any stock to the list by clicking the star icon on the stock detail page. These stocks will appear on your dashboard for quick monitoring."
+    },
+    readTime: 2
+  },
+
+  // AI Predictions
+  "hybrid-ai": {
+    id: "hybrid-ai",
+    category: "ai-predictions",
+    title: { ar: "كيف يعمل الذكاء الاصطناعي الهجين", en: "How Hybrid AI Works" },
+    content: {
+      ar: "نستخدم نموذجاً هجيناً يجمع بين شبكات LSTM العصبية (المتخصصة في تحليل السلاسل الزمنية) ونماذج XGBoost (المتميزة في تحليل العوامل المتعددة). هذا المزيج يسمح للنظام بفهم الأنماط التاريخية المعقدة مع مراعاة المتغيرات الحالية في السوق لتقديم توقعات أكثر دقة.",
+      en: "We use a hybrid model combining LSTM neural networks (specialized in time-series analysis) and XGBoost models (excellent at multi-factor analysis). This combination allows the system to understand complex historical patterns while considering current market variables for more accurate predictions."
+    },
+    readTime: 6
+  },
+  "confidence-score": {
+    id: "confidence-score",
+    category: "ai-predictions",
+    title: { ar: "فهم درجة الثقة", en: "Understanding Confidence Score" },
+    content: {
+      ar: "درجة الثقة هي مؤشر يعكس مدى يقين النموذج في توقعه. يتم حسابها بناءً على جودة البيانات المتوفرة، استقرار السوق الحالي، ومدى توافق المؤشرات المختلفة. درجة فوق 80% تعني يقيناً عالياً، بينما الدرجة تحت 50% تشير إلى تقلبات عالية وعدم وضوح في الاتجاه.",
+      en: "The confidence score reflects the model's certainty in its prediction. It's calculated based on available data quality, current market stability, and the alignment of various indicators. A score above 80% indicates high certainty, while a score below 50% suggests high volatility and unclear direction."
+    },
+    readTime: 5
+  },
+  "targets-stoploss": {
+    id: "targets-stoploss",
+    category: "ai-predictions",
+    title: { ar: "الأهداف ووقف الخسارة", en: "Price Targets & Stop Loss" },
+    content: {
+      ar: "لكل توقع، يقترح الذكاء الاصطناعي سعراً مستهدفاً (Target Price) وسعراً لوقف الخسارة (Stop Loss). السعر المستهدف هو المكان الذي يتوقع النموذج وصول السهم إليه، بينما وقف الخسارة هو السعر الذي ينصح عنده بالخروج لحماية رأس مالك في حال تحرك السوق عكس التوقعات.",
+      en: "For every prediction, the AI suggests a target price and a stop loss. The target price is where the model expects the stock to reach, while the stop loss is the price where exiting is recommended to protect your capital if the market moves against expectations."
+    },
+    readTime: 4
+  },
+
+  // Simulator
+  "simulator-intro": {
+    id: "simulator-intro",
     category: "simulator",
-    title: {
-      ar: "إدارة محفظتك الاستثمارية",
-      en: "Managing Your Investment Portfolio"
-    },
+    title: { ar: "بداية التداول الافتراضي", en: "Getting Started with Simulator" },
     content: {
-      ar: "تتيح لك صفحة المحفظة تتبع جميع استثماراتك في مكان واحد. يمكنك رؤية الأرباح والخسائر الإجمالية، توزيع الأصول، وتاريخ العمليات. يساعدك هذا في فهم أدائك العام واتخاذ قرارات مدروسة حول متى تزيد استثماراتك أو تقللها.",
-      en: "The portfolio page allows you to track all your investments in one place. You can see total gains and losses, asset allocation, and transaction history. This helps you understand your overall performance and make informed decisions about when to increase or decrease your holdings."
+      ar: "محاكي التداول يوفر لك بيئة آمنة تماماً لممارسة الاستثمار. تبدأ برصيد افتراضي قدره 100,000 دولار. يمكنك شراء وبيع الأسهم بأسعار السوق الحقيقية وتجربة استراتيجياتك دون المخاطرة بقرش واحد من مالك الحقيقي.",
+      en: "The trading simulator provides a completely safe environment to practice investing. You start with a virtual balance of $100,000. You can buy and sell stocks at real market prices and test your strategies without risking a single penny of your real money."
+    },
+    readTime: 5
+  },
+  "executing-trades": {
+    id: "executing-trades",
+    category: "simulator",
+    title: { ar: "تنفيذ العمليات", en: "Executing Trades" },
+    content: {
+      ar: "لشراء سهم في المحاكي، ابحث عن السهم، حدد الكمية، واضغط 'شراء'. سيتم خصم القيمة من رصيدك الافتراضي وإضافة السهم لمحفظتك. يمكنك بيع أسهمك في أي وقت لجني الأرباح أو تقليل الخسائر عبر صفحة المحفظة أو صفحة السهم نفسه.",
+      en: "To buy a stock in the simulator, search for the stock, specify the quantity, and click 'Buy'. The value will be deducted from your virtual balance and the stock added to your portfolio. You can sell your shares anytime to realize profits or minimize losses via the portfolio page or the stock's detail page."
+    },
+    readTime: 3
+  },
+
+  // Community
+  "community-interaction": {
+    id: "community-interaction",
+    category: "community",
+    title: { ar: "التفاعل مع المتداولين", en: "Interacting with Traders" },
+    content: {
+      ar: "مجتمع EyeStocks هو المكان الذي يلتقي فيه المستثمرون لتبادل الأفكار. يمكنك كتابة منشورات، مشاركة تحليلاتك، والتعليق على آراء الآخرين. التفاعل يساعدك على رؤية زوايا مختلفة للسوق والاستفادة من خبرات المتداولين الآخرين.",
+      en: "The EyeStocks community is where investors meet to exchange ideas. You can write posts, share your analysis, and comment on others' views. Interaction helps you see different market angles and benefit from other traders' experiences."
     },
     readTime: 4
   },
+  "badges-system": {
+    id: "badges-system",
+    category: "community",
+    title: { ar: "نظام الأوسمة", en: "Badges System" },
+    content: {
+      ar: "لدينا نظام أوسمة لتمييز الخبرات: \n- Pro Trader: للمتداولين المحترفين ذوي الأداء العالي.\n- Analyst: للمحللين الذين يقدمون تقارير دقيقة.\n- Quant: للمتخصصين في التحليل الكمي والبيانات.\n- Verified: للحسابات الموثقة رسمياً.",
+      en: "We have a badge system to highlight expertise:\n- Pro Trader: For high-performing professional traders.\n- Analyst: For analysts providing accurate reports.\n- Quant: For specialists in quantitative analysis and data.\n- Verified: For officially verified accounts."
+    },
+    readTime: 3
+  },
+
+  // Market Analysis
+  "technical-indicators": {
+    id: "technical-indicators",
+    category: "market-analysis",
+    title: { ar: "المؤشرات الفنية", en: "Technical Indicators" },
+    content: {
+      ar: "نوفر مجموعة من المؤشرات الفنية لمساعدتك في التحليل: \n- RSI: يقيس قوة الزخم.\n- MACD: يوضح اتجاه وقوة الحركة.\n- Moving Averages: تساعد في تحديد الاتجاه العام للسعر.\nاستخدام هذه الأدوات مع توقعات الذكاء الاصطناعي يزيد من فرص نجاح صفقاتك.",
+      en: "We provide a set of technical indicators to help your analysis:\n- RSI: Measures momentum strength.\n- MACD: Shows trend direction and strength.\n- Moving Averages: Help identify the general price trend.\nUsing these tools alongside AI predictions increases your chances of successful trades."
+    },
+    readTime: 7
+  },
+  "fundamental-metrics": {
+    id: "fundamental-metrics",
+    category: "market-analysis",
+    title: { ar: "المقاييس الأساسية", en: "Fundamental Metrics" },
+    content: {
+      ar: "لفهم قيمة الشركة، يجب متابعة المقاييس الأساسية مثل مكرر الأرباح (P/E Ratio)، ربحية السهم (EPS)، والقيمة السوقية. هذه البيانات تتوفر في صفحة كل سهم لمساعدتك في التقييم المالي الصحيح قبل الاستثمار.",
+      en: "To understand a company's value, you should track fundamental metrics like P/E Ratio, Earnings Per Share (EPS), and Market Cap. This data is available on each stock's page to help you with proper financial evaluation before investing."
+    },
+    readTime: 6
+  },
+
+  // Account
+  "security-best-practices": {
+    id: "security-best-practices",
+    category: "account",
+    title: { ar: "أمان الحساب", en: "Account Security" },
+    content: {
+      ar: "حماية بياناتك هي أولويتنا. نوصي باستخدام كلمة مرور قوية وتفعيل التحقق بخطوتين. لا تشارك بيانات دخولك مع أي شخص، وتأكد دائماً من تسجيل الخروج عند استخدام أجهزة عامة.",
+      en: "Protecting your data is our priority. We recommend using a strong password and enabling two-factor authentication. Never share your login credentials and always ensure you log out when using public devices."
+    },
+    readTime: 3
+  },
+
+  // About
+  "our-vision": {
+    id: "our-vision",
+    category: "about",
+    title: { ar: "رؤيتنا", en: "Our Vision" },
+    content: {
+      ar: "رؤيتنا هي تمكين المستثمر العربي من الوصول إلى أدوات تحليل احترافية كانت محتكرة سابقاً على المؤسسات الكبيرة. نحن نؤمن بأن دمج الذكاء الاصطناعي مع واجهة مستخدم سهلة سيغير طريقة تداول الأسهم في المنطقة العربية.",
+      en: "Our vision is to empower Arabic investors by providing access to professional analysis tools previously exclusive to large institutions. We believe that integrating AI with a user-friendly interface will transform stock trading in the Arab region."
+    },
+    readTime: 4
+  }
 };
 
 export const helpCategories: Record<string, HelpCategory> = {
   "getting-started": {
     id: "getting-started",
     title: { ar: "البداية", en: "Getting Started" },
-    desc: { ar: "تعرف على الأساسيات وقم بإعداد حسابك بسرعة.", en: "Learn the basics and set up your account quickly." },
-    icon: "BookOpen",
-    articles: ["watchlist", "dashboard-guide"]
+    desc: { ar: "تعلم الأساسيات وكيفية استخدام لوحة التحكم.", en: "Learn the basics and how to use the dashboard." },
+    icon: "Rocket",
+    articles: ["welcome", "dashboard-guide", "watchlist"]
   },
-  "features": {
-    id: "features",
-    title: { ar: "المميزات والأدوات", en: "Features & Tools" },
-    desc: { ar: "افهم الأدوات القوية وكيفية عملها.", en: "Understand the powerful tools and how they work." },
-    icon: "Zap",
-    articles: ["predictions", "confidence"]
+  "ai-predictions": {
+    id: "ai-predictions",
+    title: { ar: "توقعات الذكاء الاصطناعي", en: "AI Predictions" },
+    desc: { ar: "افهم كيف يحلل الذكاء الاصطناعي الأسهم.", en: "Understand how AI analyzes stocks." },
+    icon: "Brain",
+    articles: ["hybrid-ai", "confidence-score", "targets-stoploss"]
   },
   "simulator": {
     id: "simulator",
-    title: { ar: "المحاكي", en: "Simulator" },
-    desc: { ar: "تعرف على كيفية ممارسة التداول باستخدام المحاكي.", en: "Learn how to practice trading using the simulator." },
-    icon: "Settings",
-    articles: ["simulator", "portfolio-guide"]
+    title: { ar: "محاكي التداول", en: "Trading Simulator" },
+    desc: { ar: "تدرب على التداول بأموال افتراضية.", en: "Practice trading with virtual money." },
+    icon: "Gamepad2",
+    articles: ["simulator-intro", "executing-trades"]
+  },
+  "community": {
+    id: "community",
+    title: { ar: "المجتمع", en: "Community" },
+    desc: { ar: "تفاعل مع المتداولين وشارك خبراتك.", en: "Interact with traders and share your expertise." },
+    icon: "Users",
+    articles: ["community-interaction", "badges-system"]
+  },
+  "market-analysis": {
+    id: "market-analysis",
+    title: { ar: "تحليل السوق", en: "Market Analysis" },
+    desc: { ar: "تعلم عن المؤشرات الفنية والأساسية.", en: "Learn about technical and fundamental indicators." },
+    icon: "BarChart2",
+    articles: ["technical-indicators", "fundamental-metrics"]
   },
   "account": {
     id: "account",
     title: { ar: "الحساب والأمان", en: "Account & Security" },
-    desc: { ar: "إدارة حسابك والحفاظ عليه آمنًا.", en: "Manage your account and keep it secure." },
+    desc: { ar: "إدارة إعدادات حسابك وحمايته.", en: "Manage your account settings and protection." },
     icon: "Shield",
-    articles: ["security"]
-  },
-  "billing": {
-    id: "billing",
-    title: { ar: "الفواتير والاشتراك", en: "Billing & Subscription" },
-    desc: { ar: "إدارة خطتك والمدفوعات والاشتراكات.", en: "Manage your plan, payments, and subscriptions." },
-    icon: "CreditCard",
-    articles: []
-  },
-  // New Categories
-  "transactions": {
-    id: "transactions",
-    title: { ar: "عمليات الشراء والبيع", en: "Buying & Selling" },
-    desc: { ar: "تعلم كيف تشتري وتبيع الأسهم بسهولة.", en: "Learn how to buy and sell stocks easily." },
-    icon: "CreditCard",
-    articles: ["buying", "selling"]
-  },
-  "jobs": {
-    id: "jobs",
-    title: { ar: "الوظائف", en: "Jobs" },
-    desc: { ar: "فرص عمل في فريق EyeStocks AI.", en: "Career opportunities at EyeStocks AI." },
-    icon: "Users",
-    articles: ["jobs"]
-  },
-  "trading": {
-    id: "trading",
-    title: { ar: "أساسيات التداول", en: "Trading Basics" },
-    desc: { ar: "مبادئ التداول للمبتدئين.", en: "Fundamentals of trading for beginners." },
-    icon: "Zap",
-    articles: ["trading-basics"]
-  },
-  "metrics": {
-    id: "metrics",
-    title: { ar: "المقاييس المالية", en: "Financial Metrics" },
-    desc: { ar: "فهم الأدوات التحليلية للمتداول.", en: "Understanding analytical tools for traders." },
-    icon: "Settings",
-    articles: ["metrics", "technical-indicators"]
+    articles: ["security-best-practices"]
   },
   "about": {
     id: "about",
-    title: { ar: "ما يميزنا", en: "Our Advantages" },
-    desc: { ar: "اكتشف ما يجعل EyeStocks AI فريدة.", en: "Discover what makes EyeStocks AI unique." },
-    icon: "Shield",
-    articles: ["uniqueness"]
-  },
+    title: { ar: "عن المنصة", en: "About Platform" },
+    desc: { ar: "تعرف على رؤيتنا وما يميزنا.", en: "Learn about our vision and uniqueness." },
+    icon: "Star",
+    articles: ["our-vision"]
+  }
 };
