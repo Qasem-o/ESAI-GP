@@ -234,8 +234,8 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       <Card key={post.post_id} className="hover:shadow-md transition-shadow">
         <CardContent className="pt-6">
           {/* Post Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start gap-3">
+          <div className={`flex items-start justify-between mb-4 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
+            <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Avatar className="h-12 w-12">
                 <AvatarImage src={profilePicUrl || ""} alt={post.author.username} />
                 <AvatarFallback className="w-full h-full bg-transparent" asChild>
@@ -243,7 +243,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </AvatarFallback>
               </Avatar>
               <div className={isRTL ? "text-right" : "text-left"}>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <span 
                     className="font-semibold cursor-pointer hover:underline hover:text-primary transition-colors"
                     onClick={() => navigate(`/profile/${post.author.user_id}`)}
@@ -253,7 +253,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   <span className="text-xs text-muted-foreground">@{post.author.username}</span>
                 </div>
                 <div className={`flex items-center gap-2 text-sm text-muted-foreground mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <span className="flex items-center gap-1">
+                  <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Clock className="w-3 h-3" />
                     {timeAgo(post.created_at)}
                   </span>
@@ -282,23 +282,23 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               <div 
                 className="bg-primary/5 hover:bg-primary/10 rounded-xl p-4 border border-primary/10 transition-all cursor-pointer group"
                 onClick={() => navigate(`/stock/${post.stock?.symbol}`)}
-                dir="ltr"
+                dir={isRTL ? "rtl" : "ltr"}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border font-bold text-primary">
                       {post.stock.symbol[0]}
                     </div>
-                    <div className="text-left">
+                    <div className={isRTL ? "text-right" : "text-left"}>
                       <p className="font-bold group-hover:text-primary transition-colors">{post.stock.symbol}</p>
                       <p className="text-xs text-muted-foreground line-clamp-1">{post.stock.name}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className={isRTL ? "text-left" : "text-right"}>
                     <p className="text-lg font-bold">${(post.stock.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                    <p className="text-xs text-primary flex items-center justify-end gap-1">
+                    <p className={`text-xs text-primary flex items-center gap-1 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}>
                       <TrendingUp className="w-3 h-3" />
-                      View Analytics
+                      {isRTL ? "عرض التحليلات" : "View Analytics"}
                     </p>
                   </div>
                 </div>
@@ -307,19 +307,19 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
 
           {/* Post Actions */}
-          <div className="flex items-center justify-between pt-3 border-t">
-            <div className="flex items-center gap-1">
+          <div className={`flex items-center justify-between pt-3 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleToggleLike(post.post_id)}
-                className={`cursor-pointer ${post.is_liked ? "text-red-500" : ""}`}
+                className={`cursor-pointer ${post.is_liked ? "text-red-500" : ""} ${isRTL ? 'flex-row-reverse' : ''}`}
               >
-                <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
                 {post.likes_count}
               </Button>
-              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => openComments(post.post_id)}>
-                <MessageSquare className="w-4 h-4 mr-1" />
+              <Button variant="ghost" size="sm" className={`cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`} onClick={() => openComments(post.post_id)}>
+                <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                 {post.comments_count}
               </Button>
             </div>
@@ -365,17 +365,20 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button onClick={onGoToSimulator} variant="outline" className="w-full justify-start cursor-pointer">
-                  <Zap className="w-4 h-4 mr-2" />
+                <Button onClick={onGoToSimulator} variant="outline" className={`w-full ${isRTL ? 'justify-end text-right' : 'justify-start text-left'} cursor-pointer`}>
+                  {!isRTL && <Zap className="w-4 h-4 mr-2" />}
                   {t.community.practiceTrading}
+                  {isRTL && <Zap className="w-4 h-4 ml-2" />}
                 </Button>
-                <Button onClick={onGoToStocks} variant="outline" className="w-full justify-start cursor-pointer">
-                  <Target className="w-4 h-4 mr-2" />
+                <Button onClick={onGoToStocks} variant="outline" className={`w-full ${isRTL ? 'justify-end text-right' : 'justify-start text-left'} cursor-pointer`}>
+                  {!isRTL && <Target className="w-4 h-4 mr-2" />}
                   {t.community.exploreStocks}
+                  {isRTL && <Target className="w-4 h-4 ml-2" />}
                 </Button>
-                <Button onClick={onGoToPortfolio} variant="outline" className="w-full justify-start cursor-pointer">
-                  <BarChart2 className="w-4 h-4 mr-2" />
+                <Button onClick={onGoToPortfolio} variant="outline" className={`w-full ${isRTL ? 'justify-end text-right' : 'justify-start text-left'} cursor-pointer`}>
+                  {!isRTL && <BarChart2 className="w-4 h-4 mr-2" />}
                   {t.community.viewPortfolio}
+                  {isRTL && <BarChart2 className="w-4 h-4 ml-2" />}
                 </Button>
               </CardContent>
             </Card>
@@ -482,16 +485,16 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
             {/* Filter Tabs */}
             <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full">
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className={`w-full grid grid-cols-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <TabsTrigger value="all" className="cursor-pointer">
                   {t.community.allPosts}
                 </TabsTrigger>
                 <TabsTrigger value="trending" className="cursor-pointer">
-                  <Flame className="w-4 h-4 mr-1" />
+                  <Flame className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                   {t.community.trending}
                 </TabsTrigger>
                 <TabsTrigger value="following" className="cursor-pointer">
-                  <Users className="w-4 h-4 mr-1" />
+                  <Users className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                   {t.community.following}
                 </TabsTrigger>
               </TabsList>
