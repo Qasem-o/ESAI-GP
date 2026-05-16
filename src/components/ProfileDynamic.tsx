@@ -10,6 +10,7 @@ import { Progress } from "./ui/progress";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { DefaultAvatar } from "./DefaultAvatar";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
     TrendingUp,
     User,
@@ -54,10 +55,11 @@ interface NavigationProps {
 
 interface ProfileProps extends NavigationProps { }
 
-const API_URL = 'https://esai-firstdraft.onrender.com';
+import { API_BASE_URL as API_URL } from "../services/apiConfig";
 
 export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfolio, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: ProfileProps) {
     const { user: currentUser, isAuthenticated, isLoading: authLoading, logout, updateProfile } = useAuth();
+    const { t, isRTL, language } = useLanguage();
     const { userId: urlUserId } = useParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"posts" | "portfolio" | "followers">("posts");
@@ -151,7 +153,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             const data = await response.json();
 
             if (!data.available) {
-                setUsernameError("Username is already taken");
+                setUsernameError(language === "ar" ? "اسم المستخدم مأخوذ بالفعل" : "Username is already taken");
             } else {
                 setUsernameError("");
             }
@@ -178,14 +180,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         // Validate file size (10MB)
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            alert("File size must be less than 10MB");
+            alert(language === "ar" ? "يجب أن يكون حجم الملف أقل من 10 ميجابايت" : "File size must be less than 10MB");
             return;
         }
 
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert("Only JPG, PNG, GIF, and WEBP images are allowed");
+            alert(language === "ar" ? "يُسمح فقط بصور JPG و PNG و GIF و WEBP" : "Only JPG, PNG, GIF, and WEBP images are allowed");
             return;
         }
 
@@ -237,7 +239,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         if (!currentUser) return;
 
         if (usernameError) {
-            alert("Please fix errors before saving");
+            alert(language === "ar" ? "يرجى إصلاح الأخطاء قبل الحفظ" : "Please fix errors before saving");
             return;
         }
 
@@ -264,7 +266,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             fetchUserData();
         } catch (error: any) {
             console.error("Error updating profile:", error);
-            alert(error.message || "Failed to update profile. Please try again.");
+            alert(error.message || (language === "ar" ? "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى." : "Failed to update profile. Please try again."));
         } finally {
             setIsSaving(false);
         }
@@ -286,7 +288,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const formatJoinDate = (dateString: string) => {
         const isoStr = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
         const date = new Date(isoStr);
-        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return date.toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'long', year: 'numeric' });
     };
 
     const formatTimeAgo = (dateString: string) => {
@@ -298,9 +300,15 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         const diffHours = Math.floor(diffMins / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
+        if (language === "ar") {
+            if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+            if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+            if (diffDays < 7) return `منذ ${diffDays} يوم`;
+        } else {
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+        }
         return date.toLocaleDateString();
     };
 
@@ -317,7 +325,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             <div className="bg-background min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-                    <p className="text-muted-foreground">Loading profile...</p>
+                    <p className="text-muted-foreground animate-pulse">{t.profile.loadingProfile}</p>
                 </div>
             </div>
         );
@@ -330,10 +338,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                 <Card className="w-full max-w-md mx-4">
                     <CardContent className="pt-6 text-center">
                         <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                        <h2 className="text-2xl font-bold mb-2">Please Log In</h2>
-                        <p className="text-muted-foreground mb-6">You need to be logged in to view your profile.</p>
-                        <Button onClick={onGoToLogin} className="w-full">
-                            Go to Login
+                        <h2 className="text-2xl font-bold mb-2">{t.auth.signIn}</h2>
+                        <p className="text-muted-foreground mb-6">{t.portfolio.signInDesc}</p>
+                        <Button onClick={onGoToLogin} className="w-full cursor-pointer">
+                            {t.auth.loginTitle}
                         </Button>
                     </CardContent>
                 </Card>
@@ -343,14 +351,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
     // Trading stats for display
     const tradingStats = [
-        { label: "Total Trades", value: stats?.total_trades.toString() || "0", icon: Target },
-        { label: "Win Rate", value: `${stats?.win_rate.toFixed(0) || 0}%`, icon: Trophy },
-        { label: "Avg Return", value: `+${stats?.avg_return.toFixed(1) || 0}%`, icon: TrendingUp },
-        { label: "Best Trade", value: `+${stats?.best_trade.toFixed(0) || 0}%`, icon: Award }
+        { label: t.profile.tradesCount, value: stats?.total_trades.toString() || "0", icon: Target },
+        { label: t.profile.winRate, value: `${stats?.win_rate.toFixed(0) || 0}%`, icon: Trophy },
+        { label: language === "ar" ? "متوسط العائد" : "Avg Return", value: `+${stats?.avg_return.toFixed(1) || 0}%`, icon: TrendingUp },
+        { label: language === "ar" ? "أفضل صفقة" : "Best Trade", value: `+${stats?.best_trade.toFixed(0) || 0}%`, icon: Award }
     ];
 
     return (
-        <div className="bg-background min-h-screen">
+        <div className="bg-background min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
             <Header
                 currentPage={currentPage}
                 onGoToHome={onGoToHome}
@@ -381,7 +389,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     ) : (
                                         <DefaultAvatar className="w-24 h-24 mb-4 border-4 border-background shadow-lg" />
                                     )}
-                                    <h2 className="text-2xl font-bold">{targetUser?.full_name || targetUser?.username || "Loading..."}</h2>
+                                    <h2 className="text-2xl font-bold">{targetUser?.full_name || targetUser?.username || "..."}</h2>
                                     <div className="flex items-center gap-2 text-muted-foreground mt-1">
                                         <User className="w-4 h-4" />
                                         <p className="text-sm">@{targetUser?.username?.toLowerCase() || "username"}</p>
@@ -394,72 +402,72 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     )}
                                     <div className="flex items-center gap-2 mt-2">
                                         <Badge variant="secondary">
-                                            {targetUser?.is_verified ? "Verified Trader" : "Trader"}
+                                            {targetUser?.is_verified ? (language === "ar" ? "متداول موثق" : "Verified Trader") : (language === "ar" ? "متداول" : "Trader")}
                                         </Badge>
                                         {targetUser?.is_verified && (
                                             <Badge variant="default" className="bg-green-500">
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                Verified
+                                                <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                                {language === "ar" ? "موثق" : "Verified"}
                                             </Badge>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Bio */}
-                                {targetUser?.bio && (
-                                    <p className="text-center mb-4 text-sm">{targetUser.bio}</p>
-                                )}
+                                <p className="text-center mb-4 text-sm">
+                                    {targetUser?.bio || t.profile.noBio}
+                                </p>
 
                                 {/* Stats */}
                                 <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b">
                                     <div className="text-center">
                                         <p className="text-2xl font-bold">{stats?.posts_count || 0}</p>
-                                        <p className="text-xs text-muted-foreground">Posts</p>
+                                        <p className="text-xs text-muted-foreground">{t.profile.posts}</p>
                                     </div>
                                     <div className="text-center">
                                         <p className="text-2xl font-bold">{stats?.followers_count || 0}</p>
-                                        <p className="text-xs text-muted-foreground">Followers</p>
+                                        <p className="text-xs text-muted-foreground">{t.profile.followers}</p>
                                     </div>
                                     <div className="text-center">
                                         <p className="text-2xl font-bold">{stats?.following_count || 0}</p>
-                                        <p className="text-xs text-muted-foreground">Following</p>
+                                        <p className="text-xs text-muted-foreground">{t.profile.following}</p>
                                     </div>
                                 </div>
 
                                 {/* Joined Date */}
                                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
                                     <Calendar className="w-4 h-4" />
-                                    <span>Joined {targetUser?.created_at ? formatJoinDate(targetUser.created_at) : "Loading..."}</span>
+                                    <span>{t.profile.joined} {targetUser?.created_at ? formatJoinDate(targetUser.created_at) : "..."}</span>
                                 </div>
 
                                 {/* Last Login */}
                                 {targetUser?.last_login && (
                                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-4">
                                         <Eye className="w-3 h-3" />
-                                        <span>Last active: {new Date(targetUser.last_login).toLocaleDateString()}</span>
+                                        <span>{language === "ar" ? "آخر نشاط:" : "Last active:"} {new Date(targetUser.last_login).toLocaleDateString()}</span>
                                     </div>
                                 )}
 
                                 {/* Actions */}
                                 <div className="space-y-2">
                                     {isEditingOwnProfile && (
-                                        <Button variant="outline" className="w-full" onClick={handleEditProfile}>
-                                            <Settings className="w-4 h-4 mr-2" />
-                                            Edit Profile
+                                        <Button variant="outline" className="w-full cursor-pointer" onClick={handleEditProfile}>
+                                            <Settings className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                            {t.profile.editProfile}
                                         </Button>
                                     )}
                                     {!isEditingOwnProfile && (
                                         <Button 
                                             variant={followers.some(f => f.user_id === currentUser?.user_id) ? "outline" : "default"} 
-                                            className="w-full"
+                                            className="w-full cursor-pointer"
                                             onClick={() => {/* handle follow */}}
                                         >
-                                            {followers.some(f => f.user_id === currentUser?.user_id) ? "Unfollow" : "Follow"}
+                                            {followers.some(f => f.user_id === currentUser?.user_id) ? (language === "ar" ? "إلغاء المتابعة" : "Unfollow") : (language === "ar" ? "متابعة" : "Follow")}
                                         </Button>
                                     )}
-                                    <Button variant="outline" className="w-full">
-                                        <Share2 className="w-4 h-4 mr-2" />
-                                        Share Profile
+                                    <Button variant="outline" className="w-full cursor-pointer">
+                                        <Share2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                        {language === "ar" ? "مشاركة الملف الشخصي" : "Share Profile"}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -468,7 +476,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         {/* Trading Stats */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Trading Performance</CardTitle>
+                                <CardTitle className="text-lg">{t.profile.portfolioPerformance}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
@@ -487,21 +495,21 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 {/* Portfolio Value */}
                                 <div className="bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-lg p-4 border">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-muted-foreground">Portfolio Value</span>
+                                        <span className="text-sm text-muted-foreground">{t.portfolio.totalValue}</span>
                                         <Badge variant={stats && stats.portfolio_change >= 0 ? "default" : "destructive"}>
                                             {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change.toFixed(1) || 0}%
                                         </Badge>
                                     </div>
                                     <p className="text-3xl font-bold">${stats?.portfolio_value.toLocaleString() || '0'}</p>
-                                    <Button onClick={onGoToPortfolio} variant="link" className="p-0 h-auto mt-2 text-primary">
-                                        View Full Portfolio →
+                                    <Button onClick={onGoToPortfolio} variant="link" className="p-0 h-auto mt-2 text-primary cursor-pointer">
+                                        {language === "ar" ? "عرض المحفظة الكاملة ←" : "View Full Portfolio →"}
                                     </Button>
                                 </div>
 
                                 {/* Win Rate Progress */}
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm">Win Rate</span>
+                                        <span className="text-sm">{t.profile.winRate}</span>
                                         <span className="text-sm font-bold">{stats?.win_rate.toFixed(0) || 0}%</span>
                                     </div>
                                     <Progress value={stats?.win_rate || 0} className="h-2" />
@@ -516,9 +524,9 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         <Card>
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
                                 <TabsList className="w-full grid grid-cols-3">
-                                    <TabsTrigger value="posts">Posts</TabsTrigger>
-                                    <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                                    <TabsTrigger value="followers">Followers</TabsTrigger>
+                                    <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
+                                    <TabsTrigger value="portfolio" className="cursor-pointer">{t.navigation.portfolio}</TabsTrigger>
+                                    <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
                                 </TabsList>
 
                                 {/* Posts Tab */}
@@ -526,8 +534,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     {posts.length === 0 ? (
                                         <div className="text-center py-12">
                                             <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">No Posts Yet</h3>
-                                            <p className="text-muted-foreground">Start sharing your trading insights!</p>
+                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "لا توجد منشورات بعد" : "No Posts Yet"}</h3>
+                                            <p className="text-muted-foreground">{language === "ar" ? "ابدأ بمشاركة رؤى التداول الخاصة بك!" : "Start sharing your trading insights!"}</p>
                                         </div>
                                     ) : (
                                         posts.map((post) => (
@@ -547,14 +555,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                                     <User className="w-6 h-6 text-primary" />
                                                                 </div>
                                                             )}
-                                                            <div>
+                                                            <div className={isRTL ? 'text-right' : 'text-left'}>
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-semibold">{targetUser?.full_name || targetUser?.username}</span>
                                                                     <span className="text-xs text-muted-foreground">@{targetUser?.username}</span>
                                                                     {targetUser?.is_verified && (
                                                                         <Badge variant="secondary" className="text-xs">
-                                                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                                                            Verified
+                                                                            <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                                                            {language === "ar" ? "موثق" : "Verified"}
                                                                         </Badge>
                                                                     )}
                                                                 </div>
@@ -564,7 +572,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                     </div>
 
                                                     {/* Post Content */}
-                                                    <div className="mb-3">
+                                                    <div className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                                                         <p className="whitespace-pre-wrap mb-3">{post.content}</p>
 
                                                         {/* Stock Symbol if attached */}
@@ -580,36 +588,36 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                     </div>
 
                                                     {/* Post Stats */}
-                                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b">
+                                                    <div className={`flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                         <span className="flex items-center gap-1">
                                                             <Eye className="w-4 h-4" />
-                                                            {post.views_count.toLocaleString()} views
+                                                            {post.views_count.toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
                                                         </span>
-                                                        <span>{post.comments_count} comments</span>
+                                                        <span>{post.comments_count} {language === "ar" ? "تعليق" : "comments"}</span>
                                                     </div>
 
                                                     {/* Post Actions */}
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
+                                                    <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => toggleLike(post.post_id)}
-                                                                className={post.is_liked ? "text-red-500" : ""}
+                                                                className={post.is_liked ? "text-red-500 cursor-pointer" : "cursor-pointer"}
                                                             >
-                                                                <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                                                <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
                                                                 {post.likes_count}
                                                             </Button>
-                                                            <Button variant="ghost" size="sm">
-                                                                <MessageSquare className="w-4 h-4 mr-1" />
+                                                            <Button variant="ghost" size="sm" className="cursor-pointer">
+                                                                <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                                                 {post.comments_count}
                                                             </Button>
-                                                            <Button variant="ghost" size="sm">
-                                                                <Share2 className="w-4 h-4 mr-1" />
+                                                            <Button variant="ghost" size="sm" className="cursor-pointer">
+                                                                <Share2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                                                 {post.shares_count}
                                                             </Button>
                                                         </div>
-                                                        <Button variant="ghost" size="sm">
+                                                        <Button variant="ghost" size="sm" className="cursor-pointer">
                                                             <Bookmark className="w-4 h-4" />
                                                         </Button>
                                                     </div>
@@ -623,44 +631,44 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 <TabsContent value="portfolio" className="p-4">
                                     <div className="text-center py-12">
                                         <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                        <h3 className="text-xl font-semibold mb-2">Portfolio Overview</h3>
-                                        <p className="text-muted-foreground mb-4">View your complete portfolio and holdings</p>
-                                        <Button onClick={onGoToPortfolio}>
-                                            Go to Portfolio
+                                        <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "نظرة عامة على المحفظة" : "Portfolio Overview"}</h3>
+                                        <p className="text-muted-foreground mb-4">{language === "ar" ? "اعرض محفظتك الكاملة وأصولك" : "View your complete portfolio and holdings"}</p>
+                                        <Button onClick={onGoToPortfolio} className="cursor-pointer">
+                                            {t.navigation.portfolio}
                                         </Button>
                                     </div>
                                 </TabsContent>
 
                                 {/* Followers Tab */}
                                 <TabsContent value="followers" className="space-y-3 p-4">
-                                    <div className="flex gap-2 mb-4">
+                                    <div className={`flex gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                         <Button
                                             variant={activeTab === "followers" ? "default" : "outline"}
-                                            className="flex-1"
+                                            className="flex-1 cursor-pointer"
                                             onClick={() => setActiveTab("followers")}
                                         >
-                                            Followers ({stats?.followers_count || 0})
+                                            {t.profile.followers} ({stats?.followers_count || 0})
                                         </Button>
                                         <Button
                                             variant="outline"
-                                            className="flex-1"
+                                            className="flex-1 cursor-pointer"
                                         >
-                                            Following ({stats?.following_count || 0})
+                                            {t.profile.following} ({stats?.following_count || 0})
                                         </Button>
                                     </div>
 
                                     {followers.length === 0 ? (
                                         <div className="text-center py-12">
                                             <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">No Followers Yet</h3>
-                                            <p className="text-muted-foreground">Start sharing content to gain followers!</p>
+                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "لا يوجد متابعون بعد" : "No Followers Yet"}</h3>
+                                            <p className="text-muted-foreground">{language === "ar" ? "ابدأ بمشاركة المحتوى لكسب المتابعين!" : "Start sharing content to gain followers!"}</p>
                                         </div>
                                     ) : (
                                         followers.map((follower) => (
                                             <Card key={follower.user_id}>
                                                 <CardContent className="pt-6">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
+                                                    <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                             {follower.profile_picture_url ? (
                                                                 <img
                                                                     src={follower.profile_picture_url}
@@ -672,26 +680,27 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                                     <User className="w-7 h-7 text-primary" />
                                                                 </div>
                                                             )}
-                                                            <div>
+                                                            <div className={isRTL ? 'text-right' : 'text-left'}>
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-semibold">{follower.full_name || follower.username}</span>
                                                                     {follower.is_verified && (
                                                                         <Badge variant="secondary" className="text-xs">
-                                                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                                                            Verified
+                                                                            <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                                                            {language === "ar" ? "موثق" : "Verified"}
                                                                         </Badge>
                                                                     )}
                                                                 </div>
                                                                 <p className="text-sm text-muted-foreground">@{follower.username.toLowerCase()}</p>
-                                                                <p className="text-xs text-muted-foreground">{follower.followers_count} followers</p>
+                                                                <p className="text-xs text-muted-foreground">{follower.followers_count} {t.profile.followers}</p>
                                                             </div>
                                                         </div>
                                                         <Button 
                                                             size="sm" 
                                                             variant="outline"
+                                                            className="cursor-pointer"
                                                             onClick={() => navigate(`/profile/${follower.user_id}`)}
                                                         >
-                                                            View Profile
+                                                            {language === "ar" ? "عرض الملف" : "View Profile"}
                                                         </Button>
                                                     </div>
                                                 </CardContent>
@@ -707,18 +716,18 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Edit Profile</DialogTitle>
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir={isRTL ? "rtl" : "ltr"}>
+                    <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                        <DialogTitle>{t.profile.editProfile}</DialogTitle>
                         <DialogDescription>
-                            Update your profile information. All fields are optional except username.
+                            {language === "ar" ? "قم بتحديث معلومات ملفك الشخصي. جميع الحقول اختيارية باستثناء اسم المستخدم." : "Update your profile information. All fields are optional except username."}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6 py-4">
                         {/* Avatar Upload */}
                         <div className="space-y-2">
-                            <Label>Profile Picture</Label>
-                            <div className="flex items-center gap-4">
+                            <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
+                            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                 {avatarPreview ? (
                                     <img
                                         src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
@@ -742,13 +751,13 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full"
+                                        className="w-full cursor-pointer"
                                     >
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        {editAvatarFile ? 'Change Image' : 'Upload Image'}
+                                        <Upload className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                        {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
                                     </Button>
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        Max 10MB. JPG, PNG, GIF, or WEBP only.
+                                    <p className={`text-xs text-muted-foreground mt-2 ${isRTL ? 'text-right' : ''}`}>
+                                        {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
                                     </p>
                                     {isUploading && (
                                         <Progress value={uploadProgress} className="mt-2" />
@@ -759,91 +768,75 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
                         {/* Full Name */}
                         <div className="space-y-2">
-                            <Label htmlFor="editFullName">Display Name (Full Name)</Label>
+                            <Label htmlFor="editFullName" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "الاسم المعروض (الاسم الكامل)" : "Display Name (Full Name)"}</Label>
                             <Input
                                 id="editFullName"
                                 value={editFullName}
                                 onChange={(e) => setEditFullName(e.target.value)}
                                 placeholder="e.g. Ali Ahmed"
+                                className={isRTL ? 'text-right' : ''}
                             />
                         </div>
 
                         {/* Username */}
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username *</Label>
+                            <Label htmlFor="username" className={isRTL ? 'text-right block' : 'block'}>{t.auth.username} *</Label>
                             <Input
                                 id="username"
                                 value={editUsername}
                                 onChange={(e) => handleUsernameChange(e.target.value)}
                                 placeholder="Enter username"
                                 required
+                                className={isRTL ? 'text-right' : ''}
                             />
                             {usernameChecking && (
-                                <p className="text-xs text-muted-foreground">Checking availability...</p>
+                                <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "جاري التحقق من التوفر..." : "Checking availability..."}</p>
                             )}
                             {usernameError && (
-                                <p className="text-xs text-red-500">{usernameError}</p>
+                                <p className={`text-xs text-red-500 ${isRTL ? 'text-right' : ''}`}>{usernameError}</p>
                             )}
                             {!usernameError && editUsername && editUsername !== currentUser?.username && !usernameChecking && (
-                                <p className="text-xs text-green-500">✓ Username available</p>
+                                <p className={`text-xs text-green-500 ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "✓ اسم المستخدم متاح" : "✓ Username available"}</p>
                             )}
                         </div>
 
                         {/* Phone Number */}
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number</Label>
+                            <Label htmlFor="phone" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "رقم الهاتف" : "Phone Number"}</Label>
                             <Input
                                 id="phone"
                                 type="tel"
                                 value={editPhone}
                                 onChange={(e) => setEditPhone(e.target.value)}
                                 placeholder="+1234567890"
+                                className={isRTL ? 'text-right' : ''}
                             />
-                            <p className="text-xs text-muted-foreground">
-                                International format recommended
-                            </p>
                         </div>
 
                         {/* Bio */}
                         <div className="space-y-2">
-                            <Label htmlFor="bio">Bio</Label>
+                            <Label htmlFor="bio" className={isRTL ? 'text-right block' : 'block'}>{t.profile.bio}</Label>
                             <Textarea
                                 id="bio"
-                                placeholder="Tell us about yourself..."
                                 value={editBio}
                                 onChange={(e) => setEditBio(e.target.value)}
-                                rows={4}
-                                maxLength={500}
+                                placeholder={language === "ar" ? "أخبرنا قليلاً عن نفسك..." : "Tell us a bit about yourself..."}
+                                className={`min-h-[100px] ${isRTL ? 'text-right' : ''}`}
                             />
-                            <p className="text-xs text-muted-foreground">
-                                {editBio.length}/500 characters
-                            </p>
                         </div>
                     </div>
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsEditDialogOpen(false)}
-                            disabled={isSaving || isUploading}
-                        >
-                            Cancel
+                    <div className={`flex justify-end gap-3 pt-4 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
+                            {t.common.cancel}
                         </Button>
-                        <Button
-                            onClick={handleSaveProfile}
-                            disabled={isSaving || isUploading || !!usernameError || !editUsername}
-                        >
-                            {isSaving || isUploading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    {isUploading ? 'Uploading...' : 'Saving...'}
-                                </>
-                            ) : (
-                                "Save Changes"
-                            )}
+                        <Button onClick={handleSaveProfile} disabled={isSaving || !!usernameError || usernameChecking} className="cursor-pointer">
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            {t.profile.saveChanges}
                         </Button>
                     </div>
                 </DialogContent>
             </Dialog>
+
             <Footer />
         </div>
     );

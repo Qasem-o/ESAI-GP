@@ -242,7 +242,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
       />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 lg:px-6 py-6">
+      <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Sidebar - Hidden on mobile */}
           <motion.div
@@ -266,7 +266,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                     placeholder="Search stocks..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-12 text-base rounded-xl"
                   />
                 </div>
               </CardContent>
@@ -312,7 +312,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                   .slice(0, 5)
                   .map((item, i) => (
                   <div key={i} onClick={() => setSelectedStock(item)} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                    <span className="font-semibold">${item.symbol}</span>
+                    <span className="font-semibold truncate max-w-[150px]">{item.name}</span>
                     <Badge variant={(item.change || 0) >= 0 ? "default" : "destructive"} className="text-xs">
                       {(item.change || 0) >= 0 ? '+' : ''}{item.change}%
                     </Badge>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 
@@ -10,6 +11,7 @@ interface LoadingScreenProps {
 export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const { theme } = useTheme();
+  const { t, isRTL } = useLanguage();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -29,8 +31,8 @@ export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
   }, [onLoadingComplete]);
 
   return (
-    <div className="fixed inset-0 bg-background z-[9999] flex items-center justify-center transition-colors duration-300">
-      <div className="text-center space-y-8">
+    <div className="fixed inset-0 bg-background z-[9999] flex items-center justify-center transition-colors duration-300" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="text-center space-y-8 px-4">
         {/* Logo */}
         <div className="flex justify-center">
           <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl bg-background/50 backdrop-blur-sm border border-border">
@@ -48,18 +50,18 @@ export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
 
         {/* Company Name */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">EyeStocks AI</h1>
-          <p className="text-xl text-muted-foreground">Intelligent Market Predictions</p>
+          <h1 className="text-4xl font-bold text-foreground">{t.loading.title}</h1>
+          <p className="text-xl text-muted-foreground">{t.loading.subtitle}</p>
         </div>
 
         {/* Investment Quote */}
         <div className="max-w-md mx-auto space-y-4">
           <div className="text-center">
             <p className="text-lg text-foreground italic">
-              "Smart investments today, secure wealth tomorrow"
+              {t.loading.quote}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              - EyeStocks AI Investment Philosophy
+              {t.loading.philosophy}
             </p>
           </div>
         </div>
@@ -73,14 +75,14 @@ export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Loading... {loadingProgress}%
+            {t.common.loading}... {loadingProgress}%
           </p>
         </div>
 
         {/* Loading Message */}
         <div className="text-center">
           <p className="text-muted-foreground text-sm">
-            Preparing your AI-powered trading experience
+            {t.loading.preparing}
           </p>
         </div>
       </div>

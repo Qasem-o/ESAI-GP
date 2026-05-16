@@ -337,7 +337,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header
         currentPage={currentPage === "home" ? "home" : currentPage}
         onGoToHome={onGoToHome}
@@ -351,7 +351,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 lg:px-6 py-6">
+      <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Sidebar */}
           <div className="lg:col-span-3 space-y-6">

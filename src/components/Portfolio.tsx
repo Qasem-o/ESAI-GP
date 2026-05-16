@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -16,6 +17,7 @@ import {
   PerformancePoint,
   WatchlistItem,
 } from "../services/portfolioApi";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -26,6 +28,8 @@ import {
   BarChart2,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeft,
+  ArrowRight,
   Plus,
   Eye,
   Star,
@@ -59,21 +63,35 @@ interface NavigationProps {
 interface PortfolioProps extends NavigationProps { }
 
 // Time ago helper
-function timeAgo(dateStr: string): string {
-  // Ensure the date is treated as UTC if no timezone is provided
-  const isoStr = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`;
+function timeAgo(dateStr: string, t: any): string {
+  if (!dateStr) return "";
+  
+  // Try to parse the date robustly
+  // If it's already ISO (has T or Z or +), use it. Otherwise assume UTC if it looks like a DB timestamp.
+  const isoStr = (dateStr.includes('T') || dateStr.includes('Z') || dateStr.includes('+')) 
+    ? dateStr 
+    : `${dateStr.replace(' ', 'T')}Z`;
+    
   const date = new Date(isoStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  if (diffSecs < 5) return "just now";
-  if (diffSecs < 60) return `${diffSecs}s ago`;
+  let diffSecs = Math.floor(diffMs / 1000);
+  
+  // If the time is in the future (timezone mismatch), treat as just now
+  if (diffSecs < 0) diffSecs = 0;
+  
+  if (diffSecs < 5) return t.portfolio.justNow || "just now";
+  if (diffSecs < 60) return `${diffSecs} ${t.portfolio.secondsAgo || "s ago"}`;
+  
   const diffMins = Math.floor(diffSecs / 60);
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 60) return `${diffMins} ${t.portfolio.minutesAgo || "m ago"}`;
+  
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return `${diffHours} ${t.portfolio.hoursAgo || "h ago"}`;
+  
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 7) return `${diffDays} ${t.portfolio.daysAgo || "d ago"}`;
+  
   return date.toLocaleDateString();
 }
 
@@ -92,7 +110,17 @@ export function Portfolio({
   onGoToLogin,
 }: PortfolioProps) {
   const { isAuthenticated } = useAuth();
+  const { t, isRTL } = useLanguage();
   const [selectedTab, setSelectedTab] = useState<"holdings" | "transactions" | "watchlist">("holdings");
+  const [tick, setTick] = useState(0);
+
+  // Refresh timestamps every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(prev => prev + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,6 +130,8 @@ export function Portfolio({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [performance, setPerformance] = useState<PerformancePoint[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [watchlistedMap, setWatchlistedMap] = useState<Record<string, boolean>>({});
+  const [isTogglingWatchlist, setIsTogglingWatchlist] = useState<Record<string, boolean>>({});
 
   // Modal states
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -160,6 +190,9 @@ export function Portfolio({
       setTransactions(transactionsData);
       setPerformance(perfData);
       setWatchlist(watchlistData);
+      const wlMap: Record<string, boolean> = {};
+      watchlistData.forEach((item: WatchlistItem) => wlMap[item.stock_symbol] = true);
+      setWatchlistedMap(wlMap);
     } catch (err: any) {
       console.error("Secondary data fetch error:", err);
     } finally {
@@ -212,6 +245,28 @@ export function Portfolio({
       setTradeMessage({ type: "error", text: err.message });
     } finally {
       setTradeLoading(false);
+    }
+  };
+
+  // Watchlist handler
+  const toggleWatchlist = async (e: React.MouseEvent, symbol: string, name: string) => {
+    e.stopPropagation();
+    setIsTogglingWatchlist(prev => ({ ...prev, [symbol]: true }));
+    try {
+      if (watchlistedMap[symbol]) {
+        await portfolioAPI.removeFromWatchlist(symbol);
+        setWatchlistedMap(prev => ({ ...prev, [symbol]: false }));
+        toast.success(isRTL ? `تمت إزالة ${symbol} من المفضلة` : `${symbol} removed from watchlist`);
+      } else {
+        await portfolioAPI.addToWatchlist(symbol, name);
+        setWatchlistedMap(prev => ({ ...prev, [symbol]: true }));
+        toast.success(isRTL ? `تمت إضافة ${symbol} إلى المفضلة` : `${symbol} added to watchlist`);
+      }
+      fetchData(true); // Silent refresh to update watchlist tab
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update watchlist");
+    } finally {
+      setIsTogglingWatchlist(prev => ({ ...prev, [symbol]: false }));
     }
   };
 
@@ -326,7 +381,7 @@ export function Portfolio({
   // Not authenticated state
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
         <Header
           currentPage="portfolio"
           onGoToHome={onGoToCommunity}
@@ -342,17 +397,17 @@ export function Portfolio({
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center mx-auto mb-6">
               <LogIn className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-3">Sign in to view your Portfolio</h2>
+            <h2 className="text-2xl font-bold mb-3">{t.portfolio.loginRequired || "Sign in to view your Portfolio"}</h2>
             <p className="text-muted-foreground mb-6">
-              Track your holdings, make trades, and monitor performance — all in one place.
+              {t.portfolio.loginToView || "Track your holdings, make trades, and monitor performance — all in one place."}
             </p>
             <div className="flex gap-3 justify-center">
               <Button onClick={onGoToLogin} size="lg">
-                <LogIn className="w-4 h-4 mr-2" />
-                Log In
+                <LogIn className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {t.nav.login}
               </Button>
               <Button onClick={onGoToSignup} variant="outline" size="lg">
-                Create Account
+                {t.nav.signup}
               </Button>
             </div>
           </div>
@@ -364,7 +419,7 @@ export function Portfolio({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
         <Header
           currentPage="portfolio"
           onGoToHome={onGoToCommunity}
@@ -377,14 +432,14 @@ export function Portfolio({
         />
         <div className="flex items-center justify-center py-40">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-3 text-lg">Loading portfolio...</span>
+          <span className={`${isRTL ? 'mr-3' : 'ml-3'} text-lg`}>{t.portfolio.loadingPortfolio || "Loading portfolio..."}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background" dir={isRTL ? "rtl" : "ltr"}>
       <Header
         currentPage="portfolio"
         onGoToHome={onGoToCommunity}
@@ -409,7 +464,7 @@ export function Portfolio({
       )}
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 lg:px-6 py-6">
+      <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Sidebar - Portfolio Summary */}
           <div className="lg:col-span-4 space-y-6">
@@ -418,7 +473,7 @@ export function Portfolio({
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <DollarSign className="w-5 h-5" />
-                  Portfolio Value
+                  {t.portfolio.totalValue}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -426,13 +481,13 @@ export function Portfolio({
                   <p className="text-4xl font-bold">
                     ${summary ? summary.total_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
                   </p>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className={`flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Badge variant={(summary?.total_gain ?? 0) >= 0 ? "default" : "destructive"}>
                       {(summary?.total_gain ?? 0) >= 0 ? "+" : ""}
                       ${Math.abs(summary?.total_gain ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Badge>
                     <span
-                      className={`flex items-center text-sm font-medium ${(summary?.gain_percentage ?? 0) >= 0 ? "text-green-500" : "text-red-500"
+                      className={`flex items-center text-sm font-medium ${isRTL ? 'flex-row-reverse' : ''} ${(summary?.gain_percentage ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                         }`}
                     >
                       {(summary?.gain_percentage ?? 0) >= 0 ? (
@@ -447,13 +502,13 @@ export function Portfolio({
 
                 <div className="pt-3 border-t space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Investment</span>
+                    <span className="text-muted-foreground">{t.portfolio.totalInvestment}</span>
                     <span className="font-medium">
                       ${summary ? summary.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Day Change</span>
+                    <span className="text-muted-foreground">{t.portfolio.dayChange}</span>
                     <span
                       className={`font-medium ${(summary?.day_change ?? 0) >= 0 ? "text-green-500" : "text-red-500"
                         }`}
@@ -463,9 +518,9 @@ export function Portfolio({
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Holdings</span>
+                    <span className="text-muted-foreground">{t.portfolio.holdings}</span>
                     <span className="font-medium">
-                      {summary ? summary.holdings_count : 0} stocks
+                      {summary ? summary.holdings_count : 0} {t.portfolio.positionsCount}
                     </span>
                   </div>
                 </div>
@@ -477,17 +532,16 @@ export function Portfolio({
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Activity className="w-5 h-5" />
-                  7-Day Performance
+                  {t.portfolio.performance7d}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-48 flex items-end justify-between gap-2">
+                <div className={`h-48 flex items-end justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   {performance.length > 0 ? performance.slice(0, 7).map((day, idx) => {
                     const values = performance.map((p) => p.value);
                     const min = Math.min(...values);
                     const max = Math.max(...values);
                     const range = max - min || 1;
-                    // Normalize height between 20% and 100%
                     const height = ((day.value - min) / range) * 80 + 20;
 
                     return (
@@ -505,8 +559,8 @@ export function Portfolio({
                   }) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted/5 border border-dashed rounded-lg">
                       <div className="text-center px-4">
-                        <p className="text-sm text-muted-foreground font-medium">No performance data yet</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1 uppercase tracking-wider">Keep trading to see history</p>
+                        <p className="text-sm text-muted-foreground font-medium">{t.portfolio.noPerfData}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1 uppercase tracking-wider">{t.portfolio.keepTrading}</p>
                       </div>
                     </div>
                   )}
@@ -519,7 +573,7 @@ export function Portfolio({
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <PieChart className="w-5 h-5" />
-                  Asset Allocation
+                  {t.portfolio.assetAllocation}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -535,7 +589,7 @@ export function Portfolio({
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No holdings yet. Add your first stock!
+                    {t.portfolio.noHoldings}
                   </p>
                 )}
               </CardContent>
@@ -556,12 +610,12 @@ export function Portfolio({
                   }}
                   className="w-full justify-start"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Stock to Portfolio
+                  <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {t.portfolio.addStockToPortfolio}
                 </Button>
                 <Button onClick={onGoToSimulator} variant="outline" className="w-full justify-start">
-                  <Target className="w-4 h-4 mr-2" />
-                  Practice Trading
+                  <Target className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {t.portfolio.practiceTrading}
                 </Button>
               </CardContent>
             </Card>
@@ -569,24 +623,24 @@ export function Portfolio({
 
           {/* Center - Holdings & Transactions */}
           <div className="lg:col-span-8 space-y-4">
-            <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)}>
+            <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)} dir={isRTL ? "rtl" : "ltr"}>
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="holdings">Holdings</TabsTrigger>
-                <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
+                <TabsTrigger value="holdings">{t.portfolio.holdings}</TabsTrigger>
+                <TabsTrigger value="transactions">{t.portfolio.transactions}</TabsTrigger>
+                <TabsTrigger value="watchlist">{t.portfolio.watchlist}</TabsTrigger>
               </TabsList>
 
               {/* Holdings Tab */}
               <TabsContent value="holdings" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">{holdings.length} Position{holdings.length !== 1 ? "s" : ""}</h2>
+                  <h2 className="text-xl font-bold">{holdings.length} {t.portfolio.positionsCount}</h2>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       className="cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
                       onClick={async () => {
-                        if (confirm("Are you sure you want to reset your portfolio? This will sell all holdings and delete all transactions.")) {
+                        if (confirm(t.portfolio.resetConfirm || "Are you sure you want to reset your portfolio? This will sell all holdings and delete all transactions.")) {
                           try {
                             setTradeLoading(true);
                             await portfolioAPI.resetPortfolio();
@@ -600,8 +654,8 @@ export function Portfolio({
                       }}
                       disabled={tradeLoading || holdings.length === 0}
                     >
-                      {tradeLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                      Reset Portfolio
+                      {tradeLoading ? <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} animate-spin`} /> : <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />}
+                      {t.portfolio.resetPortfolio}
                     </Button>
                     <Button
                       size="sm"
@@ -616,8 +670,8 @@ export function Portfolio({
                         setShowBuyModal(true);
                       }}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Stock
+                      <Plus className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                      {t.portfolio.addStock}
                     </Button>
                   </div>
                 </div>
@@ -625,9 +679,9 @@ export function Portfolio({
                 {holdings.length === 0 ? (
                   <Card className="p-8 text-center">
                     <PieChart className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Holdings Yet</h3>
+                    <h3 className="text-xl font-semibold mb-2">{t.portfolio.noHoldingsYet || "No Holdings Yet"}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Start building your portfolio by adding your first stock.
+                      {t.portfolio.noHoldingsDesc || "Start building your portfolio by adding your first stock."}
                     </p>
                     <Button
                       onClick={() => {
@@ -640,8 +694,8 @@ export function Portfolio({
                         setShowBuyModal(true);
                       }}
                     >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Stock
+                      <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t.portfolio.addFirstStock || "Add Your First Stock"}
                     </Button>
                   </Card>
                 ) : (
@@ -657,7 +711,7 @@ export function Portfolio({
                                   {holding.stock_symbol.charAt(0)}
                                 </span>
                               </div>
-                              <div>
+                              <div className={isRTL ? "text-right" : "text-left"}>
                                 <div className="flex items-center gap-2">
                                   <h3 className="font-bold text-lg">${holding.stock_symbol}</h3>
                                   <Badge
@@ -671,32 +725,42 @@ export function Portfolio({
                                 <p className="text-sm text-muted-foreground">{holding.stock_name}</p>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon">
-                              <Star className="w-5 h-5" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              disabled={isTogglingWatchlist[holding.stock_symbol]}
+                              onClick={(e) => toggleWatchlist(e, holding.stock_symbol, holding.stock_name || holding.stock_symbol)}
+                              className={watchlistedMap[holding.stock_symbol] ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-yellow-500"}
+                            >
+                              {isTogglingWatchlist[holding.stock_symbol] ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <Star className={`w-5 h-5 ${watchlistedMap[holding.stock_symbol] ? "fill-current" : ""}`} />
+                              )}
                             </Button>
                           </div>
 
                           {/* Position Details */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Shares</p>
+                            <div className={isRTL ? "text-right" : "text-left"}>
+                              <p className="text-xs text-muted-foreground mb-1">{t.portfolio.shares}</p>
                               <p className="font-semibold">{holding.shares}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Buy Price</p>
+                            <div className={isRTL ? "text-right" : "text-left"}>
+                              <p className="text-xs text-muted-foreground mb-1">{t.portfolio.avgCost}</p>
                               <p className="font-semibold">
                                 {holding.currency_symbol || "$"}{holding.avg_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                {holding.currency && holding.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{holding.currency}</span>}
+                                {holding.currency && holding.currency !== "USD" && <span className={`text-[10px] text-muted-foreground ${isRTL ? 'mr-1' : 'ml-1'}`}>{holding.currency}</span>}
                               </p>
                             </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Current Price</p>
+                            <div className={isRTL ? "text-right" : "text-left"}>
+                              <p className="text-xs text-muted-foreground mb-1">{t.portfolio.currentPrice}</p>
                               <p className="font-semibold">
                                 {holding.currency_symbol || "$"}{holding.current_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </p>
                             </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Total Value (USD)</p>
+                            <div className={isRTL ? "text-right" : "text-left"}>
+                              <p className="text-xs text-muted-foreground mb-1">{t.portfolio.totalValueUsd}</p>
                               <p className="font-bold text-primary">${holding.total_value.toLocaleString()}</p>
                             </div>
                           </div>
@@ -704,8 +768,8 @@ export function Portfolio({
                           {/* P&L */}
                           <div className="bg-muted/50 rounded-lg p-4 border">
                             <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm text-muted-foreground mb-1">Total Gain/Loss</p>
+                              <div className={isRTL ? "text-right" : "text-left"}>
+                                <p className="text-sm text-muted-foreground mb-1">{t.portfolio.totalGainLoss}</p>
                                 <p
                                   className={`text-2xl font-bold ${holding.gain >= 0 ? "text-green-500" : "text-red-500"
                                     }`}
@@ -714,7 +778,7 @@ export function Portfolio({
                                   ${Math.abs(holding.gain).toLocaleString()}
                                 </p>
                               </div>
-                              <div className="text-right">
+                              <div className={isRTL ? "text-left" : "text-right"}>
                                 <div
                                   className={`flex items-center gap-1 ${holding.gain_percentage >= 0 ? "text-green-500" : "text-red-500"
                                     }`}
@@ -735,8 +799,8 @@ export function Portfolio({
                           {/* Actions */}
                           <div className="flex gap-2 pt-2 border-t">
                             <Button variant="outline" className="flex-1 cursor-pointer" size="sm" onClick={() => onGoToStockDetails(holding.stock_symbol)}>
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
+                              <Eye className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                              {t.common.view}
                             </Button>
                             <Button
                               variant="outline"
@@ -744,8 +808,8 @@ export function Portfolio({
                               size="sm"
                               onClick={() => openEditModal(holding)}
                             >
-                              <Pencil className="w-4 h-4 mr-1" />
-                              Edit
+                              <Pencil className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                              {t.common.edit}
                             </Button>
                             <Button
                               variant="outline"
@@ -753,8 +817,8 @@ export function Portfolio({
                               size="sm"
                               onClick={() => openBuyMoreModal(holding)}
                             >
-                              <Plus className="w-4 h-4 mr-1" />
-                              Buy More
+                              <Plus className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                              {t.portfolio.buyMore}
                             </Button>
                             <Button
                               variant="outline"
@@ -762,8 +826,8 @@ export function Portfolio({
                               size="sm"
                               onClick={() => setShowDeleteConfirm(holding.stock_symbol)}
                             >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete
+                              <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                              {t.common.delete}
                             </Button>
                           </div>
                         </div>
@@ -776,14 +840,14 @@ export function Portfolio({
               {/* Transactions Tab */}
               <TabsContent value="transactions" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Recent Transactions</h2>
+                  <h2 className="text-xl font-bold">{t.portfolio.recentTransactions}</h2>
                 </div>
 
                 {transactions.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Transactions Yet</h3>
-                    <p className="text-muted-foreground mb-4">Your buy and sell transactions will appear here.</p>
+                    <h3 className="text-xl font-semibold mb-2">{t.portfolio.noTransactionsYet || "No Transactions Yet"}</h3>
+                    <p className="text-muted-foreground mb-4">{t.portfolio.noTransactionsDesc || "Your buy and sell transactions will appear here."}</p>
                   </Card>
                 ) : (
                   transactions.map((transaction) => (
@@ -803,25 +867,25 @@ export function Portfolio({
                                 <ArrowDownRight className="w-6 h-6" />
                               )}
                             </div>
-                            <div>
+                            <div className={isRTL ? "text-right" : "text-left"}>
                               <div className="flex items-center gap-2">
                                 <h3 className="font-bold">
-                                  {transaction.transaction_type === "buy" ? "Bought" : "Sold"} $
+                                  {transaction.transaction_type === "buy" ? t.portfolio.bought : t.portfolio.sold} $
                                   {transaction.stock_symbol}
                                 </h3>
                                 <Badge variant="outline" className="text-xs">
-                                  {transaction.shares} shares
+                                  {transaction.shares} {t.portfolio.shares}
                                 </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground">
-                                @ ${transaction.price} • Total: ${transaction.total.toLocaleString()}
+                                @ ${transaction.price} • {t.common.total}: ${transaction.total.toLocaleString()}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className={isRTL ? "text-left" : "text-right"}>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {timeAgo(transaction.created_at)}
+                              {timeAgo(transaction.created_at, t)}
                             </p>
                           </div>
                         </div>
@@ -834,20 +898,20 @@ export function Portfolio({
               {/* Watchlist Tab */}
               <TabsContent value="watchlist" className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">My Watchlist</h2>
-                  <p className="text-sm text-muted-foreground">{watchlist.length} stock{watchlist.length !== 1 ? 's' : ''}</p>
+                  <h2 className="text-xl font-bold">{t.portfolio.watchlist}</h2>
+                  <p className="text-sm text-muted-foreground">{watchlist.length} {t.portfolio.positionsCount}</p>
                 </div>
 
                 {watchlist.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Star className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-xl font-semibold mb-2">No Watchlist Items</h3>
+                    <h3 className="text-xl font-semibold mb-2">{t.portfolio.noWatchlist}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Click the star icon on any stock page to add it to your watchlist.
+                      {t.portfolio.addStocks}
                     </p>
                     <Button onClick={onGoToStocks}>
-                      <Search className="w-4 h-4 mr-2" />
-                      Explore Stocks
+                      <Search className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t.nav.explore}
                     </Button>
                   </Card>
                 ) : (
@@ -859,12 +923,12 @@ export function Portfolio({
                             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
                               <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                             </div>
-                            <div>
+                            <div className={isRTL ? "text-right" : "text-left"}>
                               <h3 className="font-bold text-lg">{item.stock_symbol}</h3>
                               <p className="text-sm text-muted-foreground">{item.stock_name}</p>
                             </div>
                           </div>
-                          <div className="text-right flex items-center gap-3">
+                          <div className={`${isRTL ? "text-left" : "text-right"} flex items-center gap-3`}>
                             <div>
                               <p className="text-lg font-bold">
                                 {item.currency_symbol || '$'}{(item.current_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -877,23 +941,21 @@ export function Portfolio({
                               variant="ghost"
                               size="icon"
                               className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
-                              onClick={async () => {
-                                try {
-                                  await portfolioAPI.removeFromWatchlist(item.stock_symbol);
-                                  setWatchlist(prev => prev.filter(w => w.watchlist_id !== item.watchlist_id));
-                                } catch (err) {
-                                  console.error(err);
-                                }
-                              }}
+                              disabled={isTogglingWatchlist[item.stock_symbol]}
+                              onClick={(e) => toggleWatchlist(e, item.stock_symbol, item.stock_name || item.stock_symbol)}
                             >
-                              <X className="w-4 h-4" />
+                              {isTogglingWatchlist[item.stock_symbol] ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <X className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
                         <div className="flex gap-2 pt-3 mt-3 border-t">
                           <Button variant="outline" className="flex-1" size="sm" onClick={() => onGoToStockDetails(item.stock_symbol)}>
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
+                            <Eye className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.common.view}
                           </Button>
                           <Button className="flex-1" size="sm" onClick={() => {
                             setSelectedStock({
@@ -909,8 +971,8 @@ export function Portfolio({
                             setTradeMessage(null);
                             setShowBuyModal(true);
                           }}>
-                            <Plus className="w-4 h-4 mr-1" />
-                            Buy
+                            <Plus className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {t.portfolio.buy}
                           </Button>
                         </div>
                       </CardContent>
@@ -926,11 +988,11 @@ export function Portfolio({
       {/* =============== ADD STOCK / BUY MODAL =============== */}
       {showBuyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} dir={isRTL ? "rtl" : "ltr"}>
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Plus className="w-5 h-5 text-green-500" />
-                Add Stock to Portfolio
+                {t.portfolio.addStockToPortfolio}
               </h2>
               <Button
                 variant="ghost"
@@ -951,20 +1013,20 @@ export function Portfolio({
                 <>
                   {/* Stock Search */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
                     <input
                       type="text"
-                      placeholder="Search stocks..."
+                      placeholder={t.portfolio.searchStocks}
                       value={stockSearch}
                       onChange={(e) => setStockSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className={`w-full ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'} py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm`}
                     />
                   </div>
 
                   {/* Stock List */}
-                  <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className={`flex flex-col gap-2 max-h-[400px] overflow-y-auto ${isRTL ? 'pl-2' : 'pr-2'} custom-scrollbar`}>
                     {filteredStocks.map((stock) => (
-                      <button
+                      <div
                         key={stock.symbol}
                         onClick={() =>
                           setSelectedStock({
@@ -976,16 +1038,17 @@ export function Portfolio({
                             usd_price: stock.usd_price
                           })
                         }
-                        className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all text-left overflow-hidden cursor-pointer"
+                        className="w-full flex items-center p-3 rounded-xl border border-border/40 bg-card hover:bg-muted/80 hover:border-primary/50 transition-all overflow-hidden cursor-pointer gap-4"
+                        dir="ltr"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0 mr-4">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center shrink-0">
                           <span className="font-bold text-primary">{stock.symbol.charAt(0)}</span>
                         </div>
                         <div className="flex-1 min-w-0 text-left">
                           <p className="font-semibold truncate">{stock.symbol}</p>
                           <p className="text-xs text-muted-foreground truncate">{stock.name}</p>
                         </div>
-                        <div className="text-right shrink-0 ml-4">
+                        <div className="text-right shrink-0">
                           <p className="font-bold text-primary">
                             {stock.currency_symbol || "$"}{(stock.current_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
@@ -993,57 +1056,74 @@ export function Portfolio({
                              <p className="text-[10px] text-muted-foreground">≈ ${stock.usd_price?.toFixed(2)} USD</p>
                           )}
                         </div>
-                      </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isTogglingWatchlist[stock.symbol]}
+                          onClick={(e) => toggleWatchlist(e, stock.symbol, stock.name || stock.symbol)}
+                          className={`shrink-0 ml-2 ${watchlistedMap[stock.symbol] ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-yellow-500"}`}
+                        >
+                          {isTogglingWatchlist[stock.symbol] ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Star className={`w-5 h-5 ${watchlistedMap[stock.symbol] ? "fill-current" : ""}`} />
+                          )}
+                        </Button>
+                      </div>
                     ))}
                     {filteredStocks.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No stocks found</p>
+                      <p className="text-center text-muted-foreground py-8">{t.portfolio.noStocksFound}</p>
                     )}
                   </div>
                 </>
               ) : (
                 <>
                   {/* Selected stock info */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
-                      <span className="font-bold text-primary">{selectedStock.symbol.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">{selectedStock.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{selectedStock.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">
-                        {selectedStock.currency_symbol || "$"}{(selectedStock.price || 0).toLocaleString()}
-                        {selectedStock.currency && selectedStock.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{selectedStock.currency}</span>}
-                      </p>
-                      <button
-                        className="text-xs text-primary hover:underline cursor-pointer"
-                        onClick={() => setSelectedStock(null)}
-                      >
-                        Change
-                      </button>
+                  <div className="space-y-3">
+                    <Button 
+                      variant="ghost" 
+                      className={`-mx-2 px-2 text-muted-foreground hover:text-foreground`}
+                      onClick={() => setSelectedStock(null)}
+                    >
+                      {isRTL ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
+                      {isRTL ? 'العودة للقائمة' : 'Back to list'}
+                    </Button>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center shrink-0">
+                        <span className="font-bold text-primary">{selectedStock.symbol.charAt(0)}</span>
+                      </div>
+                      <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className="font-semibold truncate">{selectedStock.symbol}</p>
+                        <p className="text-xs text-muted-foreground truncate">{selectedStock.name}</p>
+                      </div>
+                      <div className={`${isRTL ? 'text-left' : 'text-right'} shrink-0`}>
+                        <p className="font-semibold" dir="ltr">
+                          {selectedStock.currency_symbol || "$"}{(selectedStock.price || 0).toLocaleString()}
+                          {selectedStock.currency && selectedStock.currency !== "USD" && <span className="text-[10px] text-muted-foreground ml-1">{selectedStock.currency}</span>}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Shares input */}
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Number of Shares</label>
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <label className="text-sm font-medium mb-1 block">{t.portfolio.sharesCount}</label>
                     <input
                       type="number"
                       min="1"
                       step="1"
                       value={tradeShares}
                       onChange={(e) => setTradeShares(e.target.value)}
-                      placeholder="Enter number of shares"
-                      className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder={t.portfolio.enterShares}
+                      className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                     />
                   </div>
 
                   {/* Buy Price input */}
-                  <div>
-                    <label className="text-sm font-medium mb-1 block flex items-center gap-1">
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <label className={`text-sm font-medium mb-1 block flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <DollarSign className="w-3.5 h-3.5" />
-                      Buy Price <span className="text-muted-foreground font-normal">(per share)</span>
+                      {t.portfolio.buyPrice} <span className="text-muted-foreground font-normal">({t.portfolio.perShare})</span>
                     </label>
                     <input
                       type="number"
@@ -1051,22 +1131,22 @@ export function Portfolio({
                       step="any"
                       value={buyPrice}
                       onChange={(e) => setBuyPrice(e.target.value)}
-                      placeholder="Enter your buy price"
-                      className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder={t.portfolio.enterBuyPrice}
+                      className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                     />
                   </div>
 
                   {/* Purchase Date (optional) */}
-                  <div>
-                    <label className="text-sm font-medium mb-1 block flex items-center gap-1">
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <label className={`text-sm font-medium mb-1 block flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Calendar className="w-3.5 h-3.5" />
-                      Purchase Date <span className="text-muted-foreground font-normal">(optional)</span>
+                      {t.portfolio.purchaseDate} <span className="text-muted-foreground font-normal">({t.common.optional})</span>
                     </label>
                     <input
                       type="date"
                       value={purchaseDate}
                       onChange={(e) => setPurchaseDate(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                     />
                   </div>
 
@@ -1114,11 +1194,11 @@ export function Portfolio({
                     onClick={handleBuy}
                   >
                     {tradeLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
                     ) : (
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                     )}
-                    Add to Portfolio
+                    {t.portfolio.addToPortfolio || "Add to Portfolio"}
                   </Button>
                 </>
               )}
@@ -1130,11 +1210,11 @@ export function Portfolio({
       {/* =============== SELL STOCK MODAL =============== */}
       {showSellModal && selectedStock && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%' }}>
+          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%' }} dir={isRTL ? "rtl" : "ltr"}>
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Minus className="w-5 h-5 text-red-500" />
-                Sell {selectedStock.symbol}
+                {t.portfolio.sell || "Sell"} {selectedStock.symbol}
               </h2>
               <Button
                 variant="ghost"
@@ -1154,7 +1234,7 @@ export function Portfolio({
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center">
                   <span className="font-bold text-red-500">{selectedStock.symbol.charAt(0)}</span>
                 </div>
-                <div className="flex-1">
+                <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className="font-semibold">{selectedStock.symbol}</p>
                   <p className="text-xs text-muted-foreground">{selectedStock.name}</p>
                 </div>
@@ -1164,29 +1244,29 @@ export function Portfolio({
               {(() => {
                 const h = holdings.find((x) => x.stock_symbol === selectedStock.symbol);
                 return h ? (
-                  <p className="text-sm text-muted-foreground">
-                    You currently hold <span className="font-semibold text-foreground">{h.shares}</span> shares
+                  <p className={`text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t.portfolio.youHold || "You currently hold"} <span className="font-semibold text-foreground">{h.shares}</span> {t.portfolio.shares}
                   </p>
                 ) : null;
               })()}
 
-              <div>
-                <label className="text-sm font-medium mb-1 block">Shares to Sell</label>
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <label className="text-sm font-medium mb-1 block">{t.portfolio.sharesToSell || "Shares to Sell"}</label>
                 <input
                   type="number"
                   min="1"
                   step="1"
                   value={tradeShares}
                   onChange={(e) => setTradeShares(e.target.value)}
-                  placeholder="Enter number of shares"
-                  className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={t.portfolio.enterShares || "Enter number of shares"}
+                  className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 />
               </div>
 
               {tradeShares && parseFloat(tradeShares) > 0 && (
                 <div className="p-3 rounded-lg bg-muted/50 border">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Estimated Proceeds</span>
+                    <span className="text-muted-foreground">{t.portfolio.estimatedProceeds || "Estimated Proceeds"}</span>
                     <span className="font-semibold text-green-500">
                       +$
                       {(parseFloat(tradeShares) * (selectedStock.price || 0)).toLocaleString(undefined, {
@@ -1216,11 +1296,11 @@ export function Portfolio({
                 onClick={handleSell}
               >
                 {tradeLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
                 ) : (
-                  <Minus className="w-4 h-4 mr-2" />
+                  <Minus className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 )}
-                Sell {tradeShares ? parseFloat(tradeShares) : 0} Shares
+                {t.portfolio.sell || "Sell"} {tradeShares ? parseFloat(tradeShares) : 0} {t.portfolio.shares}
               </Button>
             </div>
           </div>
@@ -1230,11 +1310,11 @@ export function Portfolio({
       {/* =============== EDIT STOCK MODAL =============== */}
       {showEditModal && editHolding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%' }}>
+          <div className="bg-background border rounded-2xl shadow-2xl mx-4" style={{ maxWidth: '500px', width: '100%' }} dir={isRTL ? "rtl" : "ltr"}>
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Pencil className="w-5 h-5 text-primary" />
-                Edit {editHolding.stock_symbol}
+                {t.common.edit} {editHolding.stock_symbol}
               </h2>
               <Button
                 variant="ghost"
@@ -1254,49 +1334,49 @@ export function Portfolio({
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
                   <span className="font-bold text-primary">{editHolding.stock_symbol.charAt(0)}</span>
                 </div>
-                <div className="flex-1">
+                <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className="font-semibold">{editHolding.stock_symbol}</p>
                   <p className="text-xs text-muted-foreground">{editHolding.stock_name}</p>
                 </div>
                 <p className="font-semibold">${(editHolding.current_price || 0).toLocaleString()}</p>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-1 block">Number of Shares</label>
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <label className="text-sm font-medium mb-1 block">{t.portfolio.sharesCount}</label>
                 <input
                   type="number"
                   min="1"
                   step="1"
                   value={editShares}
                   onChange={(e) => setEditShares(e.target.value)}
-                  placeholder="Enter number of shares"
-                  className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={t.portfolio.enterShares}
+                  className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-1 block">Buy Price (per share)</label>
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <label className="text-sm font-medium mb-1 block">{t.portfolio.avgCost} ({t.portfolio.perShare})</label>
                 <input
                   type="number"
                   min="0.01"
                   step="any"
                   value={editPrice}
                   onChange={(e) => setEditPrice(e.target.value)}
-                  placeholder="Enter buy price"
-                  className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={t.portfolio.enterBuyPrice}
+                  className="w-full px-4 py-3.5 rounded-xl border bg-background text-base focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 />
               </div>
 
               {editShares && editPrice && (
                 <div className="p-3 rounded-lg bg-muted/50 border space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Investment</span>
+                    <span className="text-muted-foreground">{t.portfolio.totalInvestment || "Total Investment"}</span>
                     <span className="font-semibold">
                       ${(parseFloat(editShares) * parseFloat(editPrice)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Current Value</span>
+                    <span className="text-muted-foreground">{t.portfolio.currentValue || "Current Value"}</span>
                     <span className="font-semibold">
                       ${(parseFloat(editShares) * (editHolding.current_price || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
@@ -1322,11 +1402,11 @@ export function Portfolio({
                 onClick={handleEdit}
               >
                 {tradeLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
                 ) : (
-                  <Pencil className="w-4 h-4 mr-2" />
+                  <Pencil className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 )}
-                Save Changes
+                {t.common.saveChanges}
               </Button>
             </div>
           </div>
@@ -1336,14 +1416,14 @@ export function Portfolio({
       {/* =============== DELETE CONFIRM MODAL =============== */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-background border rounded-2xl shadow-2xl mx-4 p-6" style={{ maxWidth: '400px', width: '100%' }}>
-            <h2 className="text-lg font-bold mb-2">Delete {showDeleteConfirm}?</h2>
+          <div className="bg-background border rounded-2xl shadow-2xl mx-4 p-6" style={{ maxWidth: '400px', width: '100%' }} dir={isRTL ? "rtl" : "ltr"}>
+            <h2 className="text-lg font-bold mb-2">{t.portfolio.deletePosition || "Delete Position"} {showDeleteConfirm}?</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              This will remove this stock from your portfolio and sell all shares at the current market price.
+              {t.portfolio.deleteConfirm || "This will remove this stock from your portfolio and sell all shares at the current market price."}
             </p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(null)}>
-                Cancel
+                {t.common.cancel}
               </Button>
               <Button
                 variant="destructive"
@@ -1354,8 +1434,8 @@ export function Portfolio({
                   if (h) handleDelete(h);
                 }}
               >
-                {tradeLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                Delete
+                {tradeLoading ? <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} animate-spin`} /> : <Trash2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />}
+                {t.common.delete}
               </Button>
             </div>
           </div>
@@ -1363,7 +1443,7 @@ export function Portfolio({
       )}
 
 
-      <Footer />
+      <Footer onGoToHome={onGoToCommunity} onGoToStocks={onGoToStocks} onGoToPortfolio={onGoToPortfolio} />
     </div>
   );
 }

@@ -22,7 +22,9 @@ import { CommunityManagement } from "./components/admin/CommunityManagement";
 import { AboutPage } from "./components/AboutPage";
 import { TermsPage } from "./components/TermsPage";
 import { PrivacyPage } from "./components/PrivacyPage";
-import { Help } from "./components/Help";
+import { HelpPage as Help } from "./components/HelpPage";
+import { HelpCategoryPage } from "./components/HelpCategoryPage";
+import { HelpArticlePage } from "./components/HelpArticlePage";
 import { Toaster } from "./components/ui/sonner";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -34,7 +36,7 @@ export default function App() {
   const location = useLocation();
 
   // Determine current page for navigation highlighting
-  const getCurrentPage = (): Page => {
+  const getCurrentPage = (): Page | "other" => {
     const path = location.pathname;
     if (path === "/") return "home";
     if (path === "/explore") return "explore";
@@ -43,13 +45,21 @@ export default function App() {
     if (path === "/profile") return "profile";
     if (path === "/login") return "login";
     if (path === "/signup") return "signup";
-    return "stock";
+    
+    // Explicitly check for other known static routes to avoid falling into "stock" (explore)
+    const otherRoutes = ["/terms", "/privacy", "/our-story", "/help"];
+    if (otherRoutes.some(route => path.startsWith(route))) return "other";
+    
+    // If it's a dynamic stock path or unknown
+    if (path.startsWith("/stock/") || path.split("/").length === 2 && path !== "/") return "stock";
+    
+    return "other";
   };
 
   const currentPage = getCurrentPage();
 
   const navigationProps = {
-    currentPage: currentPage === "stock" ? "explore" : currentPage,
+    currentPage: currentPage === "stock" ? "explore" : (currentPage === "other" ? "" : currentPage),
     onGoToHome: () => navigate("/"),
     onGoToExplore: () => navigate("/explore"),
     onGoToPortfolio: () => navigate("/portfolio"),
@@ -84,6 +94,8 @@ export default function App() {
 
 
           <Route path="/help" element={<Help {...navigationProps} />} />
+          <Route path="/help/category/:id" element={<HelpCategoryPage {...navigationProps} />} />
+          <Route path="/help/article/:id" element={<HelpArticlePage {...navigationProps} />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

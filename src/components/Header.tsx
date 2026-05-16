@@ -75,7 +75,7 @@ export function Header({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onGoToHome}
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+              className={`flex items-center space-x-3 ${isRTL ? 'space-x-reverse' : ''} hover:opacity-80 transition-opacity cursor-pointer`}
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden flex items-center justify-center">
                 <img
@@ -88,7 +88,7 @@ export function Header({
                   }}
                 />
               </div>
-              <div className="flex items-center space-x-2">
+              <div className={`flex items-center space-x-2 ${isRTL ? 'space-x-reverse' : ''}`}>
                 <span className="text-base sm:text-xl md:text-2xl font-bold whitespace-nowrap" style={{ fontFamily: "'Cairo', sans-serif" }}>ESAI</span>
                 <span className="text-[10px] font-bold text-muted-foreground px-1.5 py-0.5 uppercase tracking-wider">
                   {t.header.betaBadge}
@@ -323,7 +323,7 @@ function MobileNav({
             <div className="flex flex-col space-y-2 pt-2 border-t">
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center space-x-2 py-2">
+                  <div className={`flex items-center space-x-2 ${isRTL ? 'space-x-reverse' : ''} py-2`}>
                     <Avatar className="h-8 w-8">
                       <AvatarImage
                         src={user?.profile_picture_url?.startsWith('/')

@@ -614,15 +614,14 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1 bg-muted p-1 rounded-lg">
+                <div className="flex gap-1 bg-muted p-1 rounded-lg overflow-x-auto no-scrollbar max-w-full sm:max-w-none">
                   {['1W', '1M', '3M', '6M', '1Y', 'ALL', 'Monthly Forecast'].map((period) => (
                     <Button
                       key={period}
                       variant={activeTimeRange === period ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setActiveTimeRange(period)}
-                      style={activeTimeRange === period && period !== 'Monthly Forecast' ? { backgroundColor: '#000000', color: 'white' } : {}}
-                      className={`h-8 text-xs transition-all duration-200 ${
+                      className={`h-8 text-xs transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                         period === 'Monthly Forecast'
                           ? activeTimeRange === period
                             ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-500/20'
@@ -631,6 +630,10 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                             ? 'bg-black text-white hover:bg-black/90 shadow-sm'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
+                      style={activeTimeRange === period ? { 
+                        backgroundColor: period === 'Monthly Forecast' ? '#9333ea' : '#000000', 
+                        color: 'white' 
+                      } : {}}
                     >
                       {period === 'Monthly Forecast' && <Sparkles className="w-3 h-3 mr-1.5" />}
                       {period}

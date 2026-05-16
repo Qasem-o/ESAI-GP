@@ -22,25 +22,25 @@ export function AboutPage(props: any) {
 
   const team = [
     { 
-      name: "Sharidah AlGhannam", 
+      name: t.about.team.members.sharidah, 
       role: t.about.team.roleLeader, 
       avatar: sharidahImg,
       linkedin: "https://www.linkedin.com/in/sharidah-alghannam/"
     },
     { 
-      name: "Ali Alibrahim", 
+      name: t.about.team.members.ali, 
       role: t.about.team.roleMember, 
       avatar: aliImg,
       linkedin: "https://www.linkedin.com/in/ali-alibrahim-3b67242a7/"
     },
     { 
-      name: "Qasem Alolaywi", 
+      name: t.about.team.members.qasem, 
       role: t.about.team.roleMember, 
       avatar: qasemImg,
       linkedin: "https://www.linkedin.com/in/qasem-alolaywi-411b36294/"
     },
     { 
-      name: "Abdullah AlKhodir", 
+      name: t.about.team.members.abdullah, 
       role: t.about.team.roleMember, 
       avatar: abdullahImg,
       linkedin: "https://www.linkedin.com/in/abdullah-al-khodeer-8310323b7/"
@@ -77,11 +77,11 @@ export function AboutPage(props: any) {
               animate={{ opacity: 1, x: 0 }}
               style={{ position: 'relative' }}
             >
-              <div style={{ borderRadius: '3.5rem', overflow: 'hidden', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.12)', border: '10px solid var(--card)', backgroundColor: 'white' }}>
+              <div style={{ borderRadius: '3.5rem', overflow: 'hidden', boxShadow: '0 32px 64px -16px rgba(0,0,0,0.08)', border: '1px solid var(--border)', backgroundColor: 'transparent' }}>
                 <img 
                    src={logo3d} 
                    alt="EyeStocks AI Brand Logo" 
-                   style={{ width: '100%', height: '600px', objectFit: 'contain', padding: '2rem' }} 
+                   style={{ width: '100%', height: '600px', objectFit: 'contain', padding: '1rem' }} 
                 />
               </div>
               <motion.div 
@@ -252,7 +252,7 @@ export function AboutPage(props: any) {
               margin: '0 auto',
               flexWrap: 'wrap',
               border: '1px solid var(--border)',
-              direction: 'ltr' 
+              direction: isRTL ? 'rtl' : 'ltr' 
             }}
             className="monochrome-shadow"
           >
@@ -277,12 +277,12 @@ export function AboutPage(props: any) {
               }}>
                 <GraduationCap size={24} />
               </div>
-              <span style={{ fontWeight: '800', color: 'var(--foreground)', whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>Academic Supervision</span>
+              <span style={{ fontWeight: '800', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>{t.about.team.supervisorLabel}</span>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontWeight: '600', fontFamily: 'Inter, sans-serif' }}>Supervised by:</span>
-              <span style={{ fontWeight: '900', color: 'var(--foreground)', fontSize: '1.25rem', fontFamily: 'Inter, sans-serif' }}>Prof. Alaa Sagheer</span>
+              <span style={{ color: 'var(--muted-foreground)', fontWeight: '600' }}>{t.about.team.supervisorBy}</span>
+              <span style={{ fontWeight: '900', color: 'var(--foreground)', fontSize: '1.25rem' }}>{t.about.team.supervisorName}</span>
             </div>
           </motion.div>
 

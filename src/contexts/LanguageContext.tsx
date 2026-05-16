@@ -33,6 +33,20 @@ interface Translations {
     all: string;
     noData: string;
     viewAll: string;
+    loadingApp: string;
+    fetchingDetails: string;
+    date: string;
+    type: string;
+    price: string;
+    total: string;
+    change: string;
+    optional: string;
+    saveChanges: string;
+    justNow: string;
+    secondsAgo: string;
+    minutesAgo: string;
+    hoursAgo: string;
+    daysAgo: string;
   };
   // Auth
   auth: {
@@ -127,23 +141,78 @@ interface Translations {
     totalValue: string;
     totalGain: string;
     totalReturn: string;
+    totalInvestment: string;
+    dayChange: string;
     holdings: string;
+    positionsCount: string;
     watchlist: string;
     transactions: string;
+    recentTransactions: string;
     noHoldings: string;
     noWatchlist: string;
     noTransactions: string;
+    noTransactionsDesc: string;
     startInvesting: string;
     addStocks: string;
     symbol: string;
     shares: string;
     avgCost: string;
     currentPrice: string;
+    totalValueUsd: string;
     gainLoss: string;
+    totalGainLoss: string;
     action: string;
     sell: string;
     buy: string;
+    buyMore: string;
     addToPortfolio: string;
+    addStockToPortfolio: string;
+    resetPortfolio: string;
+    resetPortfolioConfirm: string;
+    resetConfirm?: string;
+    addStock?: string;
+    noHoldingsYet?: string;
+    noHoldingsDesc?: string;
+    addFirstStock?: string;
+    noTransactionsYet?: string;
+    bought?: string;
+    sold?: string;
+    sharesCount?: string;
+    enterShares?: string;
+    buyPrice?: string;
+    perShare?: string;
+    enterBuyPrice?: string;
+    currentValue?: string;
+    deletePosition?: string;
+    deleteConfirm?: string;
+    justNow?: string;
+    secondsAgo?: string;
+    minutesAgo?: string;
+    hoursAgo?: string;
+    daysAgo?: string;
+    performance7d: string;
+    noPerfData: string;
+    keepTrading: string;
+    assetAllocation: string;
+    practiceTrading: string;
+    view: string;
+    edit: string;
+    delete: string;
+    signInToView: string;
+    signInDesc: string;
+    trackHoldings: string;
+    loadingPortfolio: string;
+    sharesToSell: string;
+    sharesToBuy: string;
+    estimatedProceeds: string;
+    purchaseDate: string;
+    costPerShare: string;
+    saveChanges: string;
+    deleteTitle: string;
+    deleteDescription: string;
+    totalUsd: string;
+    searchStocks: string;
+    noStocksFound: string;
   };
   // Simulator
   simulator: {
@@ -164,12 +233,43 @@ interface Translations {
     noPositions: string;
     noHistory: string;
     resetPortfolio: string;
-    confirmReset: string;
+    resetPortfolioConfirm: string;
+    resetChallenge: string;
     goal: string;
     reached: string;
     notReached: string;
     startingBalance: string;
     targetBalance: string;
+    simulatorChallenge: string;
+    goal10k: string;
+    availableCash: string;
+    inStocks: string;
+    progressComplete: string;
+    startTradingProgress: string;
+    sharesLabel: string;
+    sharesPlaceholder: string;
+    totalUsd: string;
+    tradeSimulatedDisclaimer: string;
+    winTargetReached: string;
+    playAgain: string;
+    signInToUse: string;
+    buy: string;
+    sell: string;
+    orderTypeLabel: string;
+    pricePerShare: string;
+    placeBuyOrder: string;
+    placeSellOrder: string;
+    change: string;
+    loadingSimulator: string;
+    messages: {
+      insufficientCash: string;
+      alreadyWon: string;
+      noShares: string;
+      insufficientShares: string;
+      buySuccess: string;
+      sellSuccess: string;
+      resetSuccess: string;
+    };
   };
   // Profile
   profile: {
@@ -187,6 +287,17 @@ interface Translations {
     totalReturn: string;
     winRate: string;
     tradesCount: string;
+    trades: string;
+    joined: string;
+    loadingProfile: string;
+  };
+  // Loading Screen
+  loading: {
+    title: string;
+    subtitle: string;
+    quote: string;
+    philosophy: string;
+    preparing: string;
   };
   // Stock Detail
   stockDetail: {
@@ -239,11 +350,20 @@ interface Translations {
       title: string;
       items: Array<{ title: string; desc: string; bullets: string[] }>;
     };
-    team: {
-      title: string;
-      roleLeader: string;
-      roleMember: string;
-    };
+      team: {
+        title: string;
+        roleLeader: string;
+        roleMember: string;
+        supervisorLabel: string;
+        supervisorBy: string;
+        supervisorName: string;
+        members: {
+          sharidah: string;
+          ali: string;
+          qasem: string;
+          abdullah: string;
+        };
+      };
   };
   terms: {
     badge: string;
@@ -261,6 +381,26 @@ interface Translations {
     lastUpdated: string;
     onThisPage: string;
     sections: Array<{ id: string; title: string; content: string }>;
+  };
+  help: {
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    browseByCategory: string;
+    popularArticles: string;
+    stillNeedHelp: string;
+    cantFind: string;
+    contactSupport: string;
+    articlesCount: string;
+    categories: {
+      gettingStarted: { title: string; desc: string };
+      features: { title: string; desc: string };
+      simulator: { title: string; desc: string };
+      account: { title: string; desc: string };
+      billing: { title: string; desc: string };
+    };
+    popularArticlesList: string[];
+    highlights: Array<{ title: string; desc: string }>;
   };
 }
 
@@ -294,6 +434,20 @@ const translations: Record<Language, Translations> = {
       all: "All",
       noData: "No data available",
       viewAll: "View All",
+      loadingApp: "Loading EyeStocks AI...",
+      fetchingDetails: "Fetching details...",
+      date: "Date",
+      type: "Type",
+      price: "Price",
+      total: "Total",
+      change: "Change",
+      optional: "optional",
+      saveChanges: "Save Changes",
+      justNow: "just now",
+      secondsAgo: "s ago",
+      minutesAgo: "m ago",
+      hoursAgo: "h ago",
+      daysAgo: "d ago",
     },
     auth: {
       loginTitle: "Welcome back",
@@ -383,23 +537,78 @@ const translations: Record<Language, Translations> = {
       totalValue: "Total Value",
       totalGain: "Total Gain",
       totalReturn: "Total Return",
+      totalInvestment: "Total Investment",
+      dayChange: "Day Change",
       holdings: "Holdings",
+      positionsCount: "Positions",
       watchlist: "Watchlist",
       transactions: "Transactions",
+      recentTransactions: "Recent Transactions",
       noHoldings: "No holdings yet",
-      noWatchlist: "No stocks in watchlist",
-      noTransactions: "No transactions yet",
-      startInvesting: "Start investing to see your portfolio here",
+      noWatchlist: "No Watchlist Items",
+      noTransactions: "No Transactions Yet",
+      noTransactionsDesc: "Your buy and sell transactions will appear here.",
+      startInvesting: "Start building your portfolio by adding your first stock.",
       addStocks: "Add stocks to your watchlist",
       symbol: "Symbol",
       shares: "Shares",
       avgCost: "Avg. Cost",
       currentPrice: "Current Price",
+      totalValueUsd: "Total Value (USD)",
       gainLoss: "Gain/Loss",
+      totalGainLoss: "Total Gain/Loss",
       action: "Action",
       sell: "Sell",
       buy: "Buy",
+      buyMore: "Buy More",
       addToPortfolio: "Add to Portfolio",
+      addStockToPortfolio: "Add Stock to Portfolio",
+      resetPortfolio: "Reset Portfolio",
+      resetPortfolioConfirm: "Are you sure you want to reset your portfolio? This will sell all holdings and delete all transactions.",
+      resetConfirm: "Are you sure you want to reset your portfolio? This will sell all holdings and delete all transactions.",
+      addStock: "Add Stock",
+      noHoldingsYet: "No Holdings Yet",
+      noHoldingsDesc: "Start building your portfolio by adding your first stock.",
+      addFirstStock: "Add Your First Stock",
+      noTransactionsYet: "No Transactions Yet",
+      bought: "Bought",
+      sold: "Sold",
+      sharesCount: "Number of Shares",
+      enterShares: "Enter number of shares",
+      buyPrice: "Buy Price",
+      perShare: "per share",
+      enterBuyPrice: "Enter your buy price",
+      currentValue: "Current Value",
+      deletePosition: "Delete Position",
+      deleteConfirm: "Are you sure you want to remove this stock from your portfolio? This action cannot be undone.",
+      justNow: "just now",
+      secondsAgo: "s ago",
+      minutesAgo: "m ago",
+      hoursAgo: "h ago",
+      daysAgo: "d ago",
+      performance7d: "7-Day Performance",
+      noPerfData: "No performance data yet",
+      keepTrading: "Keep trading to see history",
+      assetAllocation: "Asset Allocation",
+      practiceTrading: "Practice Trading",
+      view: "View",
+      edit: "Edit",
+      delete: "Delete",
+      signInToView: "Sign in to view your Portfolio",
+      signInDesc: "Track your holdings, make trades, and monitor performance — all in one place.",
+      trackHoldings: "Track your holdings, make trades, and monitor performance — all in one place.",
+      loadingPortfolio: "Loading portfolio...",
+      sharesToSell: "Shares to Sell",
+      sharesToBuy: "Number of Shares",
+      estimatedProceeds: "Estimated Proceeds",
+      purchaseDate: "Purchase Date",
+      costPerShare: "Buy Price (per share)",
+      saveChanges: "Save Changes",
+      deleteTitle: "Delete",
+      deleteDescription: "This will remove this stock from your portfolio and sell all shares at the current market price.",
+      totalUsd: "Total (USD)",
+      searchStocks: "Search stocks...",
+      noStocksFound: "No stocks found",
     },
     simulator: {
       title: "Trading Simulator",
@@ -419,12 +628,43 @@ const translations: Record<Language, Translations> = {
       noPositions: "No open positions",
       noHistory: "No trade history",
       resetPortfolio: "Reset Portfolio",
-      confirmReset: "Are you sure you want to reset your portfolio?",
+      resetPortfolioConfirm: "Are you sure you want to reset your portfolio?",
+      resetChallenge: "Reset Challenge",
       goal: "Goal",
       reached: "Goal Reached!",
       notReached: "Keep going",
       startingBalance: "Starting Balance",
       targetBalance: "Target Balance",
+      simulatorChallenge: "Simulator Challenge",
+      goal10k: "Goal: $10k",
+      availableCash: "Available Cash",
+      inStocks: "In Stocks",
+      progressComplete: "complete",
+      startTradingProgress: "Start trading to make progress!",
+      sharesLabel: "Number of Shares",
+      sharesPlaceholder: "Enter number of shares",
+      totalUsd: "Total (USD)",
+      tradeSimulatedDisclaimer: "This is a simulated trade. All values tracked in USD. Win the challenge if you reach $10,000!",
+      winTargetReached: "Target Reached!",
+      playAgain: "Play Again",
+      signInToUse: "Please log in to use the Trading Simulator",
+      buy: "Buy",
+      sell: "Sell",
+      orderTypeLabel: "Order Type",
+      pricePerShare: "Price per share",
+      placeBuyOrder: "Place Buy Order",
+      placeSellOrder: "Place Sell Order",
+      change: "Change",
+      loadingSimulator: "Loading simulator...",
+      messages: {
+        insufficientCash: "Insufficient cash. Available: ${available}, Required: ${required}",
+        alreadyWon: "You have already won the simulation. Reset to play again.",
+        noShares: "You don't hold any shares of ${symbol}",
+        insufficientShares: "Insufficient shares.",
+        buySuccess: "Successfully bought ${shares} shares of ${symbol} at ${price} (USD)",
+        sellSuccess: "Successfully sold ${shares} shares of ${symbol} at ${price} (USD)",
+        resetSuccess: "Simulation reset successfully, back to $2,000",
+      },
     },
     profile: {
       title: "Profile",
@@ -441,6 +681,16 @@ const translations: Record<Language, Translations> = {
       totalReturn: "Total Return",
       winRate: "Win Rate",
       tradesCount: "Trades",
+      trades: "Trades",
+      joined: "Joined",
+      loadingProfile: "Loading profile...",
+    },
+    loading: {
+      title: "EyeStocks AI",
+      subtitle: "Intelligent Market Predictions",
+      quote: '"Smart investments today, secure wealth tomorrow"',
+      philosophy: "- EyeStocks AI Investment Philosophy",
+      preparing: "Preparing your AI-powered trading experience",
     },
     stockDetail: {
       overview: "Overview",
@@ -525,6 +775,12 @@ const translations: Record<Language, Translations> = {
         supervisorLabel: "Academic Supervision",
         supervisorBy: "Supervised by:",
         supervisorName: "Prof. Alaa Sagheer",
+        members: {
+          sharidah: "Sharidah AlGhannam",
+          ali: "Ali Alibrahim",
+          qasem: "Qasem Alolaywi",
+          abdullah: "Abdullah AlKhodir"
+        }
       }
     },
     terms: {
@@ -560,6 +816,37 @@ const translations: Record<Language, Translations> = {
         { id: "contact", title: "8. Contact Information", content: "For privacy-related inquiries or to exercise your data rights, please reach out: Email: privacy@eyestocks-ai.com" }
       ]
     },
+    help: {
+      title: "Help Center",
+      subtitle: "Find answers, guides, and support to help you make the most of EyeStocks AI.",
+      searchPlaceholder: "Search for articles, topics or keywords...",
+      browseByCategory: "Browse by Category",
+      popularArticles: "Popular Articles",
+      stillNeedHelp: "Still need help?",
+      cantFind: "Can't find what you're looking for?",
+      contactSupport: "Contact Support",
+      articlesCount: "articles",
+      categories: {
+        gettingStarted: { title: "Getting Started", desc: "Learn the basics and set up your account quickly." },
+        features: { title: "Features & Tools", desc: "Understand powerful tools and how they work." },
+        simulator: { title: "Simulator", desc: "Learn how to practice trading with the simulator." },
+        account: { title: "Account & Security", desc: "Manage your account and keep it secure." },
+        billing: { title: "Billing & Subscription", desc: "Manage your plan, payments and subscriptions." }
+      },
+      popularArticlesList: [
+        "How EyeStocks AI makes stock predictions",
+        "How to use the trading simulator",
+        "Understanding Confidence Score",
+        "How to manage your watchlist",
+        "Account security best practices"
+      ],
+      highlights: [
+        { title: "24/7 Support", desc: "We're here whenever you need us." },
+        { title: "Secure & Trusted", desc: "Your security is our top priority." },
+        { title: "Learning Resources", desc: "Guides and tutorials to help you grow." },
+        { title: "Community Driven", desc: "Join discussions and learn from others." }
+      ]
+    }
   },
   ar: {
     nav: {
@@ -588,8 +875,22 @@ const translations: Record<Language, Translations> = {
       search: "بحث",
       refresh: "تحديث",
       all: "الكل",
-      noData: "لا توجد بيانات",
+      noData: "لا توجد بيانات متاحة",
       viewAll: "عرض الكل",
+      loadingApp: "جاري تحميل EyeStocks AI...",
+      fetchingDetails: "جاري جلب التفاصيل...",
+      date: "التاريخ",
+      type: "النوع",
+      price: "السعر",
+      total: "الإجمالي",
+      change: "تغيير",
+      justNow: "الآن",
+      secondsAgo: "ثانية",
+      minutesAgo: "دقيقة",
+      hoursAgo: "ساعة",
+      daysAgo: "أيام",
+      optional: "اختياري",
+      saveChanges: "حفظ التغييرات",
     },
     auth: {
       loginTitle: "مرحباً بعودتك",
@@ -679,23 +980,78 @@ const translations: Record<Language, Translations> = {
       totalValue: "إجمالي القيمة",
       totalGain: "إجمالي الربح",
       totalReturn: "العائد الكلي",
-      holdings: "الأصول",
+      totalInvestment: "إجمالي الاستثمار",
+      dayChange: "تغيير اليوم",
+      holdings: "الأصول المملوكة",
+      positionsCount: "صفقة",
       watchlist: "المفضلة",
       transactions: "المعاملات",
+      recentTransactions: "المعاملات الأخيرة",
       noHoldings: "لا توجد أصول بعد",
-      noWatchlist: "لا توجد أسهم في المفضلة",
+      noWatchlist: "لا توجد عناصر في قائمة المراقبة",
       noTransactions: "لا توجد معاملات بعد",
-      startInvesting: "ابدأ بالاستثمار لعرض محفظتك هنا",
+      noTransactionsDesc: "ستظهر عمليات البيع والشراء الخاصة بك هنا.",
+      startInvesting: "ابدأ في بناء محفظتك بإضافة أول سهم لك.",
       addStocks: "أضف أسهماً إلى قائمة المفضلة",
       symbol: "الرمز",
       shares: "الأسهم",
       avgCost: "متوسط التكلفة",
       currentPrice: "السعر الحالي",
+      totalValueUsd: "إجمالي القيمة (دولار)",
       gainLoss: "الربح/الخسارة",
+      totalGainLoss: "إجمالي الربح/الخسارة",
       action: "إجراء",
       sell: "بيع",
       buy: "شراء",
+      buyMore: "شراء المزيد",
       addToPortfolio: "إضافة للمحفظة",
+      addStockToPortfolio: "إضافة سهم للمحفظة",
+      resetPortfolio: "إعادة تعيين المحفظة",
+      resetPortfolioConfirm: "هل أنت متأكد من إعادة تعيين محفظتك؟ سيؤدي ذلك إلى بيع جميع الأصول وحذف جميع المعاملات.",
+      resetConfirm: "هل أنت متأكد من رغبتك في إعادة تعيين محفظتك؟ سيؤدي هذا إلى بيع جميع الأصول وحذف جميع المعاملات.",
+      addStock: "إضافة سهم",
+      noHoldingsYet: "لا توجد أصول مملوكة بعد",
+      noHoldingsDesc: "ابدأ في بناء محفظتك عن طريق إضافة أول سهم لك.",
+      addFirstStock: "أضف سهمك الأول",
+      noTransactionsYet: "لا توجد معاملات بعد",
+      bought: "تم شراء",
+      sold: "تم بيع",
+      sharesCount: "عدد الأسهم",
+      enterShares: "أدخل عدد الأسهم",
+      buyPrice: "سعر الشراء",
+      perShare: "للسهم الواحد",
+      enterBuyPrice: "أدخل سعر الشراء الخاص بك",
+      currentValue: "القيمة الحالية",
+      deletePosition: "حذف الصفقة",
+      deleteConfirm: "هل أنت متأكد أنك تريد إزالة هذا السهم من محفظتك؟ لا يمكن التراجع عن هذا الإجراء.",
+      justNow: "الآن",
+      secondsAgo: "ثانية",
+      minutesAgo: "دقيقة",
+      hoursAgo: "ساعة",
+      daysAgo: "يوم",
+      performance7d: "أداء 7 أيام",
+      noPerfData: "لا توجد بيانات أداء بعد",
+      keepTrading: "واصل التداول لعرض السجل",
+      assetAllocation: "توزيع الأصول",
+      practiceTrading: "تدرب على التداول",
+      view: "عرض",
+      edit: "تعديل",
+      delete: "حذف",
+      signInToView: "سجل الدخول لعرض محفظتك",
+      signInDesc: "تتبع أصولك، نفذ صفقاتك، وراقب أداءك — كل ذلك في مكان واحد.",
+      trackHoldings: "تتبع أصولك، قم بإجراء الصفقات، وراقب الأداء - كل ذلك في مكان واحد.",
+      loadingPortfolio: "جاري تحميل المحفظة...",
+      sharesToSell: "عدد الأسهم للبيع",
+      sharesToBuy: "عدد الأسهم",
+      estimatedProceeds: "العوائد التقديرية",
+      purchaseDate: "تاريخ الشراء",
+      costPerShare: "سعر الشراء (للسهم الواحد)",
+      saveChanges: "حفظ التغييرات",
+      deleteTitle: "حذف",
+      deleteDescription: "سيؤدي هذا إلى إزالة هذا السهم من محفظتك وبيع جميع الأسهم بسعر السوق الحالي.",
+      totalUsd: "الإجمالي (دولار)",
+      searchStocks: "البحث عن الأسهم...",
+      noStocksFound: "لم يتم العثور على أسهم",
     },
     simulator: {
       title: "محاكي التداول",
@@ -715,20 +1071,51 @@ const translations: Record<Language, Translations> = {
       noPositions: "لا توجد صفقات مفتوحة",
       noHistory: "لا يوجد سجل تداول",
       resetPortfolio: "إعادة تعيين المحفظة",
-      confirmReset: "هل أنت متأكد من إعادة تعيين محفظتك؟",
+      resetPortfolioConfirm: "هل أنت متأكد من إعادة تعيين المحفظة؟",
+      resetChallenge: "إعادة تعيين التحدي",
       goal: "الهدف",
       reached: "تم تحقيق الهدف!",
       notReached: "واصل المحاولة",
       startingBalance: "الرصيد الابتدائي",
       targetBalance: "الرصيد المستهدف",
+      simulatorChallenge: "تحدي المحاكي",
+      goal10k: "الهدف: 10 آلاف $",
+      availableCash: "النقد المتاح",
+      inStocks: "في الأسهم",
+      progressComplete: "مكتمل",
+      startTradingProgress: "ابدأ التداول لتحقيق تقدم!",
+      sharesLabel: "عدد الأسهم",
+      sharesPlaceholder: "أدخل عدد الأسهم",
+      totalUsd: "الإجمالي (دولار)",
+      tradeSimulatedDisclaimer: "هذا تداول افتراضي. جميع القيم يتم تتبعها بالدولار. فُز بالتحدي عند وصولك لـ 10,000$!",
+      winTargetReached: "تم تحقيق الهدف!",
+      playAgain: "العب مرة أخرى",
+      signInToUse: "يرجى تسجيل الدخول لاستخدام محاكي التداول",
+      buy: "شراء",
+      sell: "بيع",
+      orderTypeLabel: "نوع الأمر",
+      pricePerShare: "سعر السهم",
+      placeBuyOrder: "تنفيذ أمر شراء",
+      placeSellOrder: "تنفيذ أمر بيع",
+      change: "تغيير",
+      loadingSimulator: "جاري تحميل المحاكي...",
+      messages: {
+        insufficientCash: "رصيد غير كافٍ. المتاح: ${available}، المطلوب: ${required}",
+        alreadyWon: "لقد فزت بالفعل في التحدي. قم بإعادة الضبط للعب مرة أخرى.",
+        noShares: "أنت لا تملك أي أسهم في ${symbol}",
+        insufficientShares: "عدد الأسهم غير كافٍ.",
+        buySuccess: "تم شراء ${shares} سهم من ${symbol} بنجاح بسعر ${price} (دولار)",
+        sellSuccess: "تم بيع ${shares} سهم من ${symbol} بنجاح بسعر ${price} (دولار)",
+        resetSuccess: "تم إعادة ضبط المحاكي بنجاح، رصيدك الآن 2,000 دولار",
+      },
     },
     profile: {
       title: "الملف الشخصي",
       editProfile: "تعديل الملف الشخصي",
-      followers: "المتابعون",
-      following: "المتابَعون",
-      posts: "المنشورات",
-      joinedDate: "انضم في",
+      followers: "متابع",
+      following: "متابَع",
+      posts: "منشور",
+      joinedDate: "تاريخ الانضمام",
       bio: "نبذة شخصية",
       noBio: "لا توجد نبذة بعد",
       changePicture: "تغيير الصورة",
@@ -736,7 +1123,17 @@ const translations: Record<Language, Translations> = {
       portfolioPerformance: "أداء المحفظة",
       totalReturn: "العائد الكلي",
       winRate: "نسبة النجاح",
-      tradesCount: "عدد الصفقات",
+      tradesCount: "الصفقات",
+      trades: "صفقة",
+      joined: "انضم في",
+      loadingProfile: "جاري تحميل الملف الشخصي...",
+    },
+    loading: {
+      title: "EyeStocks AI",
+      subtitle: "توقعات السوق الذكية",
+      quote: '"استثمارات ذكية اليوم، ثروة آمنة غداً"',
+      philosophy: "- فلسفة EyeStocks AI في الاستثمار",
+      preparing: "جاري تحضير تجربة التداول المدعومة بالذكاء الاصطناعي",
     },
     stockDetail: {
       overview: "نظرة عامة",
@@ -820,7 +1217,13 @@ const translations: Record<Language, Translations> = {
         roleMember: "عضو الفريق",
         supervisorLabel: "إشراف أكاديمي",
         supervisorBy: "تحت إشراف:",
-        supervisorName: "أ.د. علاء المليجي",
+        supervisorName: "البروفيسور. علاء الصغير",
+        members: {
+          sharidah: "شريدة الغنام",
+          ali: "علي البراهيم",
+          qasem: "قاسم العليوي",
+          abdullah: "عبدالله الخضير"
+        }
       }
     },
     terms: {
@@ -856,6 +1259,37 @@ const translations: Record<Language, Translations> = {
         { id: "contact", title: "8. معلومات التواصل", content: "للاستفسارات المتعلقة بالخصوصية أو لممارسة حقوق البيانات الخاصة بك، يرجى التواصل عبر: البريد الإلكتروني: <span dir='ltr' style='unicode-bidi: isolate'>privacy@eyestocks-ai.com</span>" }
       ]
     },
+    help: {
+      title: "مركز المساعدة",
+      subtitle: "ابحث عن الإجابات والأدلة والدعم لمساعدتك في تحقيق أقصى استفادة من EyeStocks AI.",
+      searchPlaceholder: "ابحث عن مقالات، مواضيع أو كلمات رئيسية...",
+      browseByCategory: "تصفح حسب الفئة",
+      popularArticles: "المقالات الشائعة",
+      stillNeedHelp: "هل ما زلت بحاجة للمساعدة؟",
+      cantFind: "ألا تجد ما تبحث عنه؟",
+      contactSupport: "تواصل مع الدعم",
+      articlesCount: "مقالات",
+      categories: {
+        gettingStarted: { title: "البداية", desc: "تعرف على الأساسيات وقم بإعداد حسابك بسرعة." },
+        features: { title: "المميزات والأدوات", desc: "افهم الأدوات القوية وكيفية عملها." },
+        simulator: { title: "المحاكي", desc: "تعرف على كيفية ممارسة التداول باستخدام المحاكي." },
+        account: { title: "الحساب والأمان", desc: "إدارة حسابك والحفاظ عليه آمنًا." },
+        billing: { title: "الفواتير والاشتراك", desc: "إدارة خطتك والمدفوعات والاشتراكات." }
+      },
+      popularArticlesList: [
+        "كيف يقوم EyeStocks AI بتوقعات الأسهم",
+        "كيف تستخدم محاكي التداول",
+        "فهم درجة الثقة",
+        "كيف تدير قائمة المراقبة الخاصة بك",
+        "أفضل ممارسات أمان الحساب"
+      ],
+      highlights: [
+        { title: "دعم 24/7", desc: "نحن هنا متى احتجت إلينا." },
+        { title: "آمن وموثوق", desc: "أمنك هو أولويتنا القصوى." },
+        { title: "مصادر تعليمية", desc: "أدلة وبرامج تعليمية لمساعدتك على النمو." },
+        { title: "مدفوع بالمجتمع", desc: "انضم إلى المناقشات وتعلم من الآخرين." }
+      ]
+    }
   },
 };
 
@@ -885,9 +1319,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const isRTL = language === "ar";
 
-  // Apply lang attribute + Thmanyah font class when Arabic is active
+  // Apply lang attribute, direction + Thmanyah font class when Arabic is active
   useEffect(() => {
     document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
     if (language === 'ar') {
       document.documentElement.classList.add('lang-ar');
     } else {
