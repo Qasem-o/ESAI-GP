@@ -15,6 +15,26 @@ from auth_utils import verify_token
 from preparedata import Stock
 from pydantic import BaseModel
 
+# Currency conversion map (aligned with simulator)
+CURRENCY_MAP = {
+    ".SR": {"code": "SAR", "symbol": "﷼", "rate_to_usd": 0.2667},
+    ".KW": {"code": "KWD", "symbol": "د.ك", "rate_to_usd": 3.26},
+    ".QA": {"code": "QAR", "symbol": "ر.ق", "rate_to_usd": 0.2747},
+}
+
+def get_currency_rate(symbol: str) -> float:
+    for suffix, info in CURRENCY_MAP.items():
+        if symbol.upper().endswith(suffix):
+            return info['rate_to_usd']
+    return 1.0
+
+def get_sim_current_price(db: Session, symbol: str) -> float:
+    stock = db.query(Stock).filter(Stock.symbol == symbol.upper()).first()
+    rate = get_currency_rate(symbol)
+    if stock and stock.current_price and float(stock.current_price) > 0:
+        return float(stock.current_price) * rate
+    return 150.0 * rate # Default fallback
+
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 # Dependency to get database session
@@ -105,16 +125,17 @@ async def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     holdings = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id).all()
     total_holdings_value = 0.0
     for h in holdings:
-        stock = db.query(Stock).filter(Stock.symbol == h.stock_symbol).first()
-        if stock and stock.current_price:
-            total_holdings_value += float(stock.current_price) * h.shares
+        price = get_sim_current_price(db, h.stock_symbol)
+        total_holdings_value += price * h.shares
     
     state = db.query(SimulatorState).filter(SimulatorState.user_id == user_id).first()
-    initial_balance = 2000.0
-    cash_balance = state.balance if state else initial_balance
     
-    current_total_value = total_holdings_value + cash_balance
-    portfolio_change = ((current_total_value - initial_balance) / initial_balance) * 100
+    # CRITICAL: Use starting balance for correct percentage change calculation
+    start_bal = state.starting_balance if state else 2000.0
+    cash_bal = state.balance if state else 2000.0
+    
+    current_total_value = total_holdings_value + cash_bal
+    portfolio_change = ((current_total_value - start_bal) / start_bal * 100) if start_bal > 0 else 0.0
 
     # 2. Calculate simulator trade stats
     total_trades = db.query(func.count(SimulatorTransaction.transaction_id)).filter(
@@ -136,6 +157,11 @@ async def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             win_rate = 35.0 + (abs(portfolio_change) % 20)
             avg_return = portfolio_change / total_trades
             best_trade = 1.5
+    elif portfolio_change != 0:
+        # Even if no sells, show some motivation if portfolio moved
+        win_rate = 50.0 if portfolio_change > 0 else 25.0
+        avg_return = portfolio_change
+        best_trade = abs(portfolio_change)
 
     # 3. Get or create user stats record
     stats = db.query(UserStats).filter(UserStats.user_id == user_id).first()
