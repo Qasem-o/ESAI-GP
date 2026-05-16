@@ -310,20 +310,40 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
                     <p className="text-xs text-muted-foreground mb-1">{t.simulator.availableCash}</p>
                     <p className="text-4xl font-bold">${(summary?.cash ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant={summary?.total_gain >= 0 ? "default" : "destructive"}>
-                        {summary?.total_gain >= 0 ? '+' : ''}${Math.abs(summary?.total_gain || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      <Badge variant={(summary?.portfolio_change ?? 0) >= 0 ? "default" : "destructive"}>
+                        {(summary?.portfolio_change ?? 0) >= 0 ? '+' : ''}{(summary?.portfolio_change ?? 0).toFixed(1)}%
                       </Badge>
-                      <span className={`flex items-center text-sm font-medium ${summary?.gain_percentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {summary?.gain_percentage >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                        {Math.abs(summary?.gain_percentage || 0).toFixed(1)}%
-                      </span>
+                      <span className="text-xs text-muted-foreground">{t.profile.portfolioPerformance}</span>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t space-y-2">
+                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-purple-500/10">
+                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.profile.tradesCount}</p>
+                      <p className="text-lg font-bold">{summary?.total_trades || 0}</p>
+                    </div>
+                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.profile.winRate}</p>
+                      <p className="text-lg font-bold">{summary?.win_rate || 0}%</p>
+                    </div>
+                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{isRTL ? 'متوسط العائد' : 'Avg Return'}</p>
+                      <p className={`text-lg font-bold ${(summary?.avg_return ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {(summary?.avg_return ?? 0) >= 0 ? '+' : ''}{(summary?.avg_return ?? 0).toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{isRTL ? 'أفضل صفقة' : 'Best Trade'}</p>
+                      <p className="text-lg font-bold text-green-500">
+                        +{(summary?.best_trade ?? 0).toFixed(0)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t.simulator.portfolioValue}</span>
-                      <span className="font-medium">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                      <span className="text-muted-foreground">{t.portfolio.totalValue}</span>
+                      <span className="font-bold">${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{t.simulator.inStocks}</span>
