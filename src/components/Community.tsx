@@ -242,7 +242,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   <DefaultAvatar />
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className={isRTL ? "text-right" : "text-left"}>
                 <div className="flex items-center gap-2">
                   <span 
                     className="font-semibold cursor-pointer hover:underline hover:text-primary transition-colors"
@@ -252,7 +252,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                   </span>
                   <span className="text-xs text-muted-foreground">@{post.author.username}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                <div className={`flex items-center gap-2 text-sm text-muted-foreground mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {timeAgo(post.created_at)}
@@ -274,7 +274,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
 
           {/* Post Content */}
-          <div className="mb-4">
+          <div className={`mb-4 ${isRTL ? "text-right" : "text-left"}`}>
             <p className="whitespace-pre-wrap mb-3">{post.content}</p>
 
             {/* Stock Card if attached */}
@@ -282,13 +282,14 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               <div 
                 className="bg-primary/5 hover:bg-primary/10 rounded-xl p-4 border border-primary/10 transition-all cursor-pointer group"
                 onClick={() => navigate(`/stock/${post.stock?.symbol}`)}
+                dir="ltr"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border font-bold text-primary">
                       {post.stock.symbol[0]}
                     </div>
-                    <div>
+                    <div className="text-left">
                       <p className="font-bold group-hover:text-primary transition-colors">{post.stock.symbol}</p>
                       <p className="text-xs text-muted-foreground line-clamp-1">{post.stock.name}</p>
                     </div>
@@ -337,7 +338,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" dir={isRTL ? "rtl" : "ltr"}>
       <Header
         currentPage={currentPage === "home" ? "home" : currentPage}
         onGoToHome={onGoToHome}
@@ -612,10 +613,12 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 )}
               </CardContent>
             </Card>
+
+            {/* Footer */}
+            <Footer />
           </div>
         </div>
       </div>
-      <Footer />
       {/* Comments Modal */}
       {commentsPostId !== null && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
@@ -644,22 +647,22 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     ? `https://esai-firstdraft.onrender.com${c.author.profile_picture_url}`
                     : c.author.profile_picture_url;
                   return (
-                    <div key={c.comment_id} className="flex gap-3">
-                      <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={cPicUrl || ""} />
-                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                          <DefaultAvatar />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 bg-muted/50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
-                          <span className="text-xs text-muted-foreground">@{c.author.username}</span>
-                          <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
+                      <div key={c.comment_id} className="flex gap-3">
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={cPicUrl || ""} />
+                          <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                            <DefaultAvatar />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`flex-1 bg-muted/50 rounded-lg p-3 ${isRTL ? "text-right" : "text-left"}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
+                            <span className="text-xs text-muted-foreground">@{c.author.username}</span>
+                            <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
+                          </div>
+                          <p className="text-sm">{c.content}</p>
                         </div>
-                        <p className="text-sm">{c.content}</p>
                       </div>
-                    </div>
                   );
                 })
               )}
