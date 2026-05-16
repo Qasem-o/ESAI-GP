@@ -35,6 +35,7 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
@@ -345,7 +346,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                 <Card className="w-full max-w-md mx-4">
                     <CardContent className="pt-6 text-center">
                         <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                        <h2 className="text-2xl font-bold mb-2">{t.auth.signIn}</h2>
+                        <h2 className="text-2xl font-bold mb-2">{t.auth.loginTitle}</h2>
                         <p className="text-muted-foreground mb-6">{t.portfolio.signInDesc}</p>
                         <Button onClick={onGoToLogin} className="w-full cursor-pointer">
                             {t.auth.loginTitle}
@@ -556,7 +557,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
                                 <TabsList className="w-full grid grid-cols-3">
                                     <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
-                                    <TabsTrigger value="portfolio" className="cursor-pointer">{t.navigation.portfolio}</TabsTrigger>
+                                    <TabsTrigger value="portfolio" className="cursor-pointer">{t.nav.portfolio}</TabsTrigger>
                                     <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
                                 </TabsList>
 
@@ -665,7 +666,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "نظرة عامة على المحفظة" : "Portfolio Overview"}</h3>
                                         <p className="text-muted-foreground mb-4">{language === "ar" ? "اعرض محفظتك الكاملة وأصولك" : "View your complete portfolio and holdings"}</p>
                                         <Button onClick={onGoToPortfolio} className="cursor-pointer">
-                                            {t.navigation.portfolio}
+                                            {t.nav.portfolio}
                                         </Button>
                                     </div>
                                 </TabsContent>
