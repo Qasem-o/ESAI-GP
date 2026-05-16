@@ -532,9 +532,9 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change?.toFixed(1) || 0}%
                                         </Badge>
                                     </div>
-                                    <p className="text-3xl font-bold">${stats?.portfolio_value?.toLocaleString() || '0'}</p>
-                                    <Button onClick={onGoToPortfolio} variant="link" className="p-0 h-auto mt-2 text-primary cursor-pointer">
-                                        {language === "ar" ? "عرض المحفظة الكاملة ←" : "View Full Portfolio →"}
+                                    <p className="text-3xl font-bold">${stats?.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</p>
+                                    <Button onClick={onGoToSimulator} variant="link" className="p-0 h-auto mt-2 text-primary cursor-pointer">
+                                        {language === "ar" ? "عرض المحاكي الكامل ←" : "View Full Simulator →"}
                                     </Button>
                                 </div>
 
