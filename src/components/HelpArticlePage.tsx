@@ -72,7 +72,7 @@ export function HelpArticlePage(props: any) {
               <header className="mb-20">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
                   <span className="flex items-center gap-1 font-medium bg-muted/50 px-3 py-1 rounded-full">
-                    <Clock size={14} /> 5 {isRTL ? "دقائق للقراءة" : "min read"}
+                    <Clock size={14} /> {article.readTime} {isRTL ? "دقائق للقراءة" : "min read"}
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-6xl font-black mb-14 leading-[1.2]">{article.title[currentLanguage]}</h1>
