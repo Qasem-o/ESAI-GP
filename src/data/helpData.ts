@@ -145,6 +145,60 @@ export const helpArticles: Record<string, HelpArticle> = {
     readTime: 6
   },
 
+  // Model Evaluation
+  "directional-accuracy": {
+    id: "directional-accuracy",
+    category: "ai-predictions",
+    title: { ar: "دقة الاتجاه (Directional Accuracy)", en: "Directional Accuracy" },
+    content: {
+      ar: "هذا المقياس يحدد مدى نجاح النموذج في توقع اتجاه السعر (صعوداً أو هبوطاً). إذا كان السهم قد صعد وتوقع النموذج صعوداً، فهذا يعتبر توقعاً صحيحاً. دقة الاتجاه العالية تعني أن النموذج موثوق جداً في تحديد المسار المستقبلي للسهم.",
+      en: "This metric determines how successful the model is at predicting price direction (up or down). If a stock rose and the model predicted an upward move, it's considered a correct prediction. High directional accuracy means the model is very reliable in identifying the stock's future path."
+    },
+    readTime: 5
+  },
+  "model-rmse": {
+    id: "model-rmse",
+    category: "ai-predictions",
+    title: { ar: "متوسط الخطأ التربيعي (RMSE)", en: "Root Mean Square Error (RMSE)" },
+    content: {
+      ar: "يقيس هذا المقياس الفرق بين السعر المتوقع والسعر الحقيقي. كلما انخفضت قيمة RMSE، كان النموذج أكثر دقة في تحديد السعر الفعلي. نستخدم هذا المقياس لضبط خوارزمياتنا وتقليل الفجوة بين التوقعات والواقع.",
+      en: "This metric measures the difference between the predicted price and the actual price. The lower the RMSE value, the more accurate the model is at determining the actual price. We use this metric to fine-tune our algorithms and minimize the gap between predictions and reality."
+    },
+    readTime: 6
+  },
+
+  // Platform Pages
+  "explore-page": {
+    id: "explore-page",
+    category: "getting-started",
+    title: { ar: "صفحة الاستكشاف", en: "Explore Page" },
+    content: {
+      ar: "صفحة الاستكشاف هي بوابتك للسوق. يمكنك البحث عن أي سهم، تصفية الأسهم حسب القطاع، أو رؤية الأسهم الأكثر تداولاً. كل بطاقة سهم تعرض لك لمحة سريعة عن السعر وتوقع الذكاء الاصطناعي.",
+      en: "The Explore page is your gateway to the market. You can search for any stock, filter stocks by sector, or see the most traded stocks. Each stock card shows you a quick snapshot of the price and AI prediction."
+    },
+    readTime: 4
+  },
+  "portfolio-page": {
+    id: "portfolio-page",
+    category: "getting-started",
+    title: { ar: "صفحة المحفظة", en: "Portfolio Page" },
+    content: {
+      ar: "في صفحة المحفظة، يمكنك رؤية ملخص كامل لاستثماراتك الافتراضية. تعرض لك الصفحة إجمالي الرصيد، الربح أو الخسارة المحققة، وتوزيع أصولك. كما يمكنك تتبع تاريخ جميع صفقاتك السابقة.",
+      en: "On the Portfolio page, you can see a full summary of your virtual investments. The page displays your total balance, realized profit or loss, and asset allocation. You can also track the history of all your past trades."
+    },
+    readTime: 5
+  },
+  "profile-page": {
+    id: "profile-page",
+    category: "getting-started",
+    title: { ar: "الملف الشخصي", en: "User Profile" },
+    content: {
+      ar: "ملفك الشخصي يعرض هويتك في المجتمع. يمكنك إضافة نبذة شخصية، متابعة إحصائياتك (عدد المنشورات والمتابعين)، ورؤية الأوسمة التي حصلت عليها. كما يمكنك من هنا تعديل إعدادات حسابك وصورتك الشخصية.",
+      en: "Your profile showcases your identity in the community. You can add a bio, track your stats (posts and followers count), and see the badges you've earned. You can also edit your account settings and profile picture from here."
+    },
+    readTime: 4
+  },
+
   // Account
   "security-best-practices": {
     id: "security-best-practices",
@@ -176,14 +230,14 @@ export const helpCategories: Record<string, HelpCategory> = {
     title: { ar: "البداية", en: "Getting Started" },
     desc: { ar: "تعلم الأساسيات وكيفية استخدام لوحة التحكم.", en: "Learn the basics and how to use the dashboard." },
     icon: "Rocket",
-    articles: ["welcome", "dashboard-guide", "watchlist"]
+    articles: ["welcome", "dashboard-guide", "watchlist", "explore-page", "portfolio-page", "profile-page"]
   },
   "ai-predictions": {
     id: "ai-predictions",
     title: { ar: "توقعات الذكاء الاصطناعي", en: "AI Predictions" },
     desc: { ar: "افهم كيف يحلل الذكاء الاصطناعي الأسهم.", en: "Understand how AI analyzes stocks." },
     icon: "Brain",
-    articles: ["hybrid-ai", "confidence-score", "targets-stoploss"]
+    articles: ["hybrid-ai", "confidence-score", "targets-stoploss", "directional-accuracy", "model-rmse"]
   },
   "simulator": {
     id: "simulator",
