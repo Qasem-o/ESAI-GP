@@ -612,12 +612,10 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 )}
               </CardContent>
             </Card>
-
-            {/* Footer */}
-            <Footer />
           </div>
         </div>
       </div>
+      <Footer />
       {/* Comments Modal */}
       {commentsPostId !== null && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>

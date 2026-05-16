@@ -14,6 +14,12 @@
   background-color: hsl(var(--hp-bg));
   color: hsl(var(--hp-text-primary));
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-page-container > main {
+  flex: 1;
 }
 
 .dark .help-page-container {

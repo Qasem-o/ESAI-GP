@@ -358,7 +358,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     ];
 
     return (
-        <div className="bg-background min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
+        <div className="bg-background min-h-screen flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
             <Header
                 currentPage={currentPage}
                 onGoToHome={onGoToHome}
@@ -371,7 +371,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             />
 
             {/* Main Content */}
-            <div className="container mx-auto px-4 lg:px-6 py-6">
+            <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* Left Sidebar - Profile Info */}
                     <div className="lg:col-span-4 space-y-6">
