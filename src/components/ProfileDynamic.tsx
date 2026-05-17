@@ -45,6 +45,7 @@ import {
 } from "./ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { communityAPI, PostComment as CommentType } from "../services/communityApi";
+import { PostCard } from "./PostCard";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
@@ -410,20 +411,18 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         const date = new Date(isoStr);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
+        const diffSecs = Math.floor(diffMs / 1000);
 
-        if (language === "ar") {
-            if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-            if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-            if (diffDays < 7) return `منذ ${diffDays} يوم`;
-        } else {
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-        }
-        return date.toLocaleDateString();
+        if (diffSecs < 5) return t.common.justNow;
+        if (diffSecs < 60) return `${diffSecs}${t.common.secondsAgo}`;
+        const diffMins = Math.floor(diffSecs / 60);
+        if (diffMins < 60) return `${diffMins}${t.common.minutesAgo}`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}${t.common.hoursAgo}`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays < 7) return `${diffDays}${t.common.daysAgo}`;
+        
+        return date.toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US');
     };
 
     // Redirect to login if not authenticated
@@ -654,12 +653,12 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                     <div className="lg:col-span-8 space-y-4">
                         {/* Tabs */}
                         <Card>
-                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-                                <TabsList className="w-full grid grid-cols-3">
-                                    <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
-                                    <TabsTrigger value="portfolio" className="cursor-pointer">{t.nav.portfolio}</TabsTrigger>
-                                    <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
-                                </TabsList>
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
+                                    <TabsList className="w-full grid grid-cols-3">
+                                        <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
+                                        <TabsTrigger value="portfolio" className="cursor-pointer">{t.nav.portfolio}</TabsTrigger>
+                                        <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
+                                    </TabsList>
 
                                 {/* Posts Tab */}
                                 <TabsContent value="posts" className="space-y-4 p-4">
@@ -676,114 +675,24 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             </p>
                                         </div>
                                     ) : (
-                                        posts.map((post) => {
-                                            const pPicUrl = targetUser?.profile_picture_url?.startsWith('/')
-                                                ? `${API_URL}${targetUser.profile_picture_url}`
-                                                : targetUser?.profile_picture_url;
-                                            return (
-                                                <Card key={post.post_id} className="hover:shadow-md transition-shadow">
-                                                    <CardContent className="pt-6">
-                                                        {/* Post Header */}
-                                                        <div className="flex items-start justify-between mb-4">
-                                                            <div className="flex items-start gap-3">
-                                                                <Avatar className="h-12 w-12">
-                                                                    <AvatarImage src={pPicUrl || ""} alt={targetUser?.username} />
-                                                                    <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                                                                        <DefaultAvatar />
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                                <div className={isRTL ? "text-right" : "text-left"}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-semibold">
-                                                                            {targetUser?.full_name || targetUser?.username}
-                                                                        </span>
-                                                                        <span className="text-xs text-muted-foreground">@{targetUser?.username}</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                                                                        <span className="flex items-center gap-1">
-                                                                            <Clock className="w-3 h-3" />
-                                                                            {formatTimeAgo(post.created_at)}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Post Content */}
-                                                        <div className={`mb-4 ${isRTL ? "text-right" : "text-left"}`}>
-                                                            <p className="whitespace-pre-wrap mb-3">{post.content}</p>
-
-                                                            {/* Stock Card if attached */}
-                                                            {post.stock_symbol && (
-                                                                <div 
-                                                                    className="bg-primary/5 hover:bg-primary/10 rounded-xl p-4 border border-primary/10 transition-all cursor-pointer group"
-                                                                    onClick={() => navigate(`/stock/${post.stock_symbol}`)}
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border font-bold text-primary">
-                                                                                {post.stock_symbol[0]}
-                                                                            </div>
-                                                                            <div className={isRTL ? "text-right" : "text-left"}>
-                                                                                <p className="font-bold group-hover:text-primary transition-colors">{post.stock_symbol}</p>
-                                                                                <p className="text-xs text-muted-foreground">{language === "ar" ? "رؤية تفاصيل السهم" : "View stock details"}</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className={isRTL ? "text-left" : "text-right"}>
-                                                                            <p className={`text-xs text-primary flex items-center gap-1 ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                                                                                <TrendingUp className="w-3 h-3" />
-                                                                                {isRTL ? "عرض التحليلات" : "View Analytics"}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Post Actions */}
-                                                        <div className="flex items-center justify-between pt-3 border-t">
-                                                            <div className="flex items-center gap-1">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => toggleLike(post.post_id)}
-                                                                    className={`cursor-pointer ${post.is_liked ? "text-red-500" : ""}`}
-                                                                >
-                                                                    <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
-                                                                    {post.likes_count}
-                                                                </Button>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="sm" 
-                                                                    className="cursor-pointer" 
-                                                                    onClick={() => setCommentsPostId(post.post_id)}
-                                                                >
-                                                                    <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                    {post.comments_count}
-                                                                </Button>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="sm" 
-                                                                    className="cursor-pointer" 
-                                                                    onClick={() => handleSharePost(post.post_id)}
-                                                                >
-                                                                    <Share2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                    {post.shares_count || 0}
-                                                                </Button>
-                                                            </div>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => toggleBookmark(post.post_id)}
-                                                                className={`cursor-pointer ${(post as any).is_bookmarked ? "text-primary" : ""}`}
-                                                            >
-                                                                <Bookmark className={`w-4 h-4 ${(post as any).is_bookmarked ? 'fill-primary' : ''}`} />
-                                                            </Button>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            );
-                                        })
+                                        posts.map((post) => (
+                                            <PostCard 
+                                                key={post.post_id}
+                                                post={{
+                                                    ...post,
+                                                    author: {
+                                                        user_id: targetUserId,
+                                                        username: targetUser?.username,
+                                                        full_name: targetUser?.full_name,
+                                                        profile_picture_url: targetUser?.profile_picture_url
+                                                    }
+                                                }}
+                                                onLike={toggleLike}
+                                                onComment={setCommentsPostId}
+                                                onBookmark={toggleBookmark}
+                                                onShare={handleSharePost}
+                                            />
+                                        ))
                                     )}
                                 </TabsContent>
 
@@ -847,8 +756,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                 return (
                                                     <Card key={follower.user_id}>
                                                         <CardContent className="pt-6">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center gap-3">
+                                                            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                                     <Avatar className="h-10 w-10">
                                                                         <AvatarImage src={fPicUrl || ""} alt={follower.username} />
                                                                         <AvatarFallback className="w-full h-full bg-transparent" asChild>
@@ -898,8 +807,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                 return (
                                                     <Card key={followedUser.user_id}>
                                                         <CardContent className="pt-6">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center gap-3">
+                                                            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                                                     <Avatar className="h-10 w-10">
                                                                         <AvatarImage src={fPicUrl || ""} alt={followedUser.username} />
                                                                         <AvatarFallback className="w-full h-full bg-transparent" asChild>
@@ -1142,6 +1051,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                     </div>
                 </div>
             )}
+            <Footer />
         </div>
     );
 }

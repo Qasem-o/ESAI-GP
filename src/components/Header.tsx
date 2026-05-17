@@ -98,7 +98,7 @@ export function Header({
           </div>
 
           {/* Center Nav */}
-          <nav className="hidden md:flex items-center justify-center flex-1 gap-6">
+          <nav className="hidden lg:flex items-center justify-center flex-1 gap-6">
             {navItems.map((item) => (
               <motion.button
                 key={item.id}
@@ -130,7 +130,7 @@ export function Header({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={toggleLanguage}
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-background hover:bg-accent transition-all text-sm font-medium shadow-sm"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-background hover:bg-accent transition-all text-sm font-medium shadow-sm"
               title={language === "en" ? "Switch to Arabic" : "التبديل للإنجليزية"}
             >
               <Languages className="w-4 h-4 text-primary" />
@@ -143,7 +143,7 @@ export function Header({
             <ThemeToggle />
 
             {isAuthenticated ? (
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden lg:flex items-center gap-1">
                 {/* Avatar */}
                 <Button
                   variant="ghost"
@@ -204,17 +204,17 @@ export function Header({
               </div>
             ) : (
               <>
-                <Button variant="ghost" onClick={onGoToLogin} className="hidden md:flex">
+                <Button variant="ghost" onClick={onGoToLogin} className="hidden lg:flex">
                   {t.nav.login}
                 </Button>
-                <Button onClick={onGoToSignup} className="hidden md:flex">
+                <Button onClick={onGoToSignup} className="hidden lg:flex">
                   {t.nav.signup}
                 </Button>
               </>
             )}
 
             {/* Mobile Hamburger - Visible ONLY on small mobile screens */}
-            <div className="block md:hidden">
+            <div className="block lg:hidden">
               <MobileNav
                 currentPage={currentPage}
                 onGoToExplore={onGoToExplore}
@@ -270,97 +270,160 @@ function MobileNav({
     if (callback) callback();
   };
 
+  const menuVariants = {
+    closed: {
+      x: isRTL ? "-100%" : "100%",
+      transition: { type: "spring", stiffness: 300, damping: 30 }
+    },
+    open: {
+      x: 0,
+      transition: { type: "spring", stiffness: 300, damping: 30 }
+    }
+  };
+
+  const overlayVariants = {
+    closed: { opacity: 0 },
+    open: { opacity: 1 }
+  };
+
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <Button 
         variant="ghost" 
         size="icon" 
         onClick={toggleMenu}
-        className="md:hidden force-hide-on-pc"
+        className="relative z-[60] hover:bg-primary/10 transition-colors rounded-full h-10 w-10"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={isOpen ? "close" : "open"}
+            initial={{ opacity: 0, rotate: -90 }}
+            animate={{ opacity: 1, rotate: 0 }}
+            exit={{ opacity: 0, rotate: 90 }}
+            transition={{ duration: 0.2 }}
+          >
+            {isOpen ? <X className="w-6 h-6 text-primary" /> : <Menu className="w-6 h-6" />}
+          </motion.div>
+        </AnimatePresence>
       </Button>
 
-      {isOpen && (
-        <div className="absolute top-full right-0 rtl:left-0 rtl:right-auto w-full bg-background border-b shadow-lg z-50">
-          <div className="container mx-auto px-6 py-4 flex flex-col space-y-4 text-left">
-            <button
-              onClick={() => handleNavClick(() => (window.scrollTo(0, 0), undefined))}
-              className={`text-left py-2 ${currentPage === "home" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.home}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToExplore)}
-              className={`text-left py-2 ${currentPage === "explore" || currentPage === "stocks" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.explore}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToPortfolio)}
-              className={`text-left py-2 ${currentPage === "portfolio" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.portfolio}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToSimulator)}
-              className={`text-left py-2 ${currentPage === "simulator" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.simulator}
-            </button>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={overlayVariants}
+              onClick={closeMenu}
+              className="fixed inset-0 bg-background/60 backdrop-blur-md z-[50]"
+            />
 
-            {/* Language Toggle in Mobile */}
-            <button
-              onClick={() => { toggleLanguage(); closeMenu(); }}
-              className="flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-muted/30 text-muted-foreground hover:text-foreground transition-all"
+            {/* Side Menu */}
+            <motion.div
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={menuVariants}
+              className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-[80%] max-w-xs bg-background border-l border-r shadow-2xl z-[55] flex flex-col`}
+              dir={isRTL ? "rtl" : "ltr"}
             >
-              <Languages className="w-5 h-5 text-primary" />
-              <span className="font-bold uppercase tracking-widest text-xs">
-                {language === "en" ? "Switch to Arabic" : "English Language"}
-              </span>
-            </button>
-
-            <div className="flex flex-col space-y-2 pt-2 border-t">
-              {isAuthenticated ? (
-                <>
-                  <div className={`flex items-center space-x-2 ${isRTL ? 'space-x-reverse' : ''} py-2`}>
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
-                          : (user?.profile_picture_url || "")}
-                        alt={user?.username}
-                      />
-                      <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                        <DefaultAvatar />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-medium leading-none">{user?.full_name || user?.username}</span>
-                      <span className="text-xs text-muted-foreground mt-1">@{user?.username}</span>
+              <div className="p-6 pt-20 flex-1 overflow-y-auto no-scrollbar">
+                {/* User Info Section */}
+                {isAuthenticated && (
+                  <div className="mb-8 p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 border-2 border-primary/20">
+                        <AvatarImage
+                          src={user?.profile_picture_url?.startsWith('/')
+                            ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
+                            : (user?.profile_picture_url || "")}
+                          alt={user?.username}
+                        />
+                        <AvatarFallback><DefaultAvatar /></AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-lg truncate">{user?.full_name || user?.username}</span>
+                        <span className="text-xs text-muted-foreground truncate">@{user?.username}</span>
+                      </div>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={() => handleNavClick(onGoToProfile)} className="justify-start">
-                    <User className="w-4 h-4 mr-2" /> {t.nav.profile}
-                  </Button>
-                  <Button variant="destructive" onClick={() => handleNavClick(onLogout)} className="justify-start">
-                    <LogOut className="w-4 h-4 mr-2" /> {t.nav.logout}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={() => handleNavClick(onGoToLogin)} className="justify-start">
-                    {t.nav.login}
-                  </Button>
-                  <Button onClick={() => handleNavClick(onGoToSignup)} className="justify-start">
-                    {t.nav.signup}
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                )}
+
+                <div className="flex flex-col space-y-2">
+                  {[
+                    { label: t.nav.home, icon: <User className="w-5 h-5" />, active: currentPage === "home", onClick: () => handleNavClick(() => window.scrollTo(0, 0)) },
+                    { label: t.nav.explore, icon: <Languages className="w-5 h-5" />, active: currentPage === "explore" || currentPage === "stocks", onClick: () => handleNavClick(onGoToExplore) },
+                    { label: t.nav.portfolio, icon: <ChevronDown className="w-5 h-5" />, active: currentPage === "portfolio", onClick: () => handleNavClick(onGoToPortfolio) },
+                    { label: t.nav.simulator, icon: <Shield className="w-5 h-5" />, active: currentPage === "simulator", onClick: () => handleNavClick(onGoToSimulator) },
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={item.onClick}
+                      className={`flex items-center gap-4 px-4 py-4 rounded-xl transition-all ${
+                        item.active 
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                          : "hover:bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <span className={item.active ? "text-primary-foreground" : "text-primary"}>
+                        {item.icon}
+                      </span>
+                      <span className="font-bold text-base">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-8 pt-8 border-t space-y-4">
+                  <button
+                    onClick={() => { toggleLanguage(); closeMenu(); }}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Languages className="w-5 h-5 text-primary" />
+                      </div>
+                      <span className="font-bold text-sm">
+                        {language === "en" ? "العربية" : "English"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground/50 border border-muted-foreground/20 px-1.5 py-0.5 rounded">
+                      {language === "en" ? "AR" : "EN"}
+                    </span>
+                  </button>
+
+                  {!isAuthenticated ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" onClick={() => handleNavClick(onGoToLogin)} className="rounded-xl h-12 font-bold">
+                        {t.nav.login}
+                      </Button>
+                      <Button onClick={() => handleNavClick(onGoToSignup)} className="rounded-xl h-12 font-bold">
+                        {t.nav.signup}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button variant="outline" onClick={() => handleNavClick(onGoToProfile)} className="w-full justify-start gap-3 h-12 rounded-xl border-dashed">
+                        <User className="w-5 h-5" /> {t.nav.profile}
+                      </Button>
+                      <Button variant="destructive" onClick={() => handleNavClick(onLogout)} className="w-full justify-start gap-3 h-12 rounded-xl shadow-lg shadow-red-500/10">
+                        <LogOut className="w-5 h-5" /> {t.nav.logout}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6 text-center border-t bg-muted/20">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  EyeStocks AI • {t.header.betaBadge}
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

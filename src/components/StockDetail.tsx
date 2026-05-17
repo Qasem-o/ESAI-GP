@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData, fetchChartData, MonthlyPredictionsResponse, UpdateInfo, fetchMonthlyPredictions, fetchUpdateInfo } from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
+import { PostCard } from "./PostCard";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
@@ -194,11 +195,11 @@ interface StockDetailProps {
   currentPage: any;
 }
 
-export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoBack }: StockDetailProps) {
+export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoBack }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
   const { isAuthenticated, user } = useAuth();
-  const { isRTL } = useLanguage();
-  const currentSymbol = paramSymbol || propSymbol || "NVDA";
+  const { isRTL, language, t } = useLanguage();
+  const currentSymbol = paramSymbol || propSymbol || initialSymbol || "NVDA";
 
   const formatLargeNumber = (num: number | undefined | string) => {
     if (num === "N/A" || num === undefined || num === null) return "N/A";
@@ -519,7 +520,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation */}
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 lg:px-6">
@@ -574,7 +575,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="container mx-auto px-4 lg:px-6 py-6"
+        className="flex-1 container mx-auto px-4 lg:px-6 py-6"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
           {/* Left Sidebar - Stock Info */}
@@ -591,11 +592,11 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                   Last update: <span className="font-medium text-foreground/80">{formatDateTime(updateInfo.last_update)}</span>
                 </div>
               )}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
-                <div>
-                  <p className="text-muted-foreground text-sm font-medium mb-1">Current Price</p>
+              <div className={`flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-muted-foreground text-sm font-medium mb-1">{language === "ar" ? "السعر الحالي" : "Current Price"}</p>
                   <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{getCurrency(displayStockData.symbol)} {displayStockData.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className={`flex items-center gap-3 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Badge className={`text-base px-2 py-1 ${displayStockData.change >= 0
                       ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-none border-0"
                       : "bg-red-500/10 text-red-500 hover:bg-red-500/20 shadow-none border-0"
@@ -603,44 +604,46 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                       {displayStockData.change >= 0 ? '+' : ''}{displayStockData.change.toFixed(2)} ({displayStockData.changePercent.toFixed(2)}%)
                     </Badge>
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
+                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <div className={`w-2 h-2 rounded-full ${getMarketInfo(displayStockData.symbol).isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                         <span className="text-muted-foreground text-xs font-medium">
                           {getMarketInfo(displayStockData.symbol).name} 
-                          ({getMarketInfo(displayStockData.symbol).isOpen ? 'Open' : 'Closed'})
+                          ({getMarketInfo(displayStockData.symbol).isOpen ? (language === "ar" ? "مفتوح" : "Open") : (language === "ar" ? "مغلق" : "Closed")})
                         </span>
                       </div>
                       <span className="text-[10px] text-muted-foreground/70">
-                        Hours: {getMarketInfo(displayStockData.symbol).open} - {getMarketInfo(displayStockData.symbol).close} (AST)
+                        {language === "ar" ? "الساعات:" : "Hours:"} {getMarketInfo(displayStockData.symbol).open} - {getMarketInfo(displayStockData.symbol).close} (AST)
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1 bg-muted p-1 rounded-lg overflow-x-auto no-scrollbar max-w-full sm:max-w-none">
-                  {['1W', '1M', '3M', '6M', '1Y', 'ALL', 'Monthly Forecast'].map((period) => (
-                    <Button
-                      key={period}
-                      variant={activeTimeRange === period ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setActiveTimeRange(period)}
-                      className={`h-8 text-xs transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
-                        period === 'Monthly Forecast'
-                          ? activeTimeRange === period
-                            ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-500/20'
-                            : 'text-purple-600 hover:text-purple-700 hover:bg-purple-100/50'
-                          : activeTimeRange === period
-                            ? 'bg-black text-white hover:bg-black/90 shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                      }`}
-                      style={activeTimeRange === period ? { 
-                        backgroundColor: period === 'Monthly Forecast' ? '#9333ea' : '#000000', 
-                        color: 'white' 
-                      } : {}}
-                    >
-                      {period === 'Monthly Forecast' && <Sparkles className="w-3 h-3 mr-1.5" />}
-                      {period}
-                    </Button>
-                  ))}
+                <div className="w-full md:w-auto overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                  <div className={`flex gap-1 bg-muted/50 p-1 rounded-lg min-w-max ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    {['1W', '1M', '3M', '6M', '1Y', 'ALL', 'Monthly Forecast'].map((period) => (
+                      <Button
+                        key={period}
+                        variant={activeTimeRange === period ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTimeRange(period)}
+                        className={`h-8 text-xs transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                          period === 'Monthly Forecast'
+                            ? activeTimeRange === period
+                              ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-500/20'
+                              : 'text-purple-600 hover:text-purple-700 hover:bg-purple-100/50'
+                            : activeTimeRange === period
+                              ? 'bg-black text-white hover:bg-black/90 shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                        style={activeTimeRange === period ? { 
+                          backgroundColor: period === 'Monthly Forecast' ? '#9333ea' : '#000000', 
+                          color: 'white' 
+                        } : {}}
+                      >
+                        {period === 'Monthly Forecast' && <Sparkles className={`w-3 h-3 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />}
+                        {period === 'Monthly Forecast' ? (language === "ar" ? "توقعات شهرية" : period) : period}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -706,7 +709,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
             </Card>
 
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} dir={isRTL ? "rtl" : "ltr"}>
-              <div className="relative w-full bg-muted/30 backdrop-blur-sm p-1 rounded-xl flex items-center justify-between border border-white/10 shadow-inner">
+              <div className={`relative w-full bg-muted/30 backdrop-blur-sm p-1 rounded-xl flex items-center justify-between border border-white/10 shadow-inner ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {["overview", "discussions", "analytics", "news"].map((tab) => (
                   <button
                     key={tab}
@@ -723,10 +726,14 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
                     )}
-                    <span className="relative z-10 flex items-center gap-2">
+                    <span className={`relative z-10 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       {tab === "discussions" && <MessageSquare className="w-4 h-4" />}
                       {tab === "news" && <FileText className="w-4 h-4" />}
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {language === "ar" ? (
+                        tab === "overview" ? "نظرة عامة" :
+                        tab === "discussions" ? "مناقشات" :
+                        tab === "analytics" ? "تحليلات" : "أخبار"
+                      ) : (tab.charAt(0).toUpperCase() + tab.slice(1))}
                       {tab === "discussions" && ` (${posts.length})`}
                     </span>
                   </button>
@@ -831,39 +838,48 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                 {/* Top Community Posts */}
                 <Card>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">Top Discussions</CardTitle>
+                    <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <CardTitle className="text-xl">{language === "ar" ? "أهم المناقشات" : "Top Discussions"}</CardTitle>
                       <Button variant="link" onClick={() => setActiveTab("discussions")}>
-                        View All
+                        {language === "ar" ? "عرض الكل" : "View All"}
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {posts.slice(0, 3).map((post: FeedPost) => (
-                      <div key={post.post_id} className="bg-muted/50 rounded-lg p-4 border">
-                        <div className="flex items-start gap-3 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-primary" />
-                          </div>
+                      <div key={post.post_id} className={`bg-muted/50 rounded-lg p-4 border ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <div className={`flex items-start gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage 
+                              src={post.author.profile_picture_url?.startsWith('/')
+                                ? `${API_URL}${post.author.profile_picture_url}`
+                                : post.author.profile_picture_url} 
+                              alt={post.author.username} 
+                            />
+                            <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                              <DefaultAvatar />
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{post.author.username}</span>
+                            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <span className="font-semibold text-sm">{post.author.full_name || post.author.username}</span>
+                              <span className="text-xs text-muted-foreground">@{post.author.username}</span>
                             </div>
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{post.content}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
+                        <div className={`flex items-center gap-4 text-xs text-muted-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Heart className="w-3 h-3" />
                             {post.likes_count}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <MessageSquare className="w-3 h-3" />
                             {post.comments_count}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Clock className="w-3 h-3" />
-                            {new Date(post.created_at).toLocaleDateString()}
+                            {new Date(post.created_at).toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US')}
                           </span>
                         </div>
                       </div>
@@ -877,7 +893,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                 {/* Post Composer */}
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="flex gap-3">
+                    <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Avatar className="h-10 w-10">
                         <AvatarImage
                           src={user?.profile_picture_url?.startsWith('/')
@@ -894,22 +910,22 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                           {!isInputExpanded && !postContent ? (
                             <button
                               onClick={() => setIsInputExpanded(true)}
-                              className="w-full text-left text-muted-foreground bg-white/5 border border-white/10 px-3 py-2.5 rounded-md text-sm hover:bg-white/10 transition-colors cursor-pointer"
+                              className={`w-full text-muted-foreground bg-white/5 border border-white/10 px-3 py-2.5 rounded-md text-sm hover:bg-white/10 transition-colors cursor-pointer ${isRTL ? 'text-right' : 'text-left'}`}
                             >
-                              What are your thoughts on ${currentSymbol}?
+                              {language === "ar" ? `ما رأيك في ${currentSymbol}؟` : `What are your thoughts on ${currentSymbol}?`}
                             </button>
                           ) : (
                             <div className="space-y-3">
                               <Textarea
-                                placeholder={`What are your thoughts on \$${currentSymbol}?`}
+                                placeholder={language === "ar" ? `ما رأيك في ${currentSymbol}؟` : `What are your thoughts on ${currentSymbol}?`}
                                 value={postContent}
                                 onChange={(e) => setPostContent(e.target.value)}
                                 autoFocus
-                                className="border-white/10 bg-white/5 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px] text-base"
+                                className={`border-white/10 bg-white/5 focus-visible:ring-1 focus-visible:ring-primary/20 resize-none p-3 min-h-[100px] text-base ${isRTL ? 'text-right' : 'text-left'}`}
                               />
-                              <div className="flex items-center justify-between pt-2">
+                              <div className={`flex items-center justify-between pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                 <div />
-                                <div className="flex gap-2">
+                                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -919,7 +935,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                                       setPostContent("");
                                     }}
                                   >
-                                    Cancel
+                                    {language === "ar" ? "إلغاء" : "Cancel"}
                                   </Button>
                                   <Button
                                     onClick={handleCreatePost}
@@ -927,7 +943,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                                     size="sm"
                                     className="px-6 cursor-pointer"
                                   >
-                                    {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+                                    {isPostLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === "ar" ? "نشر" : "Post")}
                                   </Button>
                                 </div>
                               </div>
@@ -954,94 +970,22 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                   animate="show"
                   className="space-y-4"
                 >
-                  {posts.map((post: FeedPost) => {
-                    return (
-                      <motion.div
-                        key={post.post_id}
-                        variants={{
-                          hidden: { opacity: 0, y: 20 },
-                          show: { opacity: 1, y: 0 }
-                        }}
-                      >
-                        <Card className="hover:shadow-md transition-shadow border-white/5 bg-white/5 backdrop-blur-sm">
-                          <CardContent className="pt-6">
-                            {/* Post Header */}
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex items-start gap-3">
-                                <Avatar className="h-12 w-12 flex-shrink-0">
-                                  <AvatarImage
-                                    src={post.author.profile_picture_url?.startsWith('/')
-                                      ? `https://esai-firstdraft.onrender.com${post.author.profile_picture_url}`
-                                      : (post.author.profile_picture_url || "")}
-                                    alt={post.author.username}
-                                  />
-                                  <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                                    <DefaultAvatar />
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{post.author.full_name || post.author.username}</span>
-                                    <span className="text-xs text-muted-foreground">@{post.author.username}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      {new Date(post.created_at).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </div>
-
-                            {/* Post Content */}
-                            <div className="mb-4">
-                              <p className="whitespace-pre-wrap">{post.content}</p>
-                            </div>
-
-                            {/* Post Stats */}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b border-white/10">
-                              <span className="flex items-center gap-1">
-                                <Heart className="w-4 h-4" />
-                                {post.likes_count} likes
-                              </span>
-                              <span>{post.comments_count} comments</span>
-                            </div>
-
-                            {/* Post Actions */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <motion.button
-                                  whileTap={{ scale: 0.8 }}
-                                  onClick={() => toggleLike(post.post_id)}
-                                  className={`flex items-center gap-1 text-sm font-medium transition-all p-2 rounded-md hover:bg-white/10 cursor-pointer ${post.is_liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
-                                    }`}
-                                >
-                                  <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
-                                  {post.likes_count}
-                                </motion.button>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0">
-                                  <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                  {post.comments_count}
-                                </Button>
-                              </div>
-                              <motion.button
-                                whileTap={{ scale: 0.8 }}
-                                onClick={() => toggleBookmark(post.post_id)}
-                                className={`p-2 rounded-md hover:bg-white/10 transition-all cursor-pointer ${post.is_bookmarked ? "text-primary" : "text-muted-foreground hover:text-primary"
-                                  }`}
-                              >
-                                <Bookmark className={`w-4 h-4 ${post.is_bookmarked ? 'fill-primary' : ''}`} />
-                              </motion.button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
+                  {posts.map((post: FeedPost) => (
+                    <motion.div
+                      key={post.post_id}
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        show: { opacity: 1, y: 0 }
+                      }}
+                    >
+                      <PostCard
+                        post={post}
+                        onLike={toggleLike}
+                        onComment={() => {}} // Handle comment click if needed
+                        onBookmark={toggleBookmark}
+                      />
+                    </motion.div>
+                  ))}
                 </motion.div>
               </TabsContent>
 
@@ -1053,37 +997,39 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Technical Indicators (Latest)</CardTitle>
+                      <CardTitle className={`text-lg ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "المؤشرات الفنية (الأحدث)" : "Technical Indicators (Latest)"}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {technicals.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className={`grid grid-cols-2 gap-4 ${isRTL ? 'text-right' : ''}`}>
                           <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">RSI (14)</p>
+                            <p className="text-xs text-muted-foreground">{language === "ar" ? "مؤشر القوة النسبية (14)" : "RSI (14)"}</p>
                             <p className="font-semibold">{technicals[technicals.length - 1].rsi?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">MACD</p>
+                            <p className="text-xs text-muted-foreground">{language === "ar" ? "ماكد (MACD)" : "MACD"}</p>
                             <p className="font-semibold">{technicals[technicals.length - 1].macd?.toFixed(4) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">SMA 20</p>
+                            <p className="text-xs text-muted-foreground">{language === "ar" ? "المتوسط المتحرك 20" : "SMA 20"}</p>
                             <p className="font-semibold">{technicals[technicals.length - 1].sma_20?.toFixed(2) || "N/A"}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">EMA 50</p>
+                            <p className="text-xs text-muted-foreground">{language === "ar" ? "المتوسط المتحرك الأسي 50" : "EMA 50"}</p>
                             <p className="font-semibold">{technicals[technicals.length - 1].ema_50?.toFixed(2) || "N/A"}</p>
                           </div>
-                          <div className="col-span-2 space-y-1">
-                            <p className="text-xs text-muted-foreground">Bollinger Bands</p>
+                          <div className={`col-span-2 space-y-1 ${isRTL ? 'text-right' : ''}`}>
+                            <p className="text-xs text-muted-foreground">{language === "ar" ? "نطاقات بولينجر" : "Bollinger Bands"}</p>
                             <p className="text-sm">
-                              Upper: {technicals[technicals.length - 1].bollinger_upper?.toFixed(2) || "N/A"} /
-                              Lower: {technicals[technicals.length - 1].bollinger_lower?.toFixed(2) || "N/A"}
+                              {language === "ar" ? "الأعلى:" : "Upper:"} {technicals[technicals.length - 1].bollinger_upper?.toFixed(2) || "N/A"} /
+                              {language === "ar" ? "الأدنى:" : "Lower:"} {technicals[technicals.length - 1].bollinger_lower?.toFixed(2) || "N/A"}
                             </p>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No technical data available.</p>
+                        <p className={`text-sm text-muted-foreground ${isRTL ? 'text-right' : ''}`}>
+                          {language === "ar" ? "لا توجد بيانات فنية متاحة." : "No technical data available."}
+                        </p>
                       )}
                     </CardContent>
                   </Card>
@@ -1091,48 +1037,48 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                   {/* Key Statistics / Financial Metrics */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Key Statistics</CardTitle>
+                      <CardTitle className={`text-lg ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "إحصائيات رئيسية" : "Key Statistics"}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className={`grid grid-cols-2 gap-4 ${isRTL ? 'text-right' : ''}`}>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Open</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "سعر الفتح" : "Open"}</p>
                           <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.open === 'number' ? displayStockData.open.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">High</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "أعلى سعر" : "High"}</p>
                           <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.high === 'number' ? displayStockData.high.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Low</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "أدنى سعر" : "Low"}</p>
                           <p className="font-semibold">{getCurrency(displayStockData.symbol)} {typeof displayStockData.low === 'number' ? displayStockData.low.toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Volume</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "حجم التداول" : "Volume"}</p>
                           <p className="font-semibold">{formatLargeNumber(displayStockData.volume)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Market Cap</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "القيمة السوقية" : "Market Cap"}</p>
                           <p className="font-semibold">{formatLargeNumber(displayStockData.marketCap)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">P/E Ratio</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "مكرر الأرباح (P/E)" : "P/E Ratio"}</p>
                           <p className="font-semibold">{displayStockData.peRatio ? Number(displayStockData.peRatio).toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">EPS</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "ربحية السهم (EPS)" : "EPS"}</p>
                           <p className="font-semibold">{displayStockData.eps ? Number(displayStockData.eps).toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">Dividend Yield</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "عائد التوزيعات" : "Dividend Yield"}</p>
                           <p className="font-semibold">{displayStockData.dividendYield ? (Number(displayStockData.dividendYield) * 100).toFixed(2) + "%" : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">52W High</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "أعلى سعر 52 أسبوع" : "52W High"}</p>
                           <p className="font-semibold">{displayStockData.week52High ? getCurrency(displayStockData.symbol) + " " + Number(displayStockData.week52High).toFixed(2) : "N/A"}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">52W Low</p>
+                          <p className="text-xs text-muted-foreground">{language === "ar" ? "أدنى سعر 52 أسبوع" : "52W Low"}</p>
                           <p className="font-semibold">{displayStockData.week52Low ? getCurrency(displayStockData.symbol) + " " + Number(displayStockData.week52Low).toFixed(2) : "N/A"}</p>
                         </div>
                       </div>
@@ -1479,6 +1425,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
           </div>
         </div>
       </motion.div>
+      <Footer />
     </div>
   );
 }

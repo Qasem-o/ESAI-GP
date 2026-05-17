@@ -146,6 +146,16 @@ export const helpArticles: Record<string, HelpArticle> = {
   },
 
   // Model Evaluation
+  "ai-signals": {
+    id: "ai-signals",
+    category: "market-analysis",
+    title: { ar: "فهم إشارات الذكاء الاصطناعي", en: "Understanding AI Signals" },
+    content: {
+      ar: "يقدم EyeStocks AI إشارات مبنية على تحليلات عميقة. إليك كيفية قراءتها:\n\n- **السعر المتوقع (Tomorrow's Price):** تقدير المودل لسعر السهم في يوم التداول التالي.\n- **نسبة الثقة (Confidence):** مدى تأكد المودل من التوقع بناءً على البيانات التاريخية.\n- **الاتجاه (Direction):** 'Bullish' يعني توقع صعود، و 'Bearish' يعني توقع هبوط.\n\nيُنصح دائماً بدمج توقعات الذكاء الاصطناعي مع تحليلك الشخصي والأخبار لضمان أفضل قرار استثماري.",
+      en: "EyeStocks AI provides signals based on deep analysis. Here's how to read them:\n\n- **Tomorrow's Price:** The model's estimate for the stock price on the next trading day.\n- **Confidence:** How certain the model is about the prediction based on historical data.\n- **Direction:** 'Bullish' means an upward trend is expected, 'Bearish' means a downward trend.\n\nIt is always recommended to combine AI predictions with your personal analysis and news to ensure the best investment decision."
+    },
+    readTime: 5
+  },
   "directional-accuracy": {
     id: "directional-accuracy",
     category: "ai-predictions",
@@ -193,10 +203,20 @@ export const helpArticles: Record<string, HelpArticle> = {
     category: "getting-started",
     title: { ar: "الملف الشخصي", en: "User Profile" },
     content: {
-      ar: "ملفك الشخصي يعرض هويتك في المجتمع. يمكنك إضافة نبذة شخصية، متابعة إحصائياتك (عدد المنشورات والمتابعين)، ورؤية الأوسمة التي حصلت عليها. كما يمكنك من هنا تعديل إعدادات حسابك وصورتك الشخصية.",
-      en: "Your profile showcases your identity in the community. You can add a bio, track your stats (posts and followers count), and see the badges you've earned. You can also edit your account settings and profile picture from here."
+      ar: "ملفك الشخصي يعرض هويتك في المجتمع. يمكنك إضافة نبذة شخصية، متابعة إحصائياتك (عدد المنشورات والمتابعين)، ورؤية الأوسمة التي حصلت عليها. كما يمكنك من هنا تعديل إعدادات حسابك وصورتك الشخصية.\n\n### أداء المحاكاة\nيتم عرض أداء تداولاتك في المحاكي مباشرة في ملفك الشخصي ليتمكن الجميع من رؤية مهاراتك في التداول. يتضمن ذلك نسبة النجاح، إجمالي الأرباح، وأفضل الصفقات التي قمت بها.",
+      en: "Your profile showcases your identity in the community. You can add a bio, track your stats (posts and followers count), and see the badges you've earned. You can also edit your account settings and profile picture from here.\n\n### Simulation Performance\nYour trading performance in the simulator is displayed directly on your profile so everyone can see your trading skills. This includes win rate, total return, and your best trades."
     },
     readTime: 4
+  },
+  "platform-guide": {
+    id: "platform-guide",
+    category: "getting-started",
+    title: { ar: "دليل الاستخدام الشامل", en: "Complete Platform Guide" },
+    content: {
+      ar: "يركز EyeStocks AI على تقديم تجربة استثمارية متكاملة عبر ثلاثة أقسام رئيسية:\n\n1. **الاستكشاف (Explore):** محرك البحث الخاص بك للسوق، حيث تجد الأسعار الفورية وتوقعات الذكاء الاصطناعي.\n2. **المحفظة (Portfolio):** حيث تتابع استثماراتك الحقيقية (للمتابعة فقط) وتراقب نمو أصولك.\n3. **المحاكي (Simulator):** بيئة آمنة للتداول الافتراضي برصيد 2,000 دولار لتجربة استراتيجياتك.\n\nيتم ربط جميع هذه الأقسام بملفك الشخصي لتكوين صورة كاملة عن أدائك وتفاعلك مع المجتمع.",
+      en: "EyeStocks AI focuses on providing a complete investment experience through three main sections:\n\n1. **Explore:** Your market search engine, where you find real-time prices and AI predictions.\n2. **Portfolio:** Where you track your real investments (for tracking only) and monitor asset growth.\n3. **Simulator:** A safe virtual trading environment with a $2,000 balance to test your strategies.\n\nAll these sections are linked to your profile to form a complete picture of your performance and community interaction."
+    },
+    readTime: 6
   },
 
   // Account
@@ -230,14 +250,14 @@ export const helpCategories: Record<string, HelpCategory> = {
     title: { ar: "البداية", en: "Getting Started" },
     desc: { ar: "تعلم الأساسيات وكيفية استخدام لوحة التحكم.", en: "Learn the basics and how to use the dashboard." },
     icon: "Rocket",
-    articles: ["welcome", "dashboard-guide", "watchlist", "explore-page", "portfolio-page", "profile-page"]
+    articles: ["welcome", "platform-guide", "dashboard-guide", "watchlist", "explore-page", "portfolio-page", "profile-page"]
   },
   "ai-predictions": {
     id: "ai-predictions",
     title: { ar: "توقعات الذكاء الاصطناعي", en: "AI Predictions" },
     desc: { ar: "افهم كيف يحلل الذكاء الاصطناعي الأسهم.", en: "Understand how AI analyzes stocks." },
     icon: "Brain",
-    articles: ["hybrid-ai", "confidence-score", "targets-stoploss", "directional-accuracy", "model-rmse"]
+    articles: ["hybrid-ai", "confidence-score", "targets-stoploss", "ai-signals", "directional-accuracy", "model-rmse"]
   },
   "simulator": {
     id: "simulator",
