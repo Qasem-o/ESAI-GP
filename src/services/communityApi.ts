@@ -155,7 +155,7 @@ class CommunityAPI {
     // --- Top Traders ---
     async getTopTraders(): Promise<TopTrader[]> {
         const response = await fetch(`${API_BASE_URL}/community/top-traders`, {
-            headers: this.getHeaders(false),
+            headers: this.getHeaders(true),
         });
         if (!response.ok) throw new Error('Failed to fetch top traders');
         return response.json();

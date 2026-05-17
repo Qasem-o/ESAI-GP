@@ -230,7 +230,11 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     };
 
     const handleFollowToggle = async () => {
-        if (!isAuthenticated || !currentUser || !targetUserId || isEditingOwnProfile) return;
+        if (!isAuthenticated || !currentUser) {
+            navigate("/login");
+            return;
+        }
+        if (!targetUserId || isEditingOwnProfile) return;
         const isFollowing = followers.some(f => f.user_id === currentUser.user_id);
         try {
             if (isFollowing) {

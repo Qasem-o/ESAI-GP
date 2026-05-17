@@ -184,7 +184,11 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   const handleToggleFollow = async (targetUserId: number) => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      if (onGoToLogin) onGoToLogin();
+      else navigate("/login");
+      return;
+    }
     try {
       const res = await communityAPI.toggleFollow(targetUserId);
       setTopTraders(prev => prev.map(t =>
@@ -545,7 +549,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             </p>
                           </div>
                         </div>
-                        {isAuthenticated && user && (user as any).user_id !== trader.user_id && (
+                        {(!isAuthenticated || (user && (user as any).user_id !== trader.user_id)) && (
                           <Button
                             size="sm"
                             variant={trader.is_following ? "secondary" : "outline"}
