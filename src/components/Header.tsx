@@ -302,9 +302,9 @@ function MobileNav({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute top-full left-0 right-0 w-full bg-background border-b border-border/80 shadow-2xl z-50 overflow-hidden"
           >
-            <div className="container mx-auto px-5 py-5 flex flex-col space-y-4" dir={isRTL ? "rtl" : "ltr"}>
+            <div className="container mx-auto px-5 pt-5 pb-7 flex flex-col space-y-4.5" dir={isRTL ? "rtl" : "ltr"}>
               {/* Navigation Links Group */}
-              <div className="flex flex-col space-y-1.5">
+              <div className="flex flex-col space-y-3 pt-2">
                 {[
                   {
                     label: t.nav.home,
