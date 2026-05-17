@@ -29,7 +29,11 @@ import {
     Upload,
     Phone,
     Calendar,
-    Eye
+    Eye,
+    Clock,
+    Trash2,
+    X,
+    Send
 } from "lucide-react";
 import {
     Dialog,
@@ -39,6 +43,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "./ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { communityAPI, PostComment as CommentType } from "../services/communityApi";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
@@ -76,6 +82,13 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const [following, setFollowing] = useState<Follower[]>([]);
     const [targetUser, setTargetUser] = useState<any>(null);
     const [isLoadingData, setIsLoadingData] = useState(true);
+
+    // Comments & SubTab states
+    const [commentsPostId, setCommentsPostId] = useState<number | null>(null);
+    const [comments, setComments] = useState<CommentType[]>([]);
+    const [commentText, setCommentText] = useState("");
+    const [isLoadingComments, setIsLoadingComments] = useState(false);
+    const [subTab, setSubTab] = useState<"followers" | "following">("followers");
 
     // Edit profile states
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -133,6 +146,111 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             console.error("Error fetching profile data:", error);
         } finally {
             setIsLoadingData(false);
+        }
+    };
+
+    // Fetch comments hook
+    useEffect(() => {
+        const fetchComments = async () => {
+            if (commentsPostId === null) return;
+            setIsLoadingComments(true);
+            try {
+                const data = await communityAPI.getComments(commentsPostId);
+                setComments(data);
+            } catch (err) {
+                console.error("Error fetching comments:", err);
+            } finally {
+                setIsLoadingComments(false);
+            }
+        };
+        fetchComments();
+    }, [commentsPostId]);
+
+    const handleAddComment = async () => {
+        if (!commentText.trim() || !commentsPostId || !isAuthenticated) return;
+        try {
+            const newComment = await communityAPI.createComment(commentsPostId, commentText.trim());
+            setComments(prev => [...prev, newComment]);
+            setCommentText("");
+            setPosts(prev => prev.map(p =>
+                p.post_id === commentsPostId ? { ...p, comments_count: p.comments_count + 1 } : p
+            ));
+        } catch (err) {
+            console.error("Error adding comment:", err);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!commentsPostId || !isAuthenticated) return;
+        try {
+            await communityAPI.deleteComment(commentId);
+            setComments(prev => prev.filter(c => c.comment_id !== commentId));
+            setPosts(prev => prev.map(p =>
+                p.post_id === commentsPostId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p
+            ));
+        } catch (err) {
+            console.error("Error deleting comment:", err);
+        }
+    };
+
+    const toggleLike = async (postId: number) => {
+        if (!isAuthenticated) return;
+        try {
+            const updated = await communityAPI.toggleLike(postId);
+            setPosts(prev => prev.map(p =>
+                p.post_id === postId ? { ...p, is_liked: updated.liked, likes_count: updated.likes_count } : p
+            ));
+        } catch (err) {
+            console.error("Error toggling like:", err);
+        }
+    };
+
+    const toggleBookmark = async (postId: number) => {
+        if (!isAuthenticated) return;
+        try {
+            const updated = await communityAPI.toggleBookmark(postId);
+            setPosts(prev => prev.map(p =>
+                p.post_id === postId ? { ...p, is_bookmarked: updated.bookmarked } : p
+            ));
+        } catch (err) {
+            console.error("Error toggling bookmark:", err);
+        }
+    };
+
+    const handleSharePost = async (postId: number) => {
+        const postUrl = `${window.location.origin}/post/${postId}`;
+        try {
+            await navigator.clipboard.writeText(postUrl);
+            alert(language === "ar" ? "تم نسخ رابط المنشور إلى الحافظة!" : "Post link copied to clipboard!");
+        } catch (err) {
+            console.error("Failed to copy link:", err);
+        }
+    };
+
+    const handleFollowToggle = async () => {
+        if (!isAuthenticated || !currentUser || !targetUserId || isEditingOwnProfile) return;
+        const isFollowing = followers.some(f => f.user_id === currentUser.user_id);
+        try {
+            if (isFollowing) {
+                await profileAPI.unfollowUser(targetUserId, currentUser.user_id);
+                setFollowers(prev => prev.filter(f => f.user_id !== currentUser.user_id));
+                setStats(prev => prev ? { ...prev, followers_count: Math.max(0, prev.followers_count - 1) } : null);
+            } else {
+                await profileAPI.followUser(targetUserId, currentUser.user_id);
+                const newFollower: Follower = {
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    full_name: currentUser.full_name || "",
+                    email: currentUser.email || "",
+                    profile_picture_url: currentUser.profile_picture_url || "",
+                    followers_count: 0,
+                    is_verified: false
+                };
+                setFollowers(prev => [...prev, newFollower]);
+                setStats(prev => prev ? { ...prev, followers_count: prev.followers_count + 1 } : null);
+            }
+        } catch (err) {
+            console.error("Error toggling follow:", err);
         }
     };
 
@@ -278,18 +396,6 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         }
     };
 
-    const toggleLike = (postId: number) => {
-        setPosts(posts.map(post => {
-            if (post.post_id === postId) {
-                return {
-                    ...post,
-                    is_liked: !post.is_liked,
-                    likes_count: post.is_liked ? post.likes_count - 1 : post.likes_count + 1
-                };
-            }
-            return post;
-        }));
-    };
 
     const formatJoinDate = (dateString: string) => {
         if (!dateString) return "...";
@@ -434,14 +540,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     )}
                                     <div className="flex items-center gap-2 mt-2">
                                         <Badge variant="secondary">
-                                            {targetUser?.is_verified ? (language === "ar" ? "متداول موثق" : "Verified Trader") : (language === "ar" ? "متداول" : "Trader")}
+                                            {language === "ar" ? "متداول" : "Trader"}
                                         </Badge>
-                                        {targetUser?.is_verified && (
-                                            <Badge variant="default" className="bg-green-500">
-                                                <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                {language === "ar" ? "موثق" : "Verified"}
-                                            </Badge>
-                                        )}
                                     </div>
                                 </div>
 
@@ -492,7 +592,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         <Button 
                                             variant={followers.some(f => f.user_id === currentUser?.user_id) ? "outline" : "default"} 
                                             className="w-full cursor-pointer"
-                                            onClick={() => {/* handle follow */}}
+                                            onClick={handleFollowToggle}
                                         >
                                             {followers.some(f => f.user_id === currentUser?.user_id) ? (language === "ar" ? "إلغاء المتابعة" : "Unfollow") : (language === "ar" ? "متابعة" : "Follow")}
                                         </Button>
@@ -566,178 +666,266 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     {posts.length === 0 ? (
                                         <div className="text-center py-12">
                                             <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "لا توجد منشورات بعد" : "No Posts Yet"}</h3>
-                                            <p className="text-muted-foreground">{language === "ar" ? "ابدأ بمشاركة رؤى التداول الخاصة بك!" : "Start sharing your trading insights!"}</p>
+                                            <h3 className="text-xl font-semibold mb-2">
+                                                {language === "ar" ? "لا توجد منشورات بعد" : "No Posts Yet"}
+                                            </h3>
+                                            <p className="text-muted-foreground">
+                                                {isEditingOwnProfile 
+                                                    ? (language === "ar" ? "ابدأ بمشاركة رؤى التداول الخاصة بك!" : "Start sharing your trading insights!")
+                                                    : (language === "ar" ? "لم يقم هذا المستخدم بنشر أي شيء بعد." : "This user hasn't posted anything yet.")}
+                                            </p>
                                         </div>
                                     ) : (
-                                        posts.map((post) => (
-                                            <Card key={post.post_id}>
-                                                <CardContent className="pt-6">
-                                                    {/* Post Header */}
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex items-start gap-3">
-                                                            {targetUser?.profile_picture_url ? (
-                                                                <img
-                                                                    src={targetUser?.profile_picture_url?.startsWith('/') ? `${API_URL}${targetUser.profile_picture_url}` : targetUser.profile_picture_url}
-                                                                    alt={targetUser?.username || "Avatar"}
-                                                                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                                                                    <User className="w-6 h-6 text-primary" />
-                                                                </div>
-                                                            )}
-                                                            <div className={isRTL ? 'text-right' : 'text-left'}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold">{targetUser?.full_name || targetUser?.username}</span>
-                                                                    <span className="text-xs text-muted-foreground">@{targetUser?.username}</span>
-                                                                    {targetUser?.is_verified && (
-                                                                        <Badge variant="secondary" className="text-xs">
-                                                                            <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                            {language === "ar" ? "موثق" : "Verified"}
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-sm text-muted-foreground">{formatTimeAgo(post.created_at)}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Post Content */}
-                                                    <div className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                                        <p className="whitespace-pre-wrap mb-3">{post.content}</p>
-
-                                                        {/* Stock Symbol if attached */}
-                                                        {post.stock_symbol && (
-                                                            <div className="bg-muted/50 rounded-lg p-4 border">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <p className="font-bold text-lg">${post.stock_symbol}</p>
+                                        posts.map((post) => {
+                                            const pPicUrl = targetUser?.profile_picture_url?.startsWith('/')
+                                                ? `${API_URL}${targetUser.profile_picture_url}`
+                                                : targetUser?.profile_picture_url;
+                                            return (
+                                                <Card key={post.post_id} className="hover:shadow-md transition-shadow">
+                                                    <CardContent className="pt-6">
+                                                        {/* Post Header */}
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex items-start gap-3">
+                                                                <Avatar className="h-12 w-12">
+                                                                    <AvatarImage src={pPicUrl || ""} alt={targetUser?.username} />
+                                                                    <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                                                                        <DefaultAvatar />
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className={isRTL ? "text-right" : "text-left"}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-semibold">
+                                                                            {targetUser?.full_name || targetUser?.username}
+                                                                        </span>
+                                                                        <span className="text-xs text-muted-foreground">@{targetUser?.username}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            {formatTimeAgo(post.created_at)}
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        </div>
 
-                                                    {/* Post Stats */}
-                                                    <div className={`flex items-center gap-4 text-sm text-muted-foreground mb-3 pb-3 border-b ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                                        <span className="flex items-center gap-1">
-                                                            <Eye className="w-4 h-4" />
-                                                            {(post.views_count || 0).toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
-                                                        </span>
-                                                        <span>{(post.comments_count || 0)} {language === "ar" ? "تعليق" : "comments"}</span>
-                                                    </div>
+                                                        {/* Post Content */}
+                                                        <div className={`mb-4 ${isRTL ? "text-right" : "text-left"}`}>
+                                                            <p className="whitespace-pre-wrap mb-3">{post.content}</p>
 
-                                                    {/* Post Actions */}
-                                                    <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                                            {/* Stock Card if attached */}
+                                                            {post.stock_symbol && (
+                                                                <div 
+                                                                    className="bg-primary/5 hover:bg-primary/10 rounded-xl p-4 border border-primary/10 transition-all cursor-pointer group"
+                                                                    onClick={() => navigate(`/stock/${post.stock_symbol}`)}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center border font-bold text-primary">
+                                                                                {post.stock_symbol[0]}
+                                                                            </div>
+                                                                            <div className={isRTL ? "text-right" : "text-left"}>
+                                                                                <p className="font-bold group-hover:text-primary transition-colors">{post.stock_symbol}</p>
+                                                                                <p className="text-xs text-muted-foreground">{language === "ar" ? "رؤية تفاصيل السهم" : "View stock details"}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className={isRTL ? "text-left" : "text-right"}>
+                                                                            <p className={`text-xs text-primary flex items-center gap-1 ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                                                                                <TrendingUp className="w-3 h-3" />
+                                                                                {isRTL ? "عرض التحليلات" : "View Analytics"}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Post Actions */}
+                                                        <div className="flex items-center justify-between pt-3 border-t">
+                                                            <div className="flex items-center gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => toggleLike(post.post_id)}
+                                                                    className={`cursor-pointer ${post.is_liked ? "text-red-500" : ""}`}
+                                                                >
+                                                                    <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                                                    {post.likes_count}
+                                                                </Button>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="cursor-pointer" 
+                                                                    onClick={() => setCommentsPostId(post.post_id)}
+                                                                >
+                                                                    <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                                                    {post.comments_count}
+                                                                </Button>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="cursor-pointer" 
+                                                                    onClick={() => handleSharePost(post.post_id)}
+                                                                >
+                                                                    <Share2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                                                                    {post.shares_count || 0}
+                                                                </Button>
+                                                            </div>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => toggleLike(post.post_id)}
-                                                                className={post.is_liked ? "text-red-500 cursor-pointer" : "cursor-pointer"}
+                                                                onClick={() => toggleBookmark(post.post_id)}
+                                                                className={`cursor-pointer ${(post as any).is_bookmarked ? "text-primary" : ""}`}
                                                             >
-                                                                <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
-                                                                {post.likes_count}
-                                                            </Button>
-                                                            <Button variant="ghost" size="sm" className="cursor-pointer">
-                                                                <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                {post.comments_count}
-                                                            </Button>
-                                                            <Button variant="ghost" size="sm" className="cursor-pointer">
-                                                                <Share2 className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                {post.shares_count}
+                                                                <Bookmark className={`w-4 h-4 ${(post as any).is_bookmarked ? 'fill-primary' : ''}`} />
                                                             </Button>
                                                         </div>
-                                                        <Button variant="ghost" size="sm" className="cursor-pointer">
-                                                            <Bookmark className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })
                                     )}
                                 </TabsContent>
 
                                 {/* Portfolio Tab */}
                                 <TabsContent value="portfolio" className="p-4">
-                                    <div className="text-center py-12">
-                                        <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                        <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "نظرة عامة على المحفظة" : "Portfolio Overview"}</h3>
-                                        <p className="text-muted-foreground mb-4">{language === "ar" ? "اعرض محفظتك الكاملة وأصولك" : "View your complete portfolio and holdings"}</p>
-                                        <Button onClick={onGoToPortfolio} className="cursor-pointer">
-                                            {t.nav.portfolio}
-                                        </Button>
-                                    </div>
+                                    {isEditingOwnProfile ? (
+                                        <div className="text-center py-12">
+                                            <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "نظرة عامة على المحفظة" : "Portfolio Overview"}</h3>
+                                            <p className="text-muted-foreground mb-4">{language === "ar" ? "اعرض محفظتك الكاملة وأصولك" : "View your complete portfolio and holdings"}</p>
+                                            <Button onClick={onGoToPortfolio} className="cursor-pointer">
+                                                {t.nav.portfolio}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "المحفظة مغلقة" : "Private Portfolio"}</h3>
+                                            <p className="text-muted-foreground">{language === "ar" ? "هذه المحفظة خاصة بمالك الحساب فقط." : "This portfolio is private to the account owner."}</p>
+                                        </div>
+                                    )}
                                 </TabsContent>
 
                                 {/* Followers Tab */}
                                 <TabsContent value="followers" className="space-y-3 p-4">
-                                    <div className={`flex gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                    <div className="flex gap-2 mb-4">
                                         <Button
-                                            variant={activeTab === "followers" ? "default" : "outline"}
+                                            variant={subTab === "followers" ? "default" : "outline"}
                                             className="flex-1 cursor-pointer"
-                                            onClick={() => setActiveTab("followers")}
+                                            onClick={() => setSubTab("followers")}
                                         >
                                             {t.profile.followers} ({stats?.followers_count || 0})
                                         </Button>
                                         <Button
-                                            variant="outline"
+                                            variant={subTab === "following" ? "default" : "outline"}
                                             className="flex-1 cursor-pointer"
+                                            onClick={() => setSubTab("following")}
                                         >
                                             {t.profile.following} ({stats?.following_count || 0})
                                         </Button>
                                     </div>
 
-                                    {followers.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "لا يوجد متابعون بعد" : "No Followers Yet"}</h3>
-                                            <p className="text-muted-foreground">{language === "ar" ? "ابدأ بمشاركة المحتوى لكسب المتابعين!" : "Start sharing content to gain followers!"}</p>
-                                        </div>
-                                    ) : (
-                                        followers.map((follower) => (
-                                            <Card key={follower.user_id}>
-                                                <CardContent className="pt-6">
-                                                    <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                                            {follower.profile_picture_url ? (
-                                                                <img
-                                                                    src={follower.profile_picture_url}
-                                                                    alt={follower.username}
-                                                                    className="w-12 h-12 rounded-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
-                                                                    <User className="w-7 h-7 text-primary" />
+                                    {subTab === "followers" ? (
+                                        followers.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                                <h3 className="text-xl font-semibold mb-2">
+                                                    {language === "ar" ? "لا يوجد متابعون بعد" : "No Followers Yet"}
+                                                </h3>
+                                                <p className="text-muted-foreground">
+                                                    {isEditingOwnProfile
+                                                        ? (language === "ar" ? "ابدأ بمشاركة المحتوى لكسب المتابعين!" : "Start sharing content to gain followers!")
+                                                        : (language === "ar" ? "لم يقم أي مستخدم بمتابعة هذا الحساب بعد." : "No one has followed this account yet.")}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            followers.map((follower) => {
+                                                const fPicUrl = follower.profile_picture_url?.startsWith('/')
+                                                    ? `${API_URL}${follower.profile_picture_url}`
+                                                    : follower.profile_picture_url;
+                                                return (
+                                                    <Card key={follower.user_id}>
+                                                        <CardContent className="pt-6">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-10 w-10">
+                                                                        <AvatarImage src={fPicUrl || ""} alt={follower.username} />
+                                                                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                                                                            <DefaultAvatar />
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                                                                        <span className="font-semibold">{follower.full_name || follower.username}</span>
+                                                                        <p className="text-sm text-muted-foreground">@{follower.username.toLowerCase()}</p>
+                                                                        <p className="text-xs text-muted-foreground">{follower.followers_count} {t.profile.followers}</p>
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                            <div className={isRTL ? 'text-right' : 'text-left'}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold">{follower.full_name || follower.username}</span>
-                                                                    {follower.is_verified && (
-                                                                        <Badge variant="secondary" className="text-xs">
-                                                                            <CheckCircle className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-                                                                            {language === "ar" ? "موثق" : "Verified"}
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-sm text-muted-foreground">@{follower.username.toLowerCase()}</p>
-                                                                <p className="text-xs text-muted-foreground">{follower.followers_count} {t.profile.followers}</p>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => navigate(`/profile/${follower.user_id}`)}
+                                                                >
+                                                                    {language === "ar" ? "عرض الملف" : "View Profile"}
+                                                                </Button>
                                                             </div>
-                                                        </div>
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline"
-                                                            className="cursor-pointer"
-                                                            onClick={() => navigate(`/profile/${follower.user_id}`)}
-                                                        >
-                                                            {language === "ar" ? "عرض الملف" : "View Profile"}
-                                                        </Button>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })
+                                        )
+                                    ) : (
+                                        following.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <User className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                                <h3 className="text-xl font-semibold mb-2">
+                                                    {isEditingOwnProfile 
+                                                        ? (language === "ar" ? "لا تتابع أحداً بعد" : "Not Following Anyone Yet") 
+                                                        : (language === "ar" ? "هذا المستخدم لا يتابع أحداً بعد." : "This user is not following anyone yet.")}
+                                                </h3>
+                                                {isEditingOwnProfile && (
+                                                    <p className="text-muted-foreground">
+                                                        {language === "ar" ? "اكتشف متداولين آخرين لتتابعهم!" : "Explore other traders to follow!"}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            following.map((followedUser) => {
+                                                const fPicUrl = followedUser.profile_picture_url?.startsWith('/')
+                                                    ? `${API_URL}${followedUser.profile_picture_url}`
+                                                    : followedUser.profile_picture_url;
+                                                return (
+                                                    <Card key={followedUser.user_id}>
+                                                        <CardContent className="pt-6">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-10 w-10">
+                                                                        <AvatarImage src={fPicUrl || ""} alt={followedUser.username} />
+                                                                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                                                                            <DefaultAvatar />
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div className={isRTL ? 'text-right' : 'text-left'}>
+                                                                        <span className="font-semibold">{followedUser.full_name || followedUser.username}</span>
+                                                                        <p className="text-sm text-muted-foreground">@{followedUser.username.toLowerCase()}</p>
+                                                                        <p className="text-xs text-muted-foreground">{followedUser.followers_count} {t.profile.followers}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => navigate(`/profile/${followedUser.user_id}`)}
+                                                                >
+                                                                    {language === "ar" ? "عرض الملف" : "View Profile"}
+                                                                </Button>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })
+                                        )
                                     )}
                                 </TabsContent>
                             </Tabs>
@@ -759,7 +947,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         {/* Avatar Upload */}
                         <div className="space-y-2">
                             <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
-                            <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div className="flex items-center gap-4">
                                 {avatarPreview ? (
                                     <img
                                         src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
@@ -857,7 +1045,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             />
                         </div>
                     </div>
-                    <div className={`flex justify-end gap-3 pt-4 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="flex justify-end gap-3 pt-4 border-t">
                         <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
                             {t.common.cancel}
                         </Button>
@@ -870,6 +1058,90 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             </Dialog>
 
             <Footer />
+
+            {/* Comments Modal */}
+            {commentsPostId !== null && (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
+                    <div 
+                        className="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" 
+                        onClick={(e) => e.stopPropagation()}
+                        dir={isRTL ? "rtl" : "ltr"}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h3 className="text-lg font-semibold">{isRTL ? "التعليقات" : "Comments"}</h3>
+                            <Button variant="ghost" size="icon" onClick={() => { setCommentsPostId(null); setComments([]); setCommentText(""); }}>
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </div>
+
+                        {/* Comments List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {isLoadingComments ? (
+                                <div className="flex justify-center py-10">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : comments.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-10">
+                                    {isRTL ? "لا توجد تعليقات بعد. كن أول من يعلق!" : "No comments yet. Be the first!"}
+                                </p>
+                            ) : (
+                                comments.map((c) => {
+                                    const cPicUrl = c.author.profile_picture_url?.startsWith('/')
+                                        ? `${API_URL}${c.author.profile_picture_url}`
+                                        : c.author.profile_picture_url;
+                                    return (
+                                        <div key={c.comment_id} className="flex gap-3">
+                                            <Avatar className="h-8 w-8 shrink-0">
+                                                <AvatarImage src={cPicUrl || ""} />
+                                                <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                                                    <DefaultAvatar />
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className={`flex-1 bg-muted/50 rounded-lg p-3 ${isRTL ? "text-right" : "text-left"} relative group`}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
+                                                        <span className="text-xs text-muted-foreground">@{c.author.username}</span>
+                                                        <span className="text-xs text-muted-foreground">• {formatTimeAgo(c.created_at)}</span>
+                                                    </div>
+                                                    {isAuthenticated && currentUser && Number(c.author.user_id) === Number(currentUser.user_id) && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className={`h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer absolute top-2 ${isRTL ? "left-2" : "right-2"}`}
+                                                            onClick={() => handleDeleteComment(c.comment_id)}
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <p className={`text-sm ${isRTL ? "pl-6" : "pr-6"}`}>{c.content}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Input */}
+                        {isAuthenticated && (
+                            <div className="p-4 border-t flex gap-2">
+                                <Textarea
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    placeholder={isRTL ? "اكتب تعليقاً..." : "Write a comment..."}
+                                    className="resize-none min-h-[40px] max-h-[120px] flex-1 py-2 px-3 text-sm"
+                                    rows={1}
+                                />
+                                <Button onClick={handleAddComment} size="icon" className="shrink-0 cursor-pointer">
+                                    <Send className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

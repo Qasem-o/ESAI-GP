@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { StockLogo } from "./StockLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Loader2 } from "lucide-react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface CustomPost {
   id: number;
@@ -196,6 +197,7 @@ interface StockDetailProps {
 export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoBack }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
   const { isAuthenticated, user } = useAuth();
+  const { isRTL } = useLanguage();
   const currentSymbol = paramSymbol || propSymbol || "NVDA";
 
   const formatLargeNumber = (num: number | undefined | string) => {
@@ -703,7 +705,7 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
               </div>
             </Card>
 
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} dir={isRTL ? "rtl" : "ltr"}>
               <div className="relative w-full bg-muted/30 backdrop-blur-sm p-1 rounded-xl flex items-center justify-between border border-white/10 shadow-inner">
                 {["overview", "discussions", "analytics", "news"].map((tab) => (
                   <button
@@ -1018,11 +1020,11 @@ export function StockDetail({ currentPage, onGoToHome, onGoToStocks, onGoToPortf
                                   className={`flex items-center gap-1 text-sm font-medium transition-all p-2 rounded-md hover:bg-white/10 cursor-pointer ${post.is_liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
                                     }`}
                                 >
-                                  <Heart className={`w-4 h-4 mr-1 ${post.is_liked ? 'fill-red-500' : ''}`} />
+                                  <Heart className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'} ${post.is_liked ? 'fill-red-500' : ''}`} />
                                   {post.likes_count}
                                 </motion.button>
                                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary cursor-pointer border-0">
-                                  <MessageSquare className="w-4 h-4 mr-1" />
+                                  <MessageSquare className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
                                   {post.comments_count}
                                 </Button>
                               </div>

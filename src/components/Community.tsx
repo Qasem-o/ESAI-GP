@@ -222,6 +222,20 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
     }
   };
 
+  const handleDeleteComment = async (commentId: number) => {
+    if (!commentsPostId || !isAuthenticated) return;
+    try {
+      await communityAPI.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.comment_id !== commentId));
+      // Update comment count in feed
+      setPosts(prev => prev.map(p =>
+        p.post_id === commentsPostId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p
+      ));
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+    }
+  };
+
   const renderPost = (post: FeedPost) => {
     const isOwnPost = user && Number(post.author.user_id) === Number((user as any).user_id);
     const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
@@ -293,7 +307,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                       <p className="text-xs text-muted-foreground line-clamp-1">{post.stock.name}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className={isRTL ? "text-left" : "text-right"}>
                     <p className="text-lg font-bold">${(post.stock.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                     <p className={`text-xs text-primary flex items-center gap-1 ${isRTL ? 'justify-start' : 'justify-end'}`}>
                       <TrendingUp className="w-3 h-3" />
@@ -483,7 +497,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
             )}
 
             {/* Filter Tabs */}
-            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full">
+            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
               <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="all" className="cursor-pointer">
                   {t.community.allPosts}
@@ -660,13 +674,25 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             <DefaultAvatar />
                           </AvatarFallback>
                         </Avatar>
-                        <div className={`flex-1 bg-muted/50 rounded-lg p-3 ${isRTL ? "text-right" : "text-left"}`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
-                            <span className="text-xs text-muted-foreground">@{c.author.username}</span>
-                            <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
+                        <div className={`flex-1 bg-muted/50 rounded-lg p-3 ${isRTL ? "text-right" : "text-left"} relative group`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
+                              <span className="text-xs text-muted-foreground">@{c.author.username}</span>
+                              <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
+                            </div>
+                            {isAuthenticated && user && Number(c.author.user_id) === Number((user as any).user_id) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer absolute top-2 ${isRTL ? "left-2" : "right-2"}`}
+                                onClick={() => handleDeleteComment(c.comment_id)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
                           </div>
-                          <p className="text-sm">{c.content}</p>
+                          <p className={`text-sm ${isRTL ? "pl-6" : "pr-6"}`}>{c.content}</p>
                         </div>
                       </div>
                   );

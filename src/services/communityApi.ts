@@ -133,6 +133,15 @@ class CommunityAPI {
         return response.json();
     }
 
+    async deleteComment(commentId: number): Promise<any> {
+        const response = await fetch(`${API_BASE_URL}/community/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) throw new Error('Failed to delete comment');
+        return response.json();
+    }
+
     // --- Follow ---
     async toggleFollow(targetUserId: number): Promise<{ following: boolean }> {
         const response = await fetch(`${API_BASE_URL}/community/follow/${targetUserId}`, {
