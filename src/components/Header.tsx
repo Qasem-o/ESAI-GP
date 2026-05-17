@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
-import { User, Menu, X, LogOut, ChevronDown, Shield, Languages } from "lucide-react";
+import { User, Menu, X, LogOut, ChevronDown, Shield, Languages, Home, Compass, Briefcase, TrendingUp, ChevronRight, ChevronLeft } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -213,10 +213,10 @@ export function Header({
               </>
             )}
 
-            {/* Mobile Hamburger - Visible ONLY on small mobile screens */}     
             <div className="block md:hidden">
               <MobileNav
                 currentPage={currentPage}
+                onGoToHome={onGoToHome}
                 onGoToExplore={onGoToExplore}
                 onGoToPortfolio={onGoToPortfolio}
                 onGoToSimulator={onGoToSimulator}
@@ -237,6 +237,7 @@ export function Header({
 
 interface MobileNavProps {
   currentPage?: string;
+  onGoToHome?: () => void;
   onGoToExplore?: () => void;
   onGoToPortfolio?: () => void;
   onGoToSimulator?: () => void;
@@ -250,6 +251,7 @@ interface MobileNavProps {
 
 function MobileNav({
   currentPage,
+  onGoToHome,
   onGoToExplore,
   onGoToPortfolio,
   onGoToSimulator,
@@ -276,91 +278,186 @@ function MobileNav({
         variant="ghost"
         size="icon"
         onClick={toggleMenu}
-        className="md:hidden force-hide-on-pc"
+        className="md:hidden force-hide-on-pc relative z-50 text-foreground hover:bg-muted/60"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}     
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={isOpen ? "close" : "menu"}
+            initial={{ rotate: -90, opacity: 0 }}
+            animate={{ rotate: 0, opacity: 1 }}
+            exit={{ rotate: 90, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            {isOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5" />}
+          </motion.div>
+        </AnimatePresence>
       </Button>
 
-      {isOpen && (
-        <div className="absolute top-full right-0 rtl:left-0 rtl:right-auto w-full bg-background border-b shadow-lg z-50">
-          <div className="container mx-auto px-6 py-4 flex flex-col space-y-4 text-left">
-            <button
-              onClick={() => handleNavClick(() => (window.scrollTo(0, 0), undefined))}
-              className={`text-left py-2 ${currentPage === "home" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.home}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToExplore)}
-              className={`text-left py-2 ${currentPage === "explore" || currentPage === "stocks" ? "text-primary font-medium" : "text-muted-foreground"}`}      
-            >
-              {t.nav.explore}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToPortfolio)}
-              className={`text-left py-2 ${currentPage === "portfolio" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.portfolio}
-            </button>
-            <button
-              onClick={() => handleNavClick(onGoToSimulator)}
-              className={`text-left py-2 ${currentPage === "simulator" ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              {t.nav.simulator}
-            </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute top-full left-0 right-0 w-full bg-background/95 backdrop-blur-lg border-b border-border/80 shadow-2xl z-50 overflow-hidden"
+          >
+            <div className="container mx-auto px-6 py-5 flex flex-col space-y-4" dir={isRTL ? "rtl" : "ltr"}>
+              {/* Navigation Links Group */}
+              <div className="flex flex-col space-y-1.5">
+                {[
+                  {
+                    label: t.nav.home,
+                    onClick: onGoToHome || (() => window.location.href = "/"),
+                    id: "home",
+                    icon: Home
+                  },
+                  {
+                    label: t.nav.explore,
+                    onClick: onGoToExplore,
+                    id: "explore",
+                    icon: Compass
+                  },
+                  {
+                    label: t.nav.portfolio,
+                    onClick: onGoToPortfolio,
+                    id: "portfolio",
+                    icon: Briefcase
+                  },
+                  {
+                    label: t.nav.simulator,
+                    onClick: onGoToSimulator,
+                    id: "simulator",
+                    icon: TrendingUp
+                  }
+                ].map((item) => {
+                  const isActive = currentPage === item.id || (item.id === "explore" && currentPage === "stocks");
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavClick(item.onClick)}
+                      className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? "bg-primary/10 text-primary font-bold shadow-sm"
+                          : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                          isActive ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground"
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-[15px] font-medium tracking-wide">{item.label}</span>
+                      </div>
+                      
+                      <div>
+                        {isActive ? (
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        ) : (
+                          isRTL ? (
+                            <ChevronLeft className="w-4 h-4 text-muted-foreground/60" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+                          )
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* Language Toggle in Mobile */}
-            <button
-              onClick={() => { toggleLanguage(); closeMenu(); }}
-              className="flex items-center gap-3 text-left py-3 px-4 rounded-xl bg-muted/30 text-muted-foreground hover:text-foreground transition-all"
-            >
-              <Languages className="w-5 h-5 text-primary" />
-              <span className="font-bold uppercase tracking-widest text-xs">    
-                {language === "en" ? "Switch to Arabic" : "English Language"}   
-              </span>
-            </button>
+              {/* Language Switch Section */}
+              <button
+                onClick={() => { toggleLanguage(); closeMenu(); }}
+                className="w-full flex items-center justify-between p-3.5 rounded-xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/5 text-primary">
+                    <Languages className="w-5 h-5" />
+                  </div>
+                  <span className="text-[14px] font-semibold uppercase tracking-wide">
+                    {language === "en" ? "Switch to Arabic" : "English Language"}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {language === "en" ? "AR" : "EN"}
+                </span>
+              </button>
 
-            <div className="flex flex-col space-y-2 pt-2 border-t">
-              {isAuthenticated ? (
-                <>
-                  <div className={`flex items-center space-x-2 ${isRTL ? 'space-x-reverse' : ''} py-2`}>
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
-                          : (user?.profile_picture_url || "")}
-                        alt={user?.username}
-                      />
-                      <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                        <DefaultAvatar />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-medium leading-none">{user?.full_name || user?.username}</span>
-                      <span className="text-xs text-muted-foreground mt-1">@{user?.username}</span>
+              {/* Authentication Actions */}
+              <div className="pt-3 border-t border-border/60">
+                {isAuthenticated ? (
+                  <div className="space-y-4">
+                    {/* User profile details header */}
+                    <div className="flex items-center justify-between p-2">
+                      <div className={`flex items-center space-x-3 ${isRTL ? 'space-x-reverse' : ''}`}>
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                          <AvatarImage
+                            src={user?.profile_picture_url?.startsWith('/')
+                              ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
+                              : (user?.profile_picture_url || "")}
+                            alt={user?.username}
+                          />
+                          <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                            <DefaultAvatar />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col text-start">
+                          <span className="font-semibold text-foreground text-sm leading-tight">
+                            {user?.full_name || user?.username}
+                          </span>
+                          <span className="text-xs text-muted-foreground mt-0.5">@{user?.username}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {t.profile?.active || "Active"}
+                      </span>
+                    </div>
+
+                    {/* Quick profile actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleNavClick(onGoToProfile)}
+                        className="w-full h-11 justify-center rounded-xl gap-2 border-border/80 text-foreground/80 hover:text-foreground"
+                      >
+                        <User className="w-4 h-4" /> 
+                        <span className="text-[13px]">{t.nav.profile}</span>
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleNavClick(onLogout)}
+                        className="w-full h-11 justify-center rounded-xl gap-2 hover:bg-red-600/90"
+                      >
+                        <LogOut className="w-4 h-4" /> 
+                        <span className="text-[13px]">{t.nav.logout}</span>
+                      </Button>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={() => handleNavClick(onGoToProfile)} className="justify-start">
-                    <User className="w-4 h-4 mr-2" /> {t.nav.profile}
-                  </Button>
-                  <Button variant="destructive" onClick={() => handleNavClick(onLogout)} className="justify-start">
-                    <LogOut className="w-4 h-4 mr-2" /> {t.nav.logout}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={() => handleNavClick(onGoToLogin)} className="justify-start">
-                    {t.nav.login}
-                  </Button>
-                  <Button onClick={() => handleNavClick(onGoToSignup)} className="justify-start">
-                    {t.nav.signup}
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 py-1">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleNavClick(onGoToLogin)}
+                      className="w-full h-11 justify-center rounded-xl border-border/80 text-foreground/80 hover:text-foreground"
+                    >
+                      {t.nav.login}
+                    </Button>
+                    <Button
+                      onClick={() => handleNavClick(onGoToSignup)}
+                      className="w-full h-11 justify-center rounded-xl shadow-md shadow-primary/10"
+                    >
+                      {t.nav.signup}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

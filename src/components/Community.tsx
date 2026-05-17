@@ -86,6 +86,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [topTraders, setTopTraders] = useState<TopTrader[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isPostLoading, setIsPostLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "trending" | "following">("all");
 
@@ -114,6 +115,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       console.error("Failed to load feed", err);
     } finally {
       if (!silent) setIsLoading(false);
+      setIsInitialLoading(false);
     }
   }, [activeFilter]);
 
@@ -249,7 +251,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
     }
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <LoadingScreen
         message={isRTL ? "جاري تحميل الصفحة الرئيسية..." : "Loading home page..."}
