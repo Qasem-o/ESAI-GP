@@ -1,90 +1,112 @@
-import { useEffect, useState } from "react";
-import { useTheme } from "../contexts/ThemeContext";
-import { useLanguage } from "../contexts/LanguageContext";
+import React from "react";
+import { motion } from "framer-motion";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
+import { Header } from "./Header";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface LoadingScreenProps {
-  onLoadingComplete: () => void;
+  message?: string;
+  currentPage?: string;
+  onGoToHome?: () => void;
+  onGoToExplore?: () => void;
+  onGoToPortfolio?: () => void;
+  onGoToSimulator?: () => void;
+  onGoToProfile?: () => void;
+  onGoToSignup?: () => void;
+  onGoToLogin?: () => void;
+  onGoToAdmin?: () => void;
 }
 
-export function LoadingScreen({ onLoadingComplete }: LoadingScreenProps) {
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const { theme } = useTheme();
+export function LoadingScreen({
+  message,
+  currentPage,
+  onGoToHome,
+  onGoToExplore,
+  onGoToPortfolio,
+  onGoToSimulator,
+  onGoToProfile,
+  onGoToSignup,
+  onGoToLogin,
+  onGoToAdmin,
+}: LoadingScreenProps) {
   const { t, isRTL } = useLanguage();
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setTimeout(() => {
-            onLoadingComplete();
-          }, 500);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 50);
-
-    return () => clearInterval(timer);
-  }, [onLoadingComplete]);
+  const { theme } = useTheme();
 
   return (
-    <div className="fixed inset-0 bg-background z-[9999] flex items-center justify-center transition-colors duration-300" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="text-center space-y-8 px-4">
-        {/* Logo */}
-        <div className="flex justify-center">
-          <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl bg-background/50 backdrop-blur-sm border border-border">
-            <img
-              src={theme === 'dark' ? logoDarkImg : logoImg}
-              alt="EyeStocks AI Logo"
-              className="w-full h-full object-contain p-4"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E";
+    <div className="min-h-screen bg-background flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
+      <Header
+        currentPage={currentPage}
+        onGoToHome={onGoToHome}
+        onGoToExplore={onGoToExplore}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
+      />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center"
+        >
+          {/* Custom Logo Loading Animation */}
+          <div className="relative w-28 h-28 mb-8 flex items-center justify-center">
+            {/* Pulsing outer ring */}
+            <motion.div
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.2, 0.4, 0.2],
               }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute inset-0 rounded-full bg-primary/20"
             />
-          </div>
-        </div>
-
-        {/* Company Name */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">{t.loading.title}</h1>
-          <p className="text-xl text-muted-foreground">{t.loading.subtitle}</p>
-        </div>
-
-        {/* Investment Quote */}
-        <div className="max-w-md mx-auto space-y-4">
-          <div className="text-center">
-            <p className="text-lg text-foreground italic">
-              {t.loading.quote}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {t.loading.philosophy}
-            </p>
-          </div>
-        </div>
-
-        {/* Loading Bar */}
-        <div className="w-64 mx-auto space-y-2">
-          <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${loadingProgress}%` }}
+            
+            {/* Rotating border */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+              className="absolute inset-0 border-2 border-dashed border-primary/40 rounded-full"
             />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {t.common.loading}... {loadingProgress}%
-          </p>
-        </div>
 
-        {/* Loading Message */}
-        <div className="text-center">
-          <p className="text-muted-foreground text-sm">
-            {t.loading.preparing}
+            {/* The Logo itself with a smooth rotation/bounce */}
+            <motion.div
+              animate={{
+                rotateY: [0, 360],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="relative w-24 h-24 flex items-center justify-center z-10 p-4"
+            >
+              <img
+                src={theme === 'dark' ? logoDarkImg : logoImg}
+                alt="EyeStocks AI Logo"
+                className="w-full h-full object-contain drop-shadow-sm"
+              />
+            </motion.div>
+          </div>
+
+          <h2 className="text-xl font-bold mb-2 tracking-tight">
+            {isRTL ? "جاري التجهيز..." : "Preparing..."}
+          </h2>
+          <p className="text-sm text-muted-foreground font-medium">
+            {message || (isRTL ? "لحظات ونكون معك" : "Just a moment...")}
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

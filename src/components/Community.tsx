@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { PostCard } from "./PostCard";
 import { EducationalSidebar } from "./EducationalSidebar";
+import { LoadingScreen } from "./LoadingScreen";
 
 function timeAgo(dateStr: string, t: any): string {
   // Ensure the date is treated as UTC if no timezone is provided
@@ -247,6 +248,23 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       console.error("Failed to copy link:", err);
     }
   };
+
+  if (isLoading) {
+    return (
+      <LoadingScreen
+        message={isRTL ? "جاري تحميل الصفحة الرئيسية..." : "Loading home page..."}
+        currentPage={currentPage === "home" ? "home" : currentPage}
+        onGoToHome={onGoToHome}
+        onGoToExplore={onGoToStocks}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
+      />
+    );
+  }
 
   const renderPost = (post: FeedPost) => {
     return (
@@ -571,46 +589,47 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 <div className="flex justify-center py-10">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : comments.length === 0 ? (
-                <p className="text-center text-muted-foreground py-10">
-                  {isRTL ? "لا توجد تعليقات بعد. كن أول من يعلق!" : "No comments yet. Be the first!"}
-                </p>
               ) : (
-                comments.map((c) => {
+                Array.isArray(comments) && comments.map((c) => {
                   const cPicUrl = c.author.profile_picture_url?.startsWith('/')
                     ? `https://esai-firstdraft.onrender.com${c.author.profile_picture_url}`
                     : c.author.profile_picture_url;
                   return (
-                      <div key={c.comment_id} className="flex gap-3">
-                        <Avatar className="h-8 w-8 shrink-0">
-                          <AvatarImage src={cPicUrl || ""} />
-                          <AvatarFallback className="w-full h-full bg-transparent" asChild>
-                            <DefaultAvatar />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={`flex-1 bg-muted/50 rounded-lg p-3 ${isRTL ? "text-right" : "text-left"} relative group`}>
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{c.author.full_name || c.author.username}</span>
-                              <span className="text-xs text-muted-foreground">@{c.author.username}</span>
-                              <span className="text-xs text-muted-foreground">• {timeAgo(c.created_at)}</span>
-                            </div>
-                            {isAuthenticated && user && Number(c.author.user_id) === Number((user as any).user_id) && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer absolute top-2 ${isRTL ? "left-2" : "right-2"}`}
-                                onClick={() => handleDeleteComment(c.comment_id)}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
+                    <div key={c.comment_id} className="flex gap-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={cPicUrl || ""} alt={c.author.username} />
+                        <AvatarFallback className="w-full h-full bg-transparent" asChild>
+                          <DefaultAvatar />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div className={`flex flex-wrap items-center gap-x-2 min-w-0 ${isRTL ? 'text-right justify-start' : 'text-left justify-start'}`}>
+                            <span className="font-semibold text-sm truncate max-w-[120px]">{c.author.full_name || c.author.username}</span>
+                            <span className="text-xs text-muted-foreground truncate max-w-[80px]">@{c.author.username}</span>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">• {timeAgo(c.created_at, t)}</span>
                           </div>
-                          <p className={`text-sm ${isRTL ? "pl-6" : "pr-6"}`}>{c.content}</p>
+                          {user && (Number((user as any).user_id) === Number(c.author.user_id)) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-red-500 flex-shrink-0"
+                              onClick={() => handleDeleteComment(c.comment_id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
+                        <p className={`text-sm mt-1 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>{c.content}</p>
                       </div>
+                    </div>
                   );
                 })
+              )}
+              {!isLoadingComments && comments.length === 0 && (
+                <p className="text-center text-muted-foreground py-10">
+                  {isRTL ? "لا توجد تعليقات بعد. كن أول من يعلق!" : "No comments yet. Be the first!"}
+                </p>
               )}
             </div>
 

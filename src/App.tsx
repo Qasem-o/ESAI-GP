@@ -97,6 +97,17 @@ export default function App() {
           <Route path="/help/category/:id" element={<HelpCategoryPage {...navigationProps} />} />
           <Route path="/help/article/:id" element={<HelpArticlePage {...navigationProps} />} />
 
+          {/* Admin Routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="stocks" element={<StockManagement />} />
+              <Route path="community" element={<CommunityManagement />} />
+              <Route path="models" element={<ModelManagement />} />
+            </Route>
+          </Route>
+
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/portfolio" element={<Portfolio {...navigationProps} />} />
@@ -117,9 +128,10 @@ export default function App() {
                   onGoToSimulator={navigationProps.onGoToSimulator}
                   onGoToProfile={navigationProps.onGoToProfile}
                   onGoToSignup={navigationProps.onGoToSignup}
-                  onGoToLogin={navigationProps.onGoToLogin}
-                  onGoBack={() => navigate("/explore")}
-                />
+                onGoToLogin={navigationProps.onGoToLogin}
+                onGoToAdmin={navigationProps.onGoToAdmin}
+                onGoBack={() => navigate("/explore")}
+              />
               }
             />
 

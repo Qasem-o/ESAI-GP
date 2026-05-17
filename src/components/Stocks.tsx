@@ -20,6 +20,7 @@ import { Footer } from "./Footer";
 import { StockLogo } from "./StockLogo";
 import { fetchStocks, fetchStockPrediction, StockPrice, StockPrediction } from "../services/api";
 import { portfolioAPI } from "../services/portfolioApi";
+import { LoadingScreen } from "./LoadingScreen";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -197,16 +198,18 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
   const toggleWatchlist = async (e: React.MouseEvent, symbol: string, name: string) => {
     e.stopPropagation();
+    if (isToggling[symbol]) return;
+
     setIsToggling(prev => ({ ...prev, [symbol]: true }));
     try {
       if (watchlisted[symbol]) {
         await portfolioAPI.removeFromWatchlist(symbol);
         setWatchlisted(prev => ({ ...prev, [symbol]: false }));
-        toast.success(`${symbol} removed from watchlist`);
+        toast.success(`${name} removed from watchlist`);
       } else {
         await portfolioAPI.addToWatchlist(symbol, name);
         setWatchlisted(prev => ({ ...prev, [symbol]: true }));
-        toast.success(`${symbol} added to watchlist`);
+        toast.success(`${name} added to watchlist`);
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to update watchlist");
@@ -217,6 +220,23 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
       setIsToggling(prev => ({ ...prev, [symbol]: false }));
     }
   };
+
+  if (loading) {
+    return (
+      <LoadingScreen
+        message={t.explore.loadingMarket}
+        currentPage={currentPage}
+        onGoToHome={onGoToHome}
+        onGoToExplore={onGoToStocks}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
+      />
+    );
+  }
 
   const filteredStocks = stocks.filter(stock => {
     const matchesSearch =

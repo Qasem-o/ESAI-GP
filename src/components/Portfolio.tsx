@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Progress } from "./ui/progress";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { LoadingScreen } from "./LoadingScreen";
 import { useAuth } from "../contexts/AuthContext";
 import {
   portfolioAPI,
@@ -419,22 +420,17 @@ export function Portfolio({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
-        <Header
-          currentPage="portfolio"
-          onGoToHome={onGoToCommunity}
-          onGoToExplore={onGoToStocks}
-          onGoToPortfolio={onGoToPortfolio}
-          onGoToSimulator={onGoToSimulator}
-          onGoToProfile={onGoToProfile}
-          onGoToSignup={onGoToSignup}
-          onGoToLogin={onGoToLogin}
-        />
-        <div className="flex items-center justify-center py-40">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className={`${isRTL ? 'mr-3' : 'ml-3'} text-lg`}>{t.portfolio.loadingPortfolio || "Loading portfolio..."}</span>
-        </div>
-      </div>
+      <LoadingScreen
+        message={t.portfolio.loadingPortfolio || "Loading portfolio..."}
+        currentPage="portfolio"
+        onGoToHome={onGoToCommunity}
+        onGoToExplore={onGoToStocks}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+      />
     );
   }
 

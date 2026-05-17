@@ -1,6 +1,7 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { DefaultAvatar } from "./DefaultAvatar";
+import { Footer } from "./Footer";
 import { fetchStockPrice, fetchStocks, fetchStockTechnicals, fetchStockPrediction, fetchStockSentiment, fetchStockNews, StockPrice, StockTechnical, StockPrediction, StockSentiment, NewsItem, ChartData, fetchChartData, MonthlyPredictionsResponse, UpdateInfo, fetchMonthlyPredictions, fetchUpdateInfo } from "../services/api";
 import { communityAPI, FeedPost } from "../services/communityApi";
 import { PostCard } from "./PostCard";
@@ -10,6 +11,7 @@ import { StockLogo } from "./StockLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Loader2 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { LoadingScreen } from "./LoadingScreen";
 
 interface CustomPost {
   id: number;
@@ -53,7 +55,6 @@ import {
   Eye,
   Target,
   Zap,
-  TrendingUpIcon,
   ArrowUpRight,
   ArrowDownRight,
   Flame,
@@ -67,6 +68,8 @@ import {
   ChevronDown,
   FileText
 } from "lucide-react";
+
+const API_URL = "https://esai-firstdraft.onrender.com";
 
 // Mock stock data
 const stockData = {
@@ -192,10 +195,11 @@ interface StockDetailProps {
   onGoToSignup: () => void;
   onGoToLogin: () => void;
   onGoToPortfolio: () => void;
-  currentPage: any;
+  onGoToAdmin?: () => void;
+  currentPage?: any;
 }
 
-export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoBack }: StockDetailProps) {
+export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin, onGoToAdmin, onGoBack }: StockDetailProps) {
   const { symbol: paramSymbol } = useParams();
   const { isAuthenticated, user } = useAuth();
   const { isRTL, language, t } = useLanguage();
@@ -422,21 +426,18 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
   }, [displayStockData.symbol]);
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center"
-        >
-          <div className="w-20 h-20 relative mb-6">
-             <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
-             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-             <Activity className="absolute inset-0 m-auto w-8 h-8 text-primary animate-pulse" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Preparing Analysis</h2>
-          <p className="text-muted-foreground animate-pulse">Fetching real-time insights for {currentSymbol}...</p>
-        </motion.div>
-      </div>
+      <LoadingScreen
+        message={language === "ar" ? `جاري تحليل بيانات ${currentSymbol}...` : `Fetching real-time insights for ${currentSymbol}...`}
+        currentPage={currentPage}
+        onGoToHome={onGoToHome}
+        onGoToExplore={onGoToStocks}
+        onGoToPortfolio={onGoToPortfolio}
+        onGoToSimulator={onGoToSimulator}
+        onGoToProfile={onGoToProfile}
+        onGoToSignup={onGoToSignup}
+        onGoToLogin={onGoToLogin}
+        onGoToAdmin={onGoToAdmin}
+      />
     );
   }
 
@@ -525,9 +526,9 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
       <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="icon" onClick={onGoBack}>
-                <ArrowLeft className="w-5 h-5" />
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onGoBack} aria-label={isRTL ? "رجوع" : "Back"}>
+                <ArrowLeft className="w-5 h-5 transition-transform duration-200" style={{ transform: isRTL ? 'rotate(180deg)' : undefined }} />
               </Button>
               <div className="flex items-center gap-3">
                 <StockLogo symbol={displayStockData.symbol} name={displayStockData.name} />
@@ -538,7 +539,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -752,42 +753,42 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                       <div className="flex-1">
                         {prediction ? (
                           <>
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-bold text-lg">AI Market Insight</h3>
+                            <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <h3 className="font-bold text-lg">{language === "ar" ? "تحليلات الذكاء الاصطناعي" : "AI Market Insight"}</h3>
                               <Badge variant="secondary" className="text-xs">
-                                {prediction.confidence}% Directional Accuracy
+                                {prediction.confidence}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Nearest forecast: <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price.toFixed(2)}</span>
-                              {prediction.prediction_date ? ` on ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
-                              {' '}({prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}% from today).
-                              Direction: <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
+                            <p className={`text-sm text-muted-foreground mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                              {language === "ar" ? "التوقع القادم:" : "Nearest forecast:"} <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price?.toFixed(2) || "0.00"}</span>
+                              {prediction.prediction_date ? ` ${language === "ar" ? "بتاريخ" : "on"} ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}` : ''}
+                              {' '}({prediction.change_percent != null ? (prediction.change_percent >= 0 ? '+' : '') + prediction.change_percent : '0'}% {language === "ar" ? "من اليوم" : "from today"}).
+                              {language === "ar" ? "الاتجاه:" : "Direction:"} <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
                                 prediction.direction === 'bearish' ? 'text-red-500' : 'text-yellow-500'
-                                }`}>{prediction.direction.toUpperCase()}</span>.
+                                }`}>{language === "ar" ? (prediction.direction === 'bullish' ? "صعودي" : prediction.direction === 'bearish' ? "هبوطي" : "محايد") : (prediction.direction?.toUpperCase() || "N/A")}</span>.
                             </p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-xs">
+                            <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">Recommendation</span>
-                                <span className="font-bold">{prediction.recommendation || "HOLD"}</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "التوصية" : "Recommendation"}</span>
+                                <span className="font-bold">{language === "ar" ? (prediction.recommendation === "BUY" ? "شراء" : prediction.recommendation === "SELL" ? "بيع" : "احتفاظ") : (prediction.recommendation || "HOLD")}</span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">Target Price</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
                                 <span className="font-bold">{getCurrency(displayStockData.symbol)} {prediction.target_price || "N/A"}</span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">Stop Loss</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
                                 <span className="font-bold text-red-400">{getCurrency(displayStockData.symbol)} {prediction.stop_loss || "N/A"}</span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">Risk Level</span>
-                                <span className="font-bold text-yellow-500">{prediction.risk_level || "Medium"}</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "مستوى المخاطرة" : "Risk Level"}</span>
+                                <span className="font-bold text-yellow-500">{language === "ar" ? (prediction.risk_level === "Low" ? "منخفض" : prediction.risk_level === "High" ? "مرتفع" : "متوسط") : (prediction.risk_level || "Medium")}</span>
                               </div>
                             </div>
                             {prediction.analysis && prediction.analysis.length > 0 && (
-                              <div className="bg-background/20 p-3 rounded-lg text-xs space-y-1 mb-3">
-                                <p className="font-semibold mb-1">AI Analysis:</p>
-                                <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                              <div className={`bg-background/20 p-3 rounded-lg text-xs space-y-1 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                <p className="font-semibold mb-1">{language === "ar" ? "تحليل الذكاء الاصطناعي:" : "AI Analysis:"}</p>
+                                <ul className={`list-disc list-inside text-muted-foreground space-y-1 ${isRTL ? 'pr-2' : ''}`}>
                                   {prediction.analysis.map((point, i) => (
                                     <li key={i}>{point}</li>
                                   ))}
@@ -796,14 +797,14 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                             )}
                           </>
                         ) : (
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-bold text-lg text-muted-foreground">AI Insights Unavailable</h3>
+                          <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <h3 className="font-bold text-lg text-muted-foreground">{language === "ar" ? "تحليلات الذكاء الاصطناعي غير متوفرة" : "AI Insights Unavailable"}</h3>
                           </div>
                         )}
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="text-xs">
-                            <Zap className="w-3 h-3 mr-1" />
-                            Use in Simulator
+                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <Button size="sm" variant="outline" className="text-xs" onClick={onGoToSimulator}>
+                            <Zap className={`w-3 h-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                            {language === "ar" ? "استخدم في المحاكي" : "Use in Simulator"}
                           </Button>
                         </div>
                       </div>
@@ -814,17 +815,17 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                 {/* About */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-xl">About {displayStockData.name}</CardTitle>
+                    <CardTitle className={`text-xl ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? `حول ${displayStockData.name}` : `About ${displayStockData.name}`}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-muted-foreground leading-relaxed">{displayStockData.about}</p>
-                    <div className="flex gap-4 pt-3 border-t">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Sector</p>
+                    <p className={`text-muted-foreground leading-relaxed ${isRTL ? 'text-right' : ''}`}>{displayStockData.about}</p>
+                    <div className={`flex gap-4 pt-3 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className={isRTL ? 'text-right' : ''}>
+                        <p className="text-sm text-muted-foreground mb-1">{language === "ar" ? "القطاع" : "Sector"}</p>
                         <Badge variant="outline">{displayStockData.sector}</Badge>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Industry</p>
+                      <div className={isRTL ? 'text-right' : ''}>
+                        <p className="text-sm text-muted-foreground mb-1">{language === "ar" ? "الصناعة" : "Industry"}</p>
                         <Badge variant="outline">{displayStockData.industry}</Badge>
                       </div>
                     </div>
@@ -846,15 +847,15 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {posts.slice(0, 3).map((post: FeedPost) => (
+                    {Array.isArray(posts) && posts.length > 0 ? posts.slice(0, 3).map((post: FeedPost) => (
                       <div key={post.post_id} className={`bg-muted/50 rounded-lg p-4 border ${isRTL ? 'text-right' : 'text-left'}`}>
                         <div className={`flex items-start gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Avatar className="h-8 w-8">
                             <AvatarImage 
-                              src={post.author.profile_picture_url?.startsWith('/')
+                              src={post.author?.profile_picture_url?.startsWith('/')
                                 ? `${API_URL}${post.author.profile_picture_url}`
-                                : post.author.profile_picture_url} 
-                              alt={post.author.username} 
+                                : post.author?.profile_picture_url} 
+                              alt={post.author?.username} 
                             />
                             <AvatarFallback className="w-full h-full bg-transparent" asChild>
                               <DefaultAvatar />
@@ -862,8 +863,8 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                              <span className="font-semibold text-sm">{post.author.full_name || post.author.username}</span>
-                              <span className="text-xs text-muted-foreground">@{post.author.username}</span>
+                              <span className="font-semibold text-sm">{post.author?.full_name || post.author?.username}</span>
+                              <span className="text-xs text-muted-foreground">@{post.author?.username}</span>
                             </div>
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{post.content}</p>
                           </div>
@@ -879,11 +880,15 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                           </span>
                           <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Clock className="w-3 h-3" />
-                            {new Date(post.created_at).toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US')}
+                            {post.created_at ? new Date(post.created_at).toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US') : 'N/A'}
                           </span>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="text-center text-muted-foreground py-4 text-sm">
+                        {language === "ar" ? "لا توجد مناقشات بعد" : "No discussions yet"}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -970,7 +975,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                   animate="show"
                   className="space-y-4"
                 >
-                  {posts.map((post: FeedPost) => (
+                  {Array.isArray(posts) && posts.length > 0 ? posts.map((post: FeedPost) => (
                     <motion.div
                       key={post.post_id}
                       variants={{
@@ -985,7 +990,13 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                         onBookmark={toggleBookmark}
                       />
                     </motion.div>
-                  ))}
+                  )) : (
+                    <Card className="p-10 text-center border-dashed">
+                      <p className="text-muted-foreground">
+                        {language === "ar" ? "كن أول من يبدأ النقاش حول هذا السهم!" : "Be the first to start a discussion about this stock!"}
+                      </p>
+                    </Card>
+                  )}
                 </motion.div>
               </TabsContent>
 
@@ -1169,13 +1180,13 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
             {/* AI Prediction Card */}
             <Card className="overflow-hidden relative shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className={`text-lg flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Sparkles className="w-5 h-5 text-primary" />
                   </div>
-                  <span>AI Prediction</span>
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    {prediction ? prediction.confidence : 0}% Directional Accuracy
+                  <span>{language === "ar" ? "توقعات الذكاء الاصطناعي" : "AI Prediction"}</span>
+                  <Badge variant="outline" className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-xs`}>
+                    {prediction ? prediction.confidence : 0}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -1187,23 +1198,23 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                       <p className="text-sm text-muted-foreground mb-2 flex items-center justify-center gap-2">
                         <Brain className="w-4 h-4" />
                         {prediction.prediction_date
-                          ? `Forecast — ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                          : 'AI Predicted Price'}
+                          ? `${language === "ar" ? "توقع يوم" : "Forecast —"} ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}`
+                          : (language === "ar" ? "السعر المتوقع" : "AI Predicted Price")}
                       </p>
-                      <p className="font-bold text-3xl">{getCurrency(currentSymbol)} {prediction.tomorrow_price.toFixed(2)}</p>
+                      <p className="font-bold text-3xl">{getCurrency(currentSymbol)} {prediction.tomorrow_price?.toFixed(2) || "0.00"}</p>
                     </div>
 
                     {/* Prediction Details */}
                     <div className="bg-muted/30 rounded-lg p-4 border">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Predicted Change</p>
-                          <div className="flex items-center gap-2">
+                      <div className={`flex items-center justify-between mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className={isRTL ? 'text-right' : 'text-left'}>
+                          <p className="text-sm text-muted-foreground mb-1">{language === "ar" ? "التغير المتوقع" : "Predicted Change"}</p>
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <p className={`text-2xl font-bold ${prediction.change_percent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {prediction.change_percent >= 0 ? '+' : ''}{getCurrency(currentSymbol)} {(prediction.tomorrow_price - displayStockData.price).toFixed(2)}
+                              {prediction.change_percent >= 0 ? '+' : ''}{getCurrency(currentSymbol)} {((prediction.tomorrow_price || 0) - (displayStockData.price || 0)).toFixed(2)}
                             </p>
                             <Badge variant={prediction.change_percent >= 0 ? "default" : "destructive"}>
-                              {prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent}%
+                              {prediction.change_percent >= 0 ? '+' : ''}{prediction.change_percent || 0}%
                             </Badge>
                           </div>
                         </div>
@@ -1216,33 +1227,33 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                           ) : prediction.direction === 'bearish' ? (
                             <ChevronDown className="w-8 h-8" />
                           ) : (
-                            <TrendingUpDown className="w-8 h-8" />
+                            <TrendingUp className="w-8 h-8" />
                           )}
                         </div>
                       </div>
 
                       {/* AI Recommendation */}
                       <div className="pt-3 border-t space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">AI Recommendation</span>
+                        <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-sm text-muted-foreground">{language === "ar" ? "توصية الذكاء الاصطناعي" : "AI Recommendation"}</span>
                           <Badge
                             variant={prediction.recommendation === 'BUY' ? 'default' : prediction.recommendation === 'SELL' ? 'destructive' : 'secondary'}
                             className="font-bold"
                           >
-                            {prediction.recommendation}
+                            {language === "ar" ? (prediction.recommendation === "BUY" ? "شراء" : prediction.recommendation === "SELL" ? "بيع" : "احتفاظ") : prediction.recommendation}
                           </Badge>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Target Price</span>
+                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-muted-foreground">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
                           <span className="font-semibold text-green-500">{getCurrency(currentSymbol)} {prediction.target_price || "N/A"}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Stop Loss</span>
+                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-muted-foreground">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
                           <span className="font-semibold text-red-500">{getCurrency(currentSymbol)} {prediction.stop_loss || "N/A"}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Risk Level</span>
-                          <Badge variant="outline" className="text-xs">{prediction.risk_level || "Medium"}</Badge>
+                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span className="text-muted-foreground">{language === "ar" ? "مستوى المخاطرة" : "Risk Level"}</span>
+                          <Badge variant="outline" className="text-xs">{language === "ar" ? (prediction.risk_level === "Low" ? "منخفض" : prediction.risk_level === "High" ? "مرتفع" : "متوسط") : (prediction.risk_level || "Medium")}</Badge>
                         </div>
                       </div>
                     </div>

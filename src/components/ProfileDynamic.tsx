@@ -48,6 +48,7 @@ import { communityAPI, PostComment as CommentType } from "../services/communityA
 import { PostCard } from "./PostCard";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import { LoadingScreen } from "./LoadingScreen";
 import { Label } from "./ui/label";
 
 interface NavigationProps {
@@ -465,24 +466,17 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     // Show data loading state only after auth is confirmed
     if (isLoadingData) {
         return (
-            <div className="bg-background min-h-screen flex flex-col">
-                <Header
-                    currentPage={currentPage}
-                    onGoToHome={onGoToHome}
-                    onGoToExplore={onGoToExplore}
-                    onGoToPortfolio={onGoToPortfolio}
-                    onGoToSimulator={onGoToSimulator}
-                    onGoToProfile={onGoToProfile}
-                    onGoToSignup={onGoToSignup}
-                    onGoToLogin={onGoToLogin}
-                />
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-                        <p className="text-muted-foreground animate-pulse">{t.profile.loadingProfile}</p>
-                    </div>
-                </div>
-            </div>
+            <LoadingScreen
+                message={t.profile.loadingProfile}
+                currentPage={currentPage}
+                onGoToHome={onGoToHome}
+                onGoToExplore={onGoToExplore}
+                onGoToPortfolio={onGoToPortfolio}
+                onGoToSimulator={onGoToSimulator}
+                onGoToProfile={onGoToProfile}
+                onGoToSignup={onGoToSignup}
+                onGoToLogin={onGoToLogin}
+            />
         );
     }
 
