@@ -94,6 +94,12 @@ html {
   padding-bottom: 30px !important;
 }
 
+/* Custom spacing before and after the language switch */
+.custom-mobile-lang-switch {
+  margin-top: 14px !important;
+  margin-bottom: 14px !important;
+}
+
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {

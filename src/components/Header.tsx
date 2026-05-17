@@ -371,7 +371,7 @@ function MobileNav({
               {/* Language Switch Section */}
               <button
                 onClick={() => { toggleLanguage(); closeMenu(); }}
-                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] cursor-pointer"
+                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] cursor-pointer custom-mobile-lang-switch"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/5 text-primary">
