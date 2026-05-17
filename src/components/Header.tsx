@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
-import { User, Menu, X, LogOut, ChevronDown, Shield, Languages, Home, Compass, Briefcase, TrendingUp, ChevronRight, ChevronLeft } from "lucide-react";
+import { User, Menu, X, LogOut, ChevronDown, Shield, Languages, Home, Compass, Briefcase, TrendingUp, ChevronRight, ChevronLeft, Sun, Moon } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -264,6 +264,7 @@ function MobileNav({
 }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { t, toggleLanguage, language, isRTL } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -274,37 +275,84 @@ function MobileNav({
 
   return (
     <div className="md:hidden">
+      {/* Trigger button when menu is closed */}
       <Button
         variant="ghost"
         size="icon"
         onClick={toggleMenu}
         className="md:hidden force-hide-on-pc relative z-50 text-foreground hover:bg-muted/60"
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isOpen ? "close" : "menu"}
-            initial={{ rotate: -90, opacity: 0 }}
-            animate={{ rotate: 0, opacity: 1 }}
-            exit={{ rotate: 90, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {isOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5" />}
-          </motion.div>
-        </AnimatePresence>
+        <Menu className="w-5 h-5" />
       </Button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute top-full left-0 right-0 w-full bg-background/95 backdrop-blur-lg border-b border-border/80 shadow-2xl z-50 overflow-hidden"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed inset-0 w-full h-full bg-background z-[100] flex flex-col"
+            dir={isRTL ? "rtl" : "ltr"}
           >
-            <div className="container mx-auto px-5 py-5 flex flex-col space-y-4" dir={isRTL ? "rtl" : "ltr"}>
-              {/* Navigation Links Group */}
-              <div className="flex flex-col space-y-1.5">
+            {/* Top Bar matching screenshot exactly */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-background">
+              {/* Brand Logo and BETA tag */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => handleNavClick(onGoToHome || (() => window.location.href = "/"))}
+                  className={`flex items-center space-x-2.5 ${isRTL ? 'space-x-reverse' : ''} hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-0 p-0`}
+                >
+                  <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center bg-transparent">
+                    <img
+                      src={theme === 'dark' ? logoDarkImg : logoImg}
+                      alt="EyeStocks AI Logo"
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E";
+                      }}
+                    />
+                  </div>
+                  <div className={`flex items-center space-x-1.5 ${isRTL ? 'space-x-reverse' : ''}`}>
+                    <span className="text-lg font-extrabold whitespace-nowrap text-foreground" style={{ fontFamily: "'Cairo', sans-serif" }}>ESAI</span>        
+                    <span className="text-[10px] font-bold text-indigo-500/80 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                      BETA
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Theme toggle and Close (X) buttons */}
+              <div className="flex items-center gap-3">
+                {/* Custom Styled Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="w-10 h-10 rounded-xl bg-background dark:bg-slate-900 border border-border/85 dark:border-slate-800 flex items-center justify-center hover:bg-muted/40 transition-colors shadow-sm cursor-pointer"
+                  aria-label="Toggle Theme"
+                >
+                  {theme === 'light' ? (
+                    <Sun className="h-5 w-5 text-orange-500" />
+                  ) : (
+                    <Moon className="h-5 w-5 text-blue-400" />
+                  )}
+                </button>
+
+                {/* Styled Close Button */}
+                <button
+                  onClick={closeMenu}
+                  className="w-10 h-10 rounded-xl bg-background dark:bg-slate-900 border border-border/85 dark:border-slate-800 flex items-center justify-center hover:bg-muted/40 transition-colors shadow-sm cursor-pointer"
+                  aria-label="Close Menu"
+                >
+                  <X className="h-5 w-5 text-foreground/80" />
+                </button>
+              </div>
+            </div>
+
+            {/* Menu Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col justify-between">
+              {/* Navigation and Language toggles */}
+              <div className="flex flex-col space-y-1">
                 {[
                   {
                     label: t.nav.home,
@@ -337,63 +385,73 @@ function MobileNav({
                     <button
                       key={item.id}
                       onClick={() => handleNavClick(item.onClick)}
-                      className={`w-full flex items-center justify-between py-2.5 px-4 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.005] active:scale-[0.995] ${
+                      className={`w-full flex items-center justify-between transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? "bg-primary/10 text-primary font-bold shadow-sm"
-                          : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"
+                          ? "py-3 px-4 rounded-2xl bg-[#eef2ff] dark:bg-indigo-950/40 text-primary"
+                          : "py-3 px-4 rounded-xl bg-transparent text-foreground/85 hover:bg-muted/40"
                       }`}
                     >
-                      <div className="flex items-center gap-3.5">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                          isActive ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground"
-                        }`}>
-                          <Icon className="w-4.5 h-4.5" />
-                        </div>
-                        <span className="text-[13.5px] font-semibold tracking-wide">{item.label}</span>
+                      <div className="flex items-center gap-4">
+                        {isActive ? (
+                          <div className="w-9 h-9 rounded-xl bg-[#e0e7ff] dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <Icon className="w-5 h-5" fill="currentColor" />
+                          </div>
+                        ) : (
+                          <div className="w-9 h-9 flex items-center justify-center text-foreground/50">
+                            <Icon className="w-5.5 h-5.5" />
+                          </div>
+                        )}
+                        <span className={`text-[15.5px] tracking-wide ${isActive ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}>
+                          {item.label}
+                        </span>
                       </div>
                       
-                      <div>
-                        {isActive ? (
-                          <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-                        ) : (
-                          isRTL ? (
-                            <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      {!isActive && (
+                        <div>
+                          {isRTL ? (
+                            <ChevronLeft className="w-4 h-4 text-foreground/45" />
                           ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
-                          )
-                        )}
-                      </div>
+                            <ChevronRight className="w-4 h-4 text-foreground/45" />
+                          )}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
+
+                {/* Divider */}
+                <div className="border-t border-border/40 my-3" />
+
+                {/* Language Switch Section */}
+                <button
+                  onClick={() => { toggleLanguage(); closeMenu(); }}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-transparent text-foreground/85 hover:bg-muted/40 transition-all duration-200 cursor-pointer"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-9 h-9 flex items-center justify-center text-foreground/50">
+                      <Languages className="w-5.5 h-5.5" />
+                    </div>
+                    <span className="text-[15px] font-semibold text-foreground/90">
+                      {language === "en" ? "Switch to Arabic" : "تغيير إلى الإنجليزية"}
+                    </span>
+                  </div>
+                  <span className="text-[15px] font-extrabold text-foreground">
+                    {language === "en" ? "AR" : "EN"}
+                  </span>
+                </button>
+
+                {/* Divider before User Account Section */}
+                <div className="border-t border-border/40 my-3" />
               </div>
 
-              {/* Language Switch Section */}
-              <button
-                onClick={() => { toggleLanguage(); closeMenu(); }}
-                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] cursor-pointer"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/5 text-primary">
-                    <Languages className="w-4 h-4" />
-                  </div>
-                  <span className="text-[13px] font-semibold uppercase tracking-wide">
-                    {language === "en" ? "Switch to Arabic" : "English Language"}
-                  </span>
-                </div>
-                <span className="text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  {language === "en" ? "AR" : "EN"}
-                </span>
-              </button>
-
-              {/* Authentication Actions */}
-              <div className="pt-3.5 border-t border-border/60">
+              {/* User Account / Auth Actions */}
+              <div className="mt-auto pt-4">
                 {isAuthenticated ? (
-                  <div className="space-y-3">
+                  <div className="bg-[#f8fafc] dark:bg-slate-900/40 border border-[#f1f5f9] dark:border-slate-800 rounded-3xl p-[18px] flex flex-col gap-4">
                     {/* User profile details header */}
-                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-muted/30 border border-border/40 mb-1.5">
-                      <div className={`flex items-center space-x-2.5 ${isRTL ? 'space-x-reverse' : ''}`}>
-                        <Avatar className="h-8 w-8 ring-1 ring-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div className={`flex items-center gap-3.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Avatar className="h-12 w-12 rounded-full border border-border/40">
                           <AvatarImage
                             src={user?.profile_picture_url?.startsWith('/')
                               ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
@@ -405,52 +463,50 @@ function MobileNav({
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col text-start">
-                          <span className="font-semibold text-foreground text-[12.5px] leading-tight">
+                          <span className="font-bold text-foreground text-[15.5px] leading-tight">
                             {user?.full_name || user?.username}
                           </span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">@{user?.username}</span>
+                          <span className="text-[13px] text-muted-foreground mt-0.5">@{user?.username}</span>
                         </div>
                       </div>
-                      <span className="text-[8px] font-semibold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {t.profile?.active || "Active"}
+                      <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border border-emerald-100/50 dark:border-emerald-900/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>{isRTL ? "نشط" : "Active"}</span>
                       </span>
                     </div>
 
                     {/* Quick profile actions */}
-                    <div className="grid grid-cols-2 gap-3 pt-0.5">
-                      <Button
-                        variant="outline"
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <button
                         onClick={() => handleNavClick(onGoToProfile)}
-                        className="w-full h-10 justify-center rounded-xl gap-2 border-border/80 text-[12.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all"
+                        className="w-full h-12 flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-[14px] shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                       >
-                        <User className="w-3.5 h-3.5" /> 
+                        <User className="w-4 h-4" /> 
                         <span>{t.nav.profile}</span>
-                      </Button>
-                      <Button
-                        variant="destructive"
+                      </button>
+                      <button
                         onClick={() => handleNavClick(onLogout)}
-                        className="w-full h-10 justify-center rounded-xl gap-2 hover:bg-red-600/90 hover:scale-[1.005] active:scale-[0.995] transition-all"
+                        className="w-full h-12 flex items-center justify-center gap-2 bg-[#e11d48] hover:bg-rose-600 text-white rounded-2xl font-bold text-[14px] shadow-md shadow-rose-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                       >
-                        <LogOut className="w-3.5 h-3.5" /> 
+                        <LogOut className="w-4 h-4" /> 
                         <span>{t.nav.logout}</span>
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 py-0.5">
-                    <Button
-                      variant="outline"
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <button
                       onClick={() => handleNavClick(onGoToLogin)}
-                      className="w-full h-10 justify-center rounded-xl border-border/80 text-[12.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all"
+                      className="w-full h-12 flex items-center justify-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-[14px] shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                     >
                       {t.nav.login}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       onClick={() => handleNavClick(onGoToSignup)}
-                      className="w-full h-10 justify-center rounded-xl shadow-md shadow-primary/10 hover:scale-[1.005] active:scale-[0.995] transition-all"
+                      className="w-full h-12 flex items-center justify-center bg-primary hover:bg-primary/95 text-primary-foreground rounded-2xl font-bold text-[14px] shadow-md shadow-primary/10 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                     >
                       {t.nav.signup}
-                    </Button>
+                    </button>
                   </div>
                 )}
               </div>
