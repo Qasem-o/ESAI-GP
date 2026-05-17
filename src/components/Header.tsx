@@ -302,9 +302,9 @@ function MobileNav({
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute top-full left-0 right-0 w-full bg-background/95 backdrop-blur-lg border-b border-border/80 shadow-2xl z-50 overflow-hidden"
           >
-            <div className="container mx-auto px-6 py-7 flex flex-col space-y-5" dir={isRTL ? "rtl" : "ltr"}>
+            <div className="container mx-auto px-5 py-5 flex flex-col space-y-4" dir={isRTL ? "rtl" : "ltr"}>
               {/* Navigation Links Group */}
-              <div className="flex flex-col space-y-2.5">
+              <div className="flex flex-col space-y-1.5">
                 {[
                   {
                     label: t.nav.home,
@@ -337,29 +337,29 @@ function MobileNav({
                     <button
                       key={item.id}
                       onClick={() => handleNavClick(item.onClick)}
-                      className={`w-full flex items-center justify-between py-4 px-5 rounded-2xl transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${
+                      className={`w-full flex items-center justify-between py-2.5 px-4 rounded-xl transition-all duration-200 cursor-pointer hover:scale-[1.005] active:scale-[0.995] ${
                         isActive
                           ? "bg-primary/10 text-primary font-bold shadow-sm"
                           : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                           isActive ? "bg-primary/20 text-primary" : "bg-muted/60 text-muted-foreground"
                         }`}>
-                          <Icon className="w-5 h-5" />
+                          <Icon className="w-4.5 h-4.5" />
                         </div>
-                        <span className="text-[15px] font-semibold tracking-wide">{item.label}</span>
+                        <span className="text-[13.5px] font-semibold tracking-wide">{item.label}</span>
                       </div>
                       
                       <div>
                         {isActive ? (
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
                         ) : (
                           isRTL ? (
-                            <ChevronLeft className="w-4 h-4 text-muted-foreground/60" />
+                            <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/60" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                           )
                         )}
                       </div>
@@ -371,29 +371,29 @@ function MobileNav({
               {/* Language Switch Section */}
               <button
                 onClick={() => { toggleLanguage(); closeMenu(); }}
-                className="w-full flex items-center justify-between py-4 px-5 rounded-2xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-[1.005] active:scale-[0.995] cursor-pointer"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/5 text-primary">
-                    <Languages className="w-5 h-5" />
+                <div className="flex items-center gap-3.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/5 text-primary">
+                    <Languages className="w-4 h-4" />
                   </div>
-                  <span className="text-[14px] font-semibold uppercase tracking-wide">
+                  <span className="text-[13px] font-semibold uppercase tracking-wide">
                     {language === "en" ? "Switch to Arabic" : "English Language"}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+                <span className="text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                   {language === "en" ? "AR" : "EN"}
                 </span>
               </button>
 
               {/* Authentication Actions */}
-              <div className="pt-5 border-t border-border/60">
+              <div className="pt-3.5 border-t border-border/60">
                 {isAuthenticated ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* User profile details header */}
-                    <div className="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-muted/30 border border-border/40 mb-2">
-                      <div className={`flex items-center space-x-4 ${isRTL ? 'space-x-reverse' : ''}`}>
-                        <Avatar className="h-11 w-11 ring-2 ring-primary/20">
+                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-muted/30 border border-border/40 mb-1.5">
+                      <div className={`flex items-center space-x-2.5 ${isRTL ? 'space-x-reverse' : ''}`}>
+                        <Avatar className="h-8 w-8 ring-1 ring-primary/20">
                           <AvatarImage
                             src={user?.profile_picture_url?.startsWith('/')
                               ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
@@ -405,49 +405,49 @@ function MobileNav({
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col text-start">
-                          <span className="font-bold text-foreground text-[15px] leading-tight">
+                          <span className="font-semibold text-foreground text-[12.5px] leading-tight">
                             {user?.full_name || user?.username}
                           </span>
-                          <span className="text-xs text-muted-foreground mt-0.5">@{user?.username}</span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">@{user?.username}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      <span className="text-[8px] font-semibold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         {t.profile?.active || "Active"}
                       </span>
                     </div>
 
                     {/* Quick profile actions */}
-                    <div className="grid grid-cols-2 gap-3.5 pt-1">
+                    <div className="grid grid-cols-2 gap-3 pt-0.5">
                       <Button
                         variant="outline"
                         onClick={() => handleNavClick(onGoToProfile)}
-                        className="w-full h-12 justify-center rounded-2xl gap-3 border-border/80 text-[14px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.01] active:scale-[0.99] transition-all"
+                        className="w-full h-10 justify-center rounded-xl gap-2 border-border/80 text-[12.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all"
                       >
-                        <User className="w-4 h-4" /> 
+                        <User className="w-3.5 h-3.5" /> 
                         <span>{t.nav.profile}</span>
                       </Button>
                       <Button
                         variant="destructive"
                         onClick={() => handleNavClick(onLogout)}
-                        className="w-full h-12 justify-center rounded-2xl gap-3 hover:bg-red-600/90 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                        className="w-full h-10 justify-center rounded-xl gap-2 hover:bg-red-600/90 hover:scale-[1.005] active:scale-[0.995] transition-all"
                       >
-                        <LogOut className="w-4 h-4" /> 
+                        <LogOut className="w-3.5 h-3.5" /> 
                         <span>{t.nav.logout}</span>
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3.5 py-1">
+                  <div className="grid grid-cols-2 gap-3 py-0.5">
                     <Button
                       variant="outline"
                       onClick={() => handleNavClick(onGoToLogin)}
-                      className="w-full h-12 justify-center rounded-2xl border-border/80 text-[14px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.01] active:scale-[0.99] transition-all"
+                      className="w-full h-10 justify-center rounded-xl border-border/80 text-[12.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all"
                     >
                       {t.nav.login}
                     </Button>
                     <Button
                       onClick={() => handleNavClick(onGoToSignup)}
-                      className="w-full h-12 justify-center rounded-2xl shadow-md shadow-primary/10 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                      className="w-full h-10 justify-center rounded-xl shadow-md shadow-primary/10 hover:scale-[1.005] active:scale-[0.995] transition-all"
                     >
                       {t.nav.signup}
                     </Button>
