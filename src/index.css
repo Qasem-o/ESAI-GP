@@ -67,6 +67,33 @@ html {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* ─── Custom Mobile Spacing Overrides ──────────────────────────────── */
+.custom-mobile-nav-list {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Space between each navigation item */
+.custom-mobile-nav-list > button,
+.custom-mobile-nav-list > a {
+  margin-bottom: 14px !important;
+}
+
+.custom-mobile-nav-list > button:last-child,
+.custom-mobile-nav-list > a:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Space between first nav item and header */
+.custom-mobile-first-nav {
+  margin-top: 20px !important;
+}
+
+/* Space below profile buttons and login/signup buttons */
+.custom-mobile-bottom-space {
+  padding-bottom: 30px !important;
+}
+
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
