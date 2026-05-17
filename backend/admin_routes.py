@@ -512,6 +512,7 @@ def list_predictions(
 
 def _fetch_stock_data_bg(ticker: str):
     """Fetch historical data for a single newly-added stock."""
+    session = None
     try:
         root_dir = os.path.dirname(current_dir)
         sys.path.insert(0, root_dir)
@@ -546,15 +547,17 @@ def _fetch_stock_data_bg(ticker: str):
         if not df.empty and "close" in df.columns:
             df = df.dropna(subset=["close"]).reset_index(drop=True)
             prepare_and_store(session, ticker, df)
-
-        session.close()
         print(f"✅ Background fetch complete for {ticker}")
     except Exception as e:
         print(f"❌ Background fetch failed for {ticker}: {e}")
+    finally:
+        if session:
+            session.close()
 
 
 def _fill_missing_bg():
     """Fetch only missing price/indicator rows for every stock in the DB."""
+    session = None
     try:
         root_dir = os.path.dirname(current_dir)
         sys.path.insert(0, root_dir)
@@ -638,7 +641,6 @@ def _fill_missing_bg():
                 with _training_lock:
                     _training_state["log"].append(f"[ERROR] {ticker}: {e}")
 
-        session.close()
         with _training_lock:
             _training_state["status"] = "done"
             _training_state["log"].append("--- Fill-missing job completed ---")
@@ -646,6 +648,9 @@ def _fill_missing_bg():
         with _training_lock:
             _training_state["status"] = "error"
             _training_state["log"].append(f"[FATAL] Fill-missing job failed: {e}")
+    finally:
+        if session:
+            session.close()
 
 
 def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None,

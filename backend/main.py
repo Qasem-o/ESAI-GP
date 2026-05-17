@@ -53,7 +53,15 @@ elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
 
 from models import Base as AuthBase
 
-engine = create_engine(DATABASE_URL)
+# Database Engine with optimized connection pooling
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=20,          # Increase base pool size from 5
+    max_overflow=10,       # Keep overflow at 10 (Total 30 connections)
+    pool_timeout=30,       # Wait 30s for a connection
+    pool_recycle=1800,     # Recycle connections every 30 mins
+    pool_pre_ping=True     # Validate connection before using it
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Tables are created manually in Supabase DB to prevent Render deployment crashes
