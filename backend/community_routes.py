@@ -203,57 +203,34 @@ async def get_feed(
         ).group_by(PostComment.post_id).subquery()
 
         query = query.outerjoin(likes_subq, Post.post_id == likes_subq.c.post_id) \
-            .outerjoin(comments_subq, Post.post_id == comments_subq.c.post_id) \
-            .order_by(
-                desc(func.coalesce(likes_subq.c.like_count, 0) + func.coalesce(comments_subq.c.comment_count, 0)),
-                desc(Post.created_at)
-            )
+                     .outerjoin(comments_subq, Post.post_id == comments_subq.c.post_id) \
+                     .order_by(
+                         desc(func.coalesce(likes_subq.c.like_count, 0) + func.coalesce(comments_subq.c.comment_count, 0)),
+                         desc(Post.created_at)
+                     )
     else:
         query = query.order_by(desc(Post.created_at))
 
-
-
     posts = query.offset(offset).limit(limit).all()
-
-
 
     return _enrich_posts(posts, user_id, db)
 
 
-
-
-
 @router.get("/stocks/{symbol}/posts")
-
 async def get_stock_posts(
-
     symbol: str,
-
     page: int = Query(1, ge=1),
-
     limit: int = Query(20, ge=1, le=50),
-
     authorization: Optional[str] = Header(None),
-
     db: Session = Depends(get_db)
-
 ):
-
     """Get posts associated with a specific stock symbol."""
-
     user_id = get_optional_user_id(authorization)
-
     offset = (page - 1) * limit
 
-
-
     posts = db.query(Post).filter(Post.stock_symbol == symbol) \
-
         .order_by(desc(Post.created_at)) \
-
         .offset(offset).limit(limit).all()
-
-
 
     return _enrich_posts(posts, user_id, db)
 
