@@ -14,6 +14,7 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { DisclaimerModal } from "./components/DisclaimerModal";
+import { SessionExpiredModal } from "./components/SessionExpiredModal";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminOverview } from "./components/admin/AdminOverview";
 import { UserManagement } from "./components/admin/UserManagement";
@@ -152,6 +153,7 @@ export default function App() {
       <AuthProvider>
         <ScrollToTop />
         <DisclaimerModal />
+        <SessionExpiredModal />
         <Toaster />
         <Routes>
           {/* RADICAL FIX: Move info page to the absolute top with a unique path to avoid stock routing conflict */}

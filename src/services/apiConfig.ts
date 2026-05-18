@@ -24,3 +24,21 @@ export const getHeaders = (includeAuth = true) => {
 
   return headers;
 };
+
+// Globally intercept 401 Unauthorized fetch responses
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = async function (...args) {
+    const response = await originalFetch.apply(this, args);
+    // 401 Unauthorized means the token is invalid or expired
+    if (response.status === 401) {
+      const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url || '';
+      if (!urlStr.includes('/auth/login') && !urlStr.includes('/auth/signup') && !urlStr.includes('/auth/refresh')) {
+        // Dispatch session-expired event
+        const event = new CustomEvent('session-expired');
+        window.dispatchEvent(event);
+      }
+    }
+    return response;
+  };
+}
