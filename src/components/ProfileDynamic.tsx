@@ -935,7 +935,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" dir={isRTL ? "rtl" : "ltr"}>
+                <DialogContent 
+                    className="max-w-[92%] sm:max-w-[500px] max-h-[85vh] overflow-y-auto p-5 rounded-2xl flex flex-col shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
+                    dir={isRTL ? "rtl" : "ltr"}
+                >
                     <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
                         <DialogTitle>{t.profile.editProfile}</DialogTitle>
                         <DialogDescription>
