@@ -973,7 +973,8 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                   }}
                   initial="hidden"
                   animate="show"
-                  className="space-y-4"
+                  className="space-y-4 overflow-y-auto pr-2 pl-1 custom-scrollbar"
+                  style={{ maxHeight: "70vh" }}
                 >
                   {Array.isArray(posts) && posts.length > 0 ? posts.map((post: FeedPost) => (
                     <motion.div
