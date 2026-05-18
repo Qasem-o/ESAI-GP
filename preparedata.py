@@ -68,7 +68,21 @@ HARDCODED_END = (datetime.today() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
 def get_engine_from_env():
     """Returns a SQLAlchemy engine using the same DATABASE_URL logic above."""
-    return create_engine(DATABASE_URL, echo=False)
+    global DATABASE_URL
+    is_pooler = "pooler.supabase.com" in DATABASE_URL or ":6543" in DATABASE_URL
+    
+    if is_pooler:
+        from sqlalchemy.pool import NullPool
+        if "prepared_statement" not in DATABASE_URL:
+            separator = "&" if "?" in DATABASE_URL else "?"
+            DATABASE_URL += f"{separator}prepared_statement=false"
+        engine_kwargs = {
+            "poolclass": NullPool
+        }
+    else:
+        engine_kwargs = {}
+        
+    return create_engine(DATABASE_URL, echo=False, **engine_kwargs)
 
 Base = declarative_base()
 
@@ -368,7 +382,7 @@ def prepare_and_store(session: Session, ticker: str, df: pd.DataFrame, store_fro
 def main(): # Removed 'args' from main function signature
     # Attempt to create engine, will use the hardcoded DATABASE_URL
     try:
-        engine = create_engine(DATABASE_URL, echo=False)
+        engine = get_engine_from_env()
         print(f"Connecting to database via URL: {DATABASE_URL.split('@')[-1]}")
         Base.metadata.create_all(engine)
         SessionLocal = sessionmaker(bind=engine)

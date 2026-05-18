@@ -80,7 +80,21 @@ def get_engine():
         db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
     elif "postgresql://" in db_url and "+psycopg2" not in db_url:
         db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-    return create_engine(db_url, echo=False)
+        
+    is_pooler = "pooler.supabase.com" in db_url or ":6543" in db_url
+    
+    if is_pooler:
+        from sqlalchemy.pool import NullPool
+        if "prepared_statement" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url += f"{separator}prepared_statement=false"
+        engine_kwargs = {
+            "poolclass": NullPool
+        }
+    else:
+        engine_kwargs = {}
+        
+    return create_engine(db_url, echo=False, **engine_kwargs)
 
 from preparedata import Stock, ModelMetric
 from prediction_models import PricePrediction
