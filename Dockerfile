@@ -18,11 +18,11 @@ RUN pip install --no-cache-dir -r ./backend/requirements.txt
 # Copy the entire workspace to the container (required because backend imports and runs root-level scripts)
 COPY . .
 
-# Expose port 8080
-EXPOSE 8080
+# Expose port 8000
+EXPOSE 8000
 
 # Set environment variable to ensure logs are flushed immediately
 ENV PYTHONUNBUFFERED=1
 
-# Command to run uvicorn pointing to backend.main:app, binding to $PORT dynamically set by Railway
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Command to run uvicorn pointing to backend.main:app, binding strictly to port 8000
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port 8000"]
