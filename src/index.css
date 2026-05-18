@@ -2957,11 +2957,22 @@ html {
     scrollbar-width: thin !important;
     scrollbar-color: hsl(var(--primary) / 0.75) transparent !important;
   }
+
+  html,
+  body {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.75) transparent;
+  }
   .custom-scrollbar::-webkit-scrollbar,
   .posts-scroll-area::-webkit-scrollbar {
     width: 10px !important;
     height: 10px !important;
     display: block !important;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-button,
   .posts-scroll-area::-webkit-scrollbar-button {
@@ -2969,15 +2980,31 @@ html {
     height: 0 !important;
     display: none !important;
   }
+  html::-webkit-scrollbar-button,
+  body::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+  }
   .custom-scrollbar::-webkit-scrollbar-track,
   .posts-scroll-area::-webkit-scrollbar-track {
     background: hsl(var(--muted) / 0.55) !important;
     border-radius: 999px !important;
     border: 1px solid hsl(var(--border) / 0.7) !important;
   }
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.55);
+    border-radius: 999px;
+    border: 1px solid hsl(var(--border) / 0.7);
+  }
   .dark .custom-scrollbar::-webkit-scrollbar-track,
   .dark .posts-scroll-area::-webkit-scrollbar-track {
     background: hsl(var(--muted) / 0.25) !important;
+  }
+  .dark html::-webkit-scrollbar-track,
+  .dark body::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.25);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb,
   .posts-scroll-area::-webkit-scrollbar-thumb {
@@ -2990,6 +3017,17 @@ html {
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
   }
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.95) 0%,
+      hsl(var(--primary) / 0.6) 100%
+    );
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover,
   .posts-scroll-area::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
@@ -3000,9 +3038,21 @@ html {
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
   }
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary) / 0.7) 100%
+    );
+  }
   .custom-scrollbar::-webkit-scrollbar-corner,
   .posts-scroll-area::-webkit-scrollbar-corner {
     background: transparent !important;
+  }
+  html::-webkit-scrollbar-corner,
+  body::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   .posts-scroll-area {
