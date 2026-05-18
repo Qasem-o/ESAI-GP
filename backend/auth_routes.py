@@ -706,3 +706,38 @@ async def check_username_availability(
         "available": existing is None,
         "username": username
     }
+
+
+from pydantic import BaseModel, Field
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    req: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change authenticated user's password securely."""
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(req.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    # Verify current password if user has one set already
+    if current_user.password_hash:
+        if not verify_password(req.current_password, current_user.password_hash):
+            raise HTTPException(status_code=400, detail="كلمة المرور الحالية غير صحيحة")
+            
+    # Update password hash
+    current_user.password_hash = hash_password(req.new_password)
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    
+    return MessageResponse(
+        message="تم تغيير كلمة المرور بنجاح",
+        success=True
+    )
+

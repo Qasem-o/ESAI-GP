@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { profileAPI, UserStats, Post as PostType, Follower } from "../services/profileApi";
+import { authAPI } from "../services/authApi";
+import { simulatorAPI } from "../services/simulatorApi";
+import { portfolioAPI } from "../services/portfolioApi";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -68,6 +71,38 @@ interface NavigationProps {
 
 interface ProfileProps extends NavigationProps { }
 
+const INVESTOR_TYPE_MAP: Record<string, { ar: string, en: string, color: string }> = {
+    'growth': { ar: "مستثمر نمو 📈", en: "Growth Investor 📈", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+    'value': { ar: "مستثمر عوائد 💰", en: "Value Investor 💰", color: "bg-green-500/10 text-green-500 border-green-500/20" },
+    'swing': { ar: "مضارب يومي ⚡", en: "Swing Trader ⚡", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+    'long_term': { ar: "مستثمر طويل الأجل 🛡️", en: "Long-term Investor 🛡️", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" }
+};
+
+const INVESTMENT_GOAL_MAP: Record<string, { ar: string, en: string, color: string }> = {
+    'wealth': { ar: "تنمية رأس المال 🌱", en: "Wealth Growth 🌱", color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" },
+    'passive_income': { ar: "دخل سلبي مستمر 💸", en: "Passive Income 💸", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
+    'education': { ar: "تعليم وتجربة 📚", en: "Learning & Practice 📚", color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
+    'hedging': { ar: "تحوط وحماية الأصول 🔒", en: "Hedging & Protection 🔒", color: "bg-slate-500/10 text-slate-500 border-slate-500/20" }
+};
+
+const parseBioData = (rawBio: string | null) => {
+    if (!rawBio) return { cleanBio: "", investorType: "", investmentGoal: "" };
+    
+    const typeMatch = rawBio.match(/\[INVESTOR_TYPE:(.*?)\]/);
+    const goalMatch = rawBio.match(/\[INVESTMENT_GOAL:(.*?)\]/);
+    
+    let cleanBio = rawBio;
+    if (typeMatch) cleanBio = cleanBio.replace(/\[INVESTOR_TYPE:.*?\]/g, "");
+    if (goalMatch) cleanBio = cleanBio.replace(/\[INVESTMENT_GOAL:.*?\]/g, "");
+    cleanBio = cleanBio.trim();
+    
+    return {
+        cleanBio: cleanBio,
+        investorType: typeMatch ? typeMatch[1] : "",
+        investmentGoal: goalMatch ? goalMatch[1] : ""
+    };
+};
+
 import { API_BASE_URL as API_URL } from "../services/apiConfig";
 
 export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfolio, onGoToSimulator, onGoToProfile, onGoToSignup, onGoToLogin }: ProfileProps) {
@@ -110,6 +145,25 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const [usernameError, setUsernameError] = useState("");
     const [usernameChecking, setUsernameChecking] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Premium multi-tab settings states
+    const [settingsTab, setSettingsTab] = useState<"profile" | "portfolio" | "security">("profile");
+    const [investorType, setInvestorType] = useState("");
+    const [investmentGoal, setInvestmentGoal] = useState("");
+    
+    // Change password states
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState("");
+    const [passwordSuccess, setPasswordSuccess] = useState("");
+
+    // Portfolio / Simulator reset states
+    const [isResettingSim, setIsResettingSim] = useState(false);
+    const [isResettingPort, setIsResettingPort] = useState(false);
+    const [simResetConfirm, setSimResetConfirm] = useState(false);
+    const [portResetConfirm, setPortResetConfirm] = useState(false);
 
     // Cropper modal states
     const [isCropperOpen, setIsCropperOpen] = useState(false);
@@ -278,11 +332,91 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         setEditUsername(currentUser?.username || "");
         setEditFullName(currentUser?.full_name || "");
         setEditPhone(currentUser?.phone_number || "");
-        setEditBio(currentUser?.bio || "");
+        
+        // Parse bio and populate settings fields
+        const { cleanBio, investorType: parsedType, investmentGoal: parsedGoal } = parseBioData(currentUser?.bio || "");
+        setEditBio(cleanBio || "");
+        setInvestorType(parsedType || "");
+        setInvestmentGoal(parsedGoal || "");
+
         setAvatarPreview(currentUser?.profile_picture_url || "");
         setEditAvatarFile(null);
         setUsernameError("");
+        setSettingsTab("profile"); // Reset settings dialog default tab
+        
+        // Reset password change form
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError("");
+        setPasswordSuccess("");
+        
+        // Reset confirm states
+        setSimResetConfirm(false);
+        setPortResetConfirm(false);
+
         setIsEditDialogOpen(true);
+    };
+
+    const handleResetSimulator = async () => {
+        setIsResettingSim(true);
+        try {
+            await simulatorAPI.resetSimulator();
+            setSimResetConfirm(false);
+            alert(language === "ar" ? "تمت إعادة تعيين محاكاة التداول بنجاح!" : "Trading simulator reset successfully!");
+        } catch (err: any) {
+            console.error("Error resetting simulator:", err);
+            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحاكي الافتراضي." : "Failed to reset virtual simulator."));
+        } finally {
+            setIsResettingSim(false);
+        }
+    };
+
+    const handleResetPortfolio = async () => {
+        setIsResettingPort(true);
+        try {
+            await portfolioAPI.resetPortfolio();
+            setPortResetConfirm(false);
+            alert(language === "ar" ? "تمت إعادة تعيين محفظتك اليدوية بنجاح!" : "Your manual portfolio was reset successfully!");
+        } catch (err: any) {
+            console.error("Error resetting portfolio:", err);
+            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحفظة اليدوية." : "Failed to reset manual portfolio."));
+        } finally {
+            setIsResettingPort(false);
+        }
+    };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError("");
+        setPasswordSuccess("");
+
+        if (newPassword.length < 8) {
+            setPasswordError(language === "ar" ? "يجب أن تكون كلمة المرور 8 رموز على الأقل" : "Password must be at least 8 characters");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError(language === "ar" ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            await authAPI.changePassword({
+                current_password: currentPassword,
+                new_password: newPassword
+            });
+            setPasswordSuccess(language === "ar" ? "تم تغيير كلمة المرور بنجاح!" : "Password changed successfully!");
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err: any) {
+            console.error("Error changing password:", err);
+            setPasswordError(err.message || (language === "ar" ? "فشل تغيير كلمة المرور. يرجى التحقق من كلمة المرور الحالية." : "Failed to change password. Please check your current password."));
+        } finally {
+            setIsChangingPassword(false);
+        }
     };
 
     const checkUsernameAvailability = async (username: string) => {
@@ -485,12 +619,21 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                 avatarUrl = await uploadAvatar(editAvatarFile);
             }
 
+            // Append structured metadata to bio safely
+            let finalBio = editBio ? editBio.trim() : "";
+            if (investorType) {
+                finalBio += `\n\n[INVESTOR_TYPE:${investorType}]`;
+            }
+            if (investmentGoal) {
+                finalBio += `\n\n[INVESTMENT_GOAL:${investmentGoal}]`;
+            }
+
             // Update profile using AuthContext (updates user state globally)
             await updateProfile({
                 username: editUsername !== currentUser.username ? editUsername : undefined,
                 full_name: editFullName !== currentUser.full_name ? editFullName : undefined,
                 phone_number: editPhone || null,
-                bio: editBio || null,
+                bio: finalBio || null,
                 profile_picture_url: avatarUrl
             } as any);
 
@@ -647,10 +790,35 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     </div>
                                 </div>
 
-                                {/* Bio */}
-                                <p className="text-center mb-4 text-sm">
-                                    {targetUser?.bio || t.profile.noBio}
-                                </p>
+                                {/* Bio & Investor Profiling */}
+                                {(() => {
+                                    const { cleanBio, investorType: parsedType, investmentGoal: parsedGoal } = parseBioData(targetUser?.bio || "");
+                                    const invTypeInfo = parsedType ? INVESTOR_TYPE_MAP[parsedType] : null;
+                                    const invGoalInfo = parsedGoal ? INVESTMENT_GOAL_MAP[parsedGoal] : null;
+
+                                    return (
+                                        <div className="space-y-3 mb-4">
+                                            <p className="text-center text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                                                {cleanBio || t.profile.noBio}
+                                            </p>
+                                            
+                                            {(invTypeInfo || invGoalInfo) && (
+                                                <div className="flex flex-wrap gap-1.5 justify-center pb-2">
+                                                    {invTypeInfo && (
+                                                        <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${invTypeInfo.color}`}>
+                                                            {language === "ar" ? invTypeInfo.ar : invTypeInfo.en}
+                                                        </Badge>
+                                                    )}
+                                                    {invGoalInfo && (
+                                                        <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${invGoalInfo.color}`}>
+                                                            {language === "ar" ? invGoalInfo.ar : invGoalInfo.en}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Stats */}
                                 <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b">
@@ -1020,126 +1188,367 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent 
-                    className="max-w-[92%] sm:max-w-[440px] max-h-[85vh] flex flex-col p-0 rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md overflow-hidden" 
+                    className="max-w-[92%] sm:max-w-[550px] md:max-w-[600px] max-h-[85vh] flex flex-col p-0 rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md overflow-hidden" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
                     <DialogHeader className={`p-6 pb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                         <DialogTitle>{t.profile.editProfile}</DialogTitle>
                         <DialogDescription>
-                            {language === "ar" ? "قم بتحديث معلومات ملفك الشخصي. جميع الحقول اختيارية باستثناء اسم المستخدم." : "Update your profile information. All fields are optional except username."}
+                            {language === "ar" ? "قم بإدارة بياناتك وإعدادات حسابك ومحفظتك من مكان واحد." : "Manage your personal details, account security, and virtual portfolios."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 custom-scrollbar">
-                        {/* Avatar Upload */}
-                        <div className="space-y-2">
-                            <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
-                            <div className="flex items-center gap-4">
-                                {avatarPreview ? (
-                                    <img
-                                        src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
-                                        alt="Preview"
-                                        className="h-16 w-16 rounded-full object-cover border"
-                                    />
-                                ) : (
-                                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border">
-                                        <User className="w-8 h-8 text-primary" />
+                    
+                    <Tabs value={settingsTab} onValueChange={(v: any) => setSettingsTab(v)} className="w-full flex-1 flex flex-col min-h-[400px] overflow-hidden">
+                        <div className="border-b px-6 pb-2">
+                            <TabsList className="grid w-full grid-cols-3 h-10 bg-muted/40 p-1 rounded-xl">
+                                <TabsTrigger value="profile" className="rounded-lg text-xs sm:text-sm font-semibold transition-all">
+                                    {language === "ar" ? "الملف الشخصي" : "Profile Details"}
+                                </TabsTrigger>
+                                <TabsTrigger value="portfolio" className="rounded-lg text-xs sm:text-sm font-semibold transition-all">
+                                    {language === "ar" ? "إدارة المحفظة" : "Portfolio Settings"}
+                                </TabsTrigger>
+                                <TabsTrigger value="security" className="rounded-lg text-xs sm:text-sm font-semibold transition-all">
+                                    {language === "ar" ? "الأمان" : "Security"}
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                            <TabsContent value="profile" className="space-y-4 outline-hidden mt-0">
+                                {/* Avatar Upload */}
+                                <div className="space-y-2">
+                                    <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
+                                    <div className="flex items-center gap-4">
+                                        {avatarPreview ? (
+                                            <img
+                                                src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
+                                                alt="Preview"
+                                                className="h-16 w-16 rounded-full object-cover border"
+                                            />
+                                        ) : (
+                                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border">
+                                                <User className="w-8 h-8 text-primary" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 space-y-1">
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                                onChange={handleFileSelect}
+                                                className="hidden"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="cursor-pointer text-xs sm:text-sm h-9"
+                                            >
+                                                <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
+                                                {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
+                                            </Button>
+                                            <p className={`text-[10px] text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                                                {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
+                                            </p>
+                                            {isUploading && (
+                                                <Progress value={uploadProgress} className="mt-2 h-1.5 w-full" />
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                                <div className="flex-1 space-y-1">
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                        onChange={handleFileSelect}
-                                        className="hidden"
+                                </div>
+
+                                {/* Full Name */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="editFullName" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "الاسم المعروض (الاسم الكامل)" : "Display Name (Full Name)"}</Label>
+                                    <Input
+                                        id="editFullName"
+                                        value={editFullName}
+                                        onChange={(e) => setEditFullName(e.target.value)}
+                                        placeholder="e.g. Ali Ahmed"
+                                        className={isRTL ? 'text-right' : ''}
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="cursor-pointer text-xs sm:text-sm h-9"
-                                    >
-                                        <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
-                                        {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
-                                    </Button>
-                                    <p className={`text-[10px] text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
-                                        {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
-                                    </p>
-                                    {isUploading && (
-                                        <Progress value={uploadProgress} className="mt-2 h-1.5 w-full" />
+                                </div>
+
+                                {/* Username */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="username" className={isRTL ? 'text-right block' : 'block'}>{t.auth.username} *</Label>
+                                    <Input
+                                        id="username"
+                                        value={editUsername}
+                                        onChange={(e) => handleUsernameChange(e.target.value)}
+                                        placeholder="Enter username"
+                                        required
+                                        className={isRTL ? 'text-right' : ''}
+                                    />
+                                    {usernameChecking && (
+                                        <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "جاري التحقق من التوفر..." : "Checking availability..."}</p>
+                                    )}
+                                    {usernameError && (
+                                        <p className={`text-xs text-red-500 ${isRTL ? 'text-right' : ''}`}>{usernameError}</p>
+                                    )}
+                                    {!usernameError && editUsername && editUsername !== currentUser?.username && !usernameChecking && (
+                                        <p className={`text-xs text-green-500 ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "✓ اسم المستخدم متاح" : "✓ Username available"}</p>
                                     )}
                                 </div>
-                            </div>
-                        </div>
 
-                        {/* Full Name */}
-                        <div className="space-y-2">
-                            <Label htmlFor="editFullName" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "الاسم المعروض (الاسم الكامل)" : "Display Name (Full Name)"}</Label>
-                            <Input
-                                id="editFullName"
-                                value={editFullName}
-                                onChange={(e) => setEditFullName(e.target.value)}
-                                placeholder="e.g. Ali Ahmed"
-                                className={isRTL ? 'text-right' : ''}
-                            />
-                        </div>
+                                {/* Phone Number */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "رقم الهاتف" : "Phone Number"}</Label>
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        value={editPhone}
+                                        onChange={(e) => setEditPhone(e.target.value)}
+                                        placeholder="+1234567890"
+                                        className={isRTL ? 'text-right' : ''}
+                                    />
+                                </div>
 
-                        {/* Username */}
-                        <div className="space-y-2">
-                            <Label htmlFor="username" className={isRTL ? 'text-right block' : 'block'}>{t.auth.username} *</Label>
-                            <Input
-                                id="username"
-                                value={editUsername}
-                                onChange={(e) => handleUsernameChange(e.target.value)}
-                                placeholder="Enter username"
-                                required
-                                className={isRTL ? 'text-right' : ''}
-                            />
-                            {usernameChecking && (
-                                <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "جاري التحقق من التوفر..." : "Checking availability..."}</p>
-                            )}
-                            {usernameError && (
-                                <p className={`text-xs text-red-500 ${isRTL ? 'text-right' : ''}`}>{usernameError}</p>
-                            )}
-                            {!usernameError && editUsername && editUsername !== currentUser?.username && !usernameChecking && (
-                                <p className={`text-xs text-green-500 ${isRTL ? 'text-right' : ''}`}>{language === "ar" ? "✓ اسم المستخدم متاح" : "✓ Username available"}</p>
-                            )}
-                        </div>
+                                {/* Bio */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="bio" className={isRTL ? 'text-right block' : 'block'}>{t.profile.bio}</Label>
+                                    <Textarea
+                                        id="bio"
+                                        value={editBio}
+                                        onChange={(e) => setEditBio(e.target.value)}
+                                        placeholder={language === "ar" ? "أخبرنا قليلاً عن نفسك..." : "Tell us a bit about yourself..."}
+                                        className={`min-h-[80px] ${isRTL ? 'text-right' : ''}`}
+                                    />
+                                </div>
 
-                        {/* Phone Number */}
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className={isRTL ? 'text-right block' : 'block'}>{language === "ar" ? "رقم الهاتف" : "Phone Number"}</Label>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                value={editPhone}
-                                onChange={(e) => setEditPhone(e.target.value)}
-                                placeholder="+1234567890"
-                                className={isRTL ? 'text-right' : ''}
-                            />
-                        </div>
+                                {/* Investor Profiling Options */}
+                                <div className="border-t pt-4 mt-4 space-y-4">
+                                    <h4 className="text-sm font-semibold text-primary">
+                                        {language === "ar" ? "الملف التعريفي للمستثمر" : "Investor Profiling"}
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="investorType" className={isRTL ? 'text-right block' : 'block'}>
+                                                {language === "ar" ? "أسلوب التداول والاستثمار" : "Investing Style"}
+                                            </Label>
+                                            <select
+                                                id="investorType"
+                                                value={investorType}
+                                                onChange={(e) => setInvestorType(e.target.value)}
+                                                className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                                                style={{ direction: isRTL ? 'rtl' : 'ltr' }}
+                                            >
+                                                <option value="">{language === "ar" ? "-- حدد أسلوبك --" : "-- Select style --"}</option>
+                                                <option value="growth">{language === "ar" ? "📈 مستثمر نمو" : "📈 Growth Investor"}</option>
+                                                <option value="value">{language === "ar" ? "💰 مستثمر عوائد / قيمة" : "💰 Value / Income Investor"}</option>
+                                                <option value="swing">{language === "ar" ? "⚡ مضارب يومي / سريع" : "⚡ Day / Swing Trader"}</option>
+                                                <option value="long_term">{language === "ar" ? "🛡️ مستثمر طويل الأجل" : "🛡️ Long-term Investor"}</option>
+                                            </select>
+                                        </div>
 
-                        {/* Bio */}
-                        <div className="space-y-2">
-                            <Label htmlFor="bio" className={isRTL ? 'text-right block' : 'block'}>{t.profile.bio}</Label>
-                            <Textarea
-                                id="bio"
-                                value={editBio}
-                                onChange={(e) => setEditBio(e.target.value)}
-                                placeholder={language === "ar" ? "أخبرنا قليلاً عن نفسك..." : "Tell us a bit about yourself..."}
-                                className={`min-h-[100px] ${isRTL ? 'text-right' : ''}`}
-                            />
+                                        <div className="space-y-2">
+                                            <Label htmlFor="investmentGoal" className={isRTL ? 'text-right block' : 'block'}>
+                                                {language === "ar" ? "هدف الاستثمار الرئيسي" : "Primary Goal"}
+                                            </Label>
+                                            <select
+                                                id="investmentGoal"
+                                                value={investmentGoal}
+                                                onChange={(e) => setInvestmentGoal(e.target.value)}
+                                                className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                                                style={{ direction: isRTL ? 'rtl' : 'ltr' }}
+                                            >
+                                                <option value="">{language === "ar" ? "-- حدد هدفك --" : "-- Select goal --"}</option>
+                                                <option value="wealth">{language === "ar" ? "🌱 بناء وتنمية الثروة" : "🌱 Capital Growth"}</option>
+                                                <option value="passive_income">{language === "ar" ? "💸 تحقيق دخل إضافي سلبي" : "💸 Continuous Passive Income"}</option>
+                                                <option value="education">{language === "ar" ? "📚 التعلم والتجربة الآمنة" : "📚 Learning & Strategy Practice"}</option>
+                                                <option value="hedging">{language === "ar" ? "🔒 التحوط وحفظ قيمة الثروة" : "🔒 Asset Hedging"}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="portfolio" className="space-y-6 outline-hidden mt-0 py-2">
+                                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <Zap className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                                                {language === "ar" ? "إعادة تعيين محاكي التداول الافتراضي" : "Reset Virtual Trade Simulator"}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                                {language === "ar" 
+                                                    ? "سيؤدي هذا إلى تصفية جميع الأسهم والعمليات الافتراضية وإعادة تعيين رصيدك الافتراضي إلى $2,000 لتتمكن من بدء رحلة تعليمية جديدة."
+                                                    : "This will liquidate all virtual simulator assets, clear your trade history, and reset your starting balance to $2,000."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    {!simResetConfirm ? (
+                                        <Button 
+                                            variant="destructive" 
+                                            className="w-full cursor-pointer bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20"
+                                            onClick={() => setSimResetConfirm(true)}
+                                        >
+                                            {language === "ar" ? "إعادة تعيين المحاكي الافتراضي" : "Reset Virtual Simulator"}
+                                        </Button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                variant="destructive" 
+                                                className="flex-1 cursor-pointer"
+                                                onClick={handleResetSimulator}
+                                                disabled={isResettingSim}
+                                            >
+                                                {isResettingSim ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === "ar" ? "نعم، متأكد" : "Yes, confirm reset")}
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                className="flex-1 cursor-pointer"
+                                                onClick={() => setSimResetConfirm(false)}
+                                            >
+                                                {language === "ar" ? "إلغاء" : "Cancel"}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <RotateCw className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                                                {language === "ar" ? "إعادة تعيين المحفظة الحقيقية اليدوية" : "Reset Manual Portfolio Tracker"}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                                {language === "ar" 
+                                                    ? "سيؤدي هذا الخيار إلى حذف جميع العمليات والأسهم التي قمت بتسجيلها يدوياً في صفحة المحفظة لتصفير سجلاتك بالكامل."
+                                                    : "This option will permanently delete all manually tracked holdings and transactions inside your Portfolio tab."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    {!portResetConfirm ? (
+                                        <Button 
+                                            variant="destructive" 
+                                            className="w-full cursor-pointer bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20"
+                                            onClick={() => setPortResetConfirm(true)}
+                                        >
+                                            {language === "ar" ? "إعادة تعيين المحفظة اليدوية" : "Reset Manual Portfolio"}
+                                        </Button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                variant="destructive" 
+                                                className="flex-1 cursor-pointer"
+                                                onClick={handleResetPortfolio}
+                                                disabled={isResettingPort}
+                                            >
+                                                {isResettingPort ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === "ar" ? "نعم، متأكد" : "Yes, confirm reset")}
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                className="flex-1 cursor-pointer"
+                                                onClick={() => setPortResetConfirm(false)}
+                                            >
+                                                {language === "ar" ? "إلغاء" : "Cancel"}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="security" className="space-y-4 outline-hidden mt-0 py-2">
+                                <form onSubmit={handleChangePassword} className="space-y-4">
+                                    <h4 className="text-sm font-semibold text-primary mb-2">
+                                        {language === "ar" ? "تغيير كلمة المرور" : "Change Password"}
+                                    </h4>
+
+                                    {passwordError && (
+                                        <div className="p-3 bg-red-500/10 text-red-500 text-xs rounded-lg border border-red-500/20">
+                                            {passwordError}
+                                        </div>
+                                    )}
+
+                                    {passwordSuccess && (
+                                        <div className="p-3 bg-green-500/10 text-green-500 text-xs rounded-lg border border-green-500/20">
+                                            {passwordSuccess}
+                                        </div>
+                                    )}
+
+                                    {currentUser?.password_hash && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="currentPassword">{language === "ar" ? "كلمة المرور الحالية" : "Current Password"}</Label>
+                                            <Input
+                                                id="currentPassword"
+                                                type="password"
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                required
+                                                className={isRTL ? 'text-right' : ''}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newPassword">{language === "ar" ? "كلمة المرور الجديدة" : "New Password"}</Label>
+                                        <Input
+                                            id="newPassword"
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            required
+                                            className={isRTL ? 'text-right' : ''}
+                                            placeholder={language === "ar" ? "8 رموز على الأقل" : "At least 8 characters"}
+                                        />
+                                        {newPassword && (
+                                            <div className="space-y-1">
+                                                <div className="flex gap-1 h-1 w-full bg-muted rounded-full overflow-hidden mt-2">
+                                                    <div className={`h-full ${newPassword.length >= 12 ? 'w-full bg-green-500' : newPassword.length >= 8 ? 'w-2/3 bg-amber-500' : 'w-1/3 bg-red-500'}`} />
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground text-right">
+                                                    {newPassword.length >= 12 
+                                                        ? (language === "ar" ? "كلمة مرور قوية جداً 💪" : "Very strong password 💪")
+                                                        : newPassword.length >= 8 
+                                                            ? (language === "ar" ? "كلمة مرور متوسطة القوة" : "Medium strength password")
+                                                            : (language === "ar" ? "كلمة مرور ضعيفة" : "Weak password")}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="confirmPassword">{language === "ar" ? "تأكيد كلمة المرور الجديدة" : "Confirm New Password"}</Label>
+                                        <Input
+                                            id="confirmPassword"
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            required
+                                            className={isRTL ? 'text-right' : ''}
+                                        />
+                                    </div>
+
+                                    <Button 
+                                        type="submit" 
+                                        className="w-full cursor-pointer mt-4" 
+                                        disabled={isChangingPassword || !newPassword || !confirmPassword}
+                                    >
+                                        {isChangingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                        {language === "ar" ? "تحديث كلمة المرور" : "Update Password"}
+                                    </Button>
+                                </form>
+                            </TabsContent>
                         </div>
-                    </div>
-                    <div className="flex items-center justify-end gap-2 p-6 pt-2 border-t mt-2">
-                        <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
-                            {t.common.cancel}
-                        </Button>
-                        <Button onClick={handleSaveProfile} disabled={isSaving || !!usernameError || usernameChecking} className="cursor-pointer">
-                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            {t.profile.saveChanges}
-                        </Button>
-                    </div>
+                    </Tabs>
+
+                    {settingsTab === "profile" && (
+                        <div className="flex items-center justify-end gap-2 p-6 pt-2 border-t mt-2">
+                            <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
+                                {t.common.cancel}
+                            </Button>
+                            <Button onClick={handleSaveProfile} disabled={isSaving || !!usernameError || usernameChecking} className="cursor-pointer">
+                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                {t.profile.saveChanges}
+                            </Button>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
 

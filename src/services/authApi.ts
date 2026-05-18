@@ -266,6 +266,22 @@ class AuthAPI {
 
         return response.json();
     }
+
+    async changePassword(data: any): Promise<MessageResponse> {
+        const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+            method: 'POST',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to change password');
+        }
+
+        return response.json();
+    }
 }
 
 export const authAPI = new AuthAPI();
+
