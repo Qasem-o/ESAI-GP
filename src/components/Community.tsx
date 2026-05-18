@@ -303,9 +303,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
       {/* Main Content */}
       <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Sidebar */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-6 layout-sticky-sidebar">
             {/* Quick Actions */}
             <Card>
               <CardHeader>
@@ -467,7 +467,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     )}
                   </Card>
                 ) : (
-                  <div className="overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4" style={{ maxHeight: '72vh' }}>
+                  <div className="posts-scroll-area space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}
@@ -485,7 +485,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <p className="text-muted-foreground">{isRTL ? "ابدأ بالإعجاب بالمنشورات لرؤية الرائج!" : "Start liking posts to see trends!"}</p>
                   </Card>
                 ) : (
-                  <div className="overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4" style={{ maxHeight: '72vh' }}>
+                  <div className="posts-scroll-area space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}
@@ -510,7 +510,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <p className="text-muted-foreground">{isRTL ? "تابع متداولين لعرض منشوراتهم هنا!" : "Follow traders to see their posts here!"}</p>
                   </Card>
                 ) : (
-                  <div className="overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4" style={{ maxHeight: '72vh' }}>
+                  <div className="posts-scroll-area space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}
@@ -519,7 +519,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
 
           {/* Right Sidebar - Top Traders & Learning */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-6 layout-sticky-sidebar">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">

@@ -608,9 +608,9 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             {/* Main Content */}
             <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* Left Sidebar - Profile Info */}
-                    <div className="lg:col-span-4 space-y-6">
+                    <div className="lg:col-span-4 space-y-6 layout-sticky-sidebar">
                         {/* Profile Card */}
                         <Card>
                             <CardContent className="pt-6">
@@ -774,7 +774,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4" style={{ maxHeight: '70vh' }}>
+                                        <div className="posts-scroll-area space-y-4">
                                             {posts.map((post) => (
                                                 <PostCard 
                                                     key={post.post_id}

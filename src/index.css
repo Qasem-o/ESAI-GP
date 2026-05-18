@@ -2952,32 +2952,61 @@ html {
   }
 
   /* Custom Scrollbar */
-  .custom-scrollbar {
+  .custom-scrollbar,
+  .posts-scroll-area {
     scrollbar-width: thin !important;
     scrollbar-color: hsl(var(--primary) / 0.6) transparent !important;
   }
-  .custom-scrollbar::-webkit-scrollbar {
+  .custom-scrollbar::-webkit-scrollbar,
+  .posts-scroll-area::-webkit-scrollbar {
     width: 8px !important;
     height: 8px !important;
     display: block !important;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .posts-scroll-area::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05) !important;
     border-radius: 10px !important;
   }
-  .dark .custom-scrollbar::-webkit-scrollbar-track {
+  .dark .custom-scrollbar::-webkit-scrollbar-track,
+  .dark .posts-scroll-area::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02) !important;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .posts-scroll-area::-webkit-scrollbar-thumb {
     background: hsl(var(--primary) / 0.6) !important;
     border-radius: 10px !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .posts-scroll-area::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary)) !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
+  }
+
+  .posts-scroll-area {
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-right: 0.5rem;
+    padding-left: 0.25rem;
+    max-height: min(72vh, 720px);
+  }
+
+  @supports (height: 100dvh) {
+    .posts-scroll-area {
+      max-height: min(72dvh, 720px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .layout-sticky-sidebar {
+      position: sticky;
+      top: 6rem;
+      align-self: start;
+    }
   }
 
   /* Fix date input icon color in dark mode */
