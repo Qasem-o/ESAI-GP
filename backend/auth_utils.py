@@ -17,7 +17,7 @@ _env_secret = _os.getenv("SECRET_KEY", "")
 IS_PRODUCTION = (
     _os.getenv("ENV") == "production" or 
     "railway.app" in _os.getenv("VITE_API_URL", "") or 
-    "supabase.co" in _os.getenv("DATABASE_URL", "")
+    "supabase." in _os.getenv("DATABASE_URL", "")
 )
 
 if not _env_secret:
