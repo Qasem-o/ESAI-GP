@@ -2951,108 +2951,64 @@ html {
     font-weight: bold !important;
   }
 
-  /* Custom Scrollbar */
-  .custom-scrollbar,
-  .posts-scroll-area {
+  /* ========================================================
+     FUTURISTIC NEON GLOW CUSTOM SCROLLBAR SYSTEM
+     ======================================================== */
+
+  /* Firefox Custom Styles */
+  * {
     scrollbar-width: thin !important;
-    scrollbar-color: hsl(var(--primary) / 0.75) transparent !important;
+    scrollbar-color: #10b981 rgba(15, 23, 42, 0.6) !important;
   }
 
-  html,
-  body {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary) / 0.75) transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar,
-  .posts-scroll-area::-webkit-scrollbar {
+  /* Global WebKit Scrollbars (Chrome, Edge, Safari, Opera) */
+  ::-webkit-scrollbar {
     width: 10px !important;
     height: 10px !important;
     display: block !important;
   }
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-button,
-  .posts-scroll-area::-webkit-scrollbar-button {
+
+  /* Completely hide standard scrollbar arrows/buttons for custom look */
+  ::-webkit-scrollbar-button {
+    display: none !important;
     width: 0 !important;
     height: 0 !important;
-    display: none !important;
   }
-  html::-webkit-scrollbar-button,
-  body::-webkit-scrollbar-button {
-    width: 0;
-    height: 0;
-    display: none;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track,
-  .posts-scroll-area::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.55) !important;
+
+  /* Futuristic Glassmorphic Track with neon accent borders */
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.7) !important;
     border-radius: 999px !important;
-    border: 1px solid hsl(var(--border) / 0.7) !important;
+    border: 1px solid rgba(16, 185, 129, 0.1) !important;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5) !important;
   }
-  html::-webkit-scrollbar-track,
-  body::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.55);
-    border-radius: 999px;
-    border: 1px solid hsl(var(--border) / 0.7);
+
+  .dark ::-webkit-scrollbar-track {
+    background: rgba(10, 10, 12, 0.8) !important;
+    border: 1px solid rgba(16, 185, 129, 0.08) !important;
   }
-  .dark .custom-scrollbar::-webkit-scrollbar-track,
-  .dark .posts-scroll-area::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.25) !important;
-  }
-  .dark html::-webkit-scrollbar-track,
-  .dark body::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.25);
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb,
-  .posts-scroll-area::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--primary) / 0.95) 0%,
-      hsl(var(--primary) / 0.6) 100%
-    ) !important;
+
+  /* Stunning floating gradient capsule thumb */
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #10b981 0%, #00ffcc 100%) !important;
     border-radius: 999px !important;
+    border: 3px solid transparent !important;
+    background-clip: padding-box !important;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4) !important;
+    transition: all 0.3s ease !important;
+  }
+
+  /* Vibrant glow hover effect */
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #00ffcc 0%, #10b981 100%) !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.7) !important;
   }
-  html::-webkit-scrollbar-thumb,
-  body::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--primary) / 0.95) 0%,
-      hsl(var(--primary) / 0.6) 100%
-    );
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
-  .posts-scroll-area::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--primary) / 0.7) 100%
-    ) !important;
-    border: 2px solid transparent !important;
-    background-clip: padding-box !important;
-  }
-  html::-webkit-scrollbar-thumb:hover,
-  body::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--primary) / 0.7) 100%
-    );
-  }
-  .custom-scrollbar::-webkit-scrollbar-corner,
-  .posts-scroll-area::-webkit-scrollbar-corner {
+
+  /* Scrollbar corner cleanup */
+  ::-webkit-scrollbar-corner {
     background: transparent !important;
-  }
-  html::-webkit-scrollbar-corner,
-  body::-webkit-scrollbar-corner {
-    background: transparent;
   }
 
   .posts-scroll-area {
