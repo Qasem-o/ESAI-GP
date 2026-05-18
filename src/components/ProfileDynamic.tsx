@@ -1058,22 +1058,34 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             {/* Custom Interactive Avatar Cropper Modal */}
             <Dialog open={isCropperOpen} onOpenChange={setIsCropperOpen}>
-                <DialogContent className="sm:max-w-[450px] overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
+                <DialogContent 
+                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] overflow-y-auto flex flex-col p-4 sm:p-6" 
+                    dir={isRTL ? "rtl" : "ltr"}
+                >
                     <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-                        <DialogTitle>
+                        <DialogTitle className="text-base sm:text-lg">
                             {language === "ar" ? "تعديل واقتصاص صورة الأفاتار" : "Adjust and Crop Avatar Image"}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-xs sm:text-sm">
                             {language === "ar" 
                                 ? "اسحب الصورة لتحريكها، واستخدم شريط التكبير لضبط الحجم." 
                                 : "Drag the image to reposition it, and use the slider to zoom."}
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex flex-col items-center justify-center py-6 space-y-6">
-                        {/* Drag Container and Circular Mask */}
+                    <div className="flex flex-col items-center justify-center py-3 space-y-4 my-auto">
+                        {/* Drag Container and Circular Mask - Guaranteed PERFECT CIRCLE & responsive */}
                         <div 
-                            className="relative w-[280px] h-[280px] rounded-full overflow-hidden border-4 border-primary/30 bg-muted/40 shadow-inner flex items-center justify-center cursor-move active:cursor-grabbing select-none"
+                            className="relative flex-shrink-0 rounded-full overflow-hidden border-4 border-primary/30 bg-muted/40 shadow-inner flex items-center justify-center cursor-move active:cursor-grabbing select-none aspect-square"
+                            style={{ 
+                                width: '200px', 
+                                height: '200px', 
+                                minWidth: '200px', 
+                                minHeight: '200px',
+                                maxWidth: '200px',
+                                maxHeight: '200px',
+                                borderRadius: '50%'
+                            }}
                             onMouseDown={handleDragStart}
                             onMouseMove={handleDragMove}
                             onMouseUp={handleDragEnd}
@@ -1099,14 +1111,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             )}
                             
                             {/* Visual Crop Guideline Circle */}
-                            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary pointer-events-none ring-offset-4 ring-2 ring-background/50" />
+                            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary pointer-events-none ring-offset-4 ring-2 ring-background/50" style={{ borderRadius: '50%' }} />
                         </div>
 
                         {/* Zoom Slider */}
-                        <div className="w-full px-4 space-y-2">
+                        <div className="w-full px-2 space-y-1">
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>{language === "ar" ? "تصغير" : "Zoom Out"}</span>
-                                <span className="font-mono text-primary font-bold">{(zoom * 100).toFixed(0)}%</span>
+                                <span className="font-mono text-primary font-bold text-xs">{(zoom * 100).toFixed(0)}%</span>
                                 <span>{language === "ar" ? "تكبير" : "Zoom In"}</span>
                             </div>
                             <input
@@ -1116,25 +1128,27 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 step="0.05"
                                 value={zoom}
                                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg appearance-none"
+                                className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-lg appearance-none"
                             />
                         </div>
 
                         {/* Controls Toolbar (Rotate, Reset) */}
-                        <div className="flex items-center gap-3 w-full px-4">
+                        <div className="flex items-center gap-3 w-full px-2">
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="flex-1 cursor-pointer"
+                                size="sm"
+                                className="flex-1 cursor-pointer h-9 text-xs sm:text-sm"
                                 onClick={() => setRotation((prev) => (prev + 90) % 360)}
                             >
-                                <RotateCw className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                <RotateCw className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
                                 {language === "ar" ? "تدوير 90°" : "Rotate 90°"}
                             </Button>
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="flex-1 cursor-pointer"
+                                size="sm"
+                                className="flex-1 cursor-pointer h-9 text-xs sm:text-sm"
                                 onClick={() => {
                                     setZoom(1);
                                     setRotation(0);
@@ -1146,17 +1160,19 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="flex justify-end gap-3 pt-3 border-t mt-auto">
                         <Button 
                             variant="ghost" 
+                            size="sm"
                             onClick={() => setIsCropperOpen(false)} 
-                            className="cursor-pointer"
+                            className="cursor-pointer h-9 text-xs sm:text-sm"
                         >
                             {t.common.cancel}
                         </Button>
                         <Button 
+                            size="sm"
                             onClick={handleCropApply} 
-                            className="cursor-pointer font-bold px-6"
+                            className="cursor-pointer font-bold px-5 h-9 text-xs sm:text-sm"
                         >
                             {language === "ar" ? "اعتماد الصورة" : "Apply Image"}
                         </Button>
