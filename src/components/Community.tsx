@@ -364,7 +364,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <Avatar className="h-10 w-10">
                       <AvatarImage
                         src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-firstdraft.onrender.com${user.profile_picture_url}`
+                          ? `https://esai-firstdraft-production.up.railway.app${user.profile_picture_url}`
                           : (user?.profile_picture_url || "")}
                         alt={user?.username}
                       />
@@ -527,7 +527,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : (
                   topTraders.map((trader) => {
                     const traderPicUrl = trader.profile_picture_url?.startsWith('/')
-                      ? `https://esai-firstdraft.onrender.com${trader.profile_picture_url}`
+                      ? `https://esai-firstdraft-production.up.railway.app${trader.profile_picture_url}`
                       : trader.profile_picture_url;
 
                     return (
@@ -598,7 +598,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               ) : (
                 Array.isArray(comments) && comments.map((c) => {
                   const cPicUrl = c.author.profile_picture_url?.startsWith('/')
-                    ? `https://esai-firstdraft.onrender.com${c.author.profile_picture_url}`
+                    ? `https://esai-firstdraft-production.up.railway.app${c.author.profile_picture_url}`
                     : c.author.profile_picture_url;
                   return (
                     <div key={c.comment_id} className="flex gap-3">

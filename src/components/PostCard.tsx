@@ -43,7 +43,7 @@ export function PostCard({
   const isOwnPost = user && Number(post.author.user_id) === Number((user as any).user_id);
   
   const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
-    ? `https://esai-firstdraft.onrender.com${post.author.profile_picture_url}`
+    ? `https://esai-firstdraft-production.up.railway.app${post.author.profile_picture_url}`
     : post.author.profile_picture_url;
 
   const formatTimeAgo = (dateStr: string) => {
