@@ -51,6 +51,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { LoadingScreen } from "./LoadingScreen";
 import { Label } from "./ui/label";
+import "../styles/edit-profile.css";
 
 interface NavigationProps {
     currentPage: string;
@@ -355,8 +356,8 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             // Apply rotation
             ctx.rotate((rotation * Math.PI) / 180);
 
-            // Calculate base dimensions fitting inside the 280x280 box
-            const previewSize = 280;
+            // Calculate base dimensions fitting inside the 200x200 box
+            const previewSize = 200;
             const scaleFactor = 400 / previewSize;
             const imgRatio = image.width / image.height;
 
@@ -936,32 +937,32 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent 
-                    className="max-w-[92%] sm:max-w-[420px] max-h-[85vh] overflow-y-auto p-5 rounded-2xl flex flex-col shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
+                    className="edit-profile-dialog max-w-[92%] sm:max-w-[440px] rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
-                    <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                    <DialogHeader className={`edit-profile-header ${isRTL ? 'text-right' : 'text-left'}`}>
                         <DialogTitle>{t.profile.editProfile}</DialogTitle>
                         <DialogDescription>
                             {language === "ar" ? "قم بتحديث معلومات ملفك الشخصي. جميع الحقول اختيارية باستثناء اسم المستخدم." : "Update your profile information. All fields are optional except username."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-3">
+                    <div className="edit-profile-body space-y-4">
                         {/* Avatar Upload */}
-                        <div className="space-y-2">
+                        <div className="edit-profile-section">
                             <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
-                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                            <div className="edit-profile-avatar-row">
                                 {avatarPreview ? (
                                     <img
                                         src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
                                         alt="Preview"
-                                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 flex-shrink-0 shadow-sm"
+                                        className="edit-profile-avatar-img"
                                     />
                                 ) : (
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center border-2 flex-shrink-0">
+                                    <div className="edit-profile-avatar-fallback">
                                         <User className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
                                     </div>
                                 )}
-                                <div className="w-full flex-1 flex flex-col items-center sm:items-stretch text-center sm:text-start">
+                                <div className="edit-profile-avatar-controls">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -973,12 +974,12 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full sm:w-auto cursor-pointer text-xs sm:text-sm h-9"
+                                        className="cursor-pointer text-xs sm:text-sm h-9"
                                     >
                                         <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
                                         {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
                                     </Button>
-                                    <p className={`text-[10px] sm:text-xs text-muted-foreground mt-2 ${isRTL ? 'sm:text-right text-center' : 'sm:text-left text-center'}`}>
+                                    <p className={`edit-profile-help ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}>
                                         {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
                                     </p>
                                     {isUploading && (
@@ -1047,7 +1048,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             />
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="edit-profile-footer">
                         <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
                             {t.common.cancel}
                         </Button>
@@ -1062,7 +1063,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Custom Interactive Avatar Cropper Modal */}
             <Dialog open={isCropperOpen} onOpenChange={setIsCropperOpen}>
                 <DialogContent 
-                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] overflow-y-auto flex flex-col p-4 sm:p-6" 
+                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] overflow-y-auto p-4 sm:p-6" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
                     <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
