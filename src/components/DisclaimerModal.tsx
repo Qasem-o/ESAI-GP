@@ -122,7 +122,32 @@ export function DisclaimerModal() {
                 </Button>
 
                 <p className="text-center text-[10px] text-muted-foreground mt-4 uppercase tracking-[0.2em] font-medium">
-                  {isRTL ? "بالنقر فوق، تقر بسياستنا" : "By clicking, you acknowledge our policy"}
+                  {isRTL ? (
+                    <>
+                      بالنقر فوق، تقر بـ{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline underline-offset-4 font-bold transition-all"
+                        style={{ textTransform: "none" }}
+                      >
+                        سياستنا للخصوصية
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      By clicking, you acknowledge our{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline underline-offset-4 font-bold transition-all"
+                      >
+                        privacy policy
+                      </a>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
