@@ -53,23 +53,13 @@ elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
 
 from models import Base as AuthBase
 
-# Detect if using Supabase Transaction Pooler (uses port 6543 or pooler.supabase.com)
-is_pooler = "pooler.supabase.com" in DATABASE_URL or ":6543" in DATABASE_URL
-
-if is_pooler:
-    # Transaction poolers require NullPool to avoid connection/prepared statement state conflicts
-    from sqlalchemy.pool import NullPool
-    engine_kwargs = {
-        "poolclass": NullPool
-    }
-else:
-    engine_kwargs = {
-        "pool_size": 20,
-        "max_overflow": 10,
-        "pool_timeout": 30,
-        "pool_recycle": 1800,
-        "pool_pre_ping": True
-    }
+engine_kwargs = {
+    "pool_size": 20,
+    "max_overflow": 10,
+    "pool_timeout": 30,
+    "pool_recycle": 1800,
+    "pool_pre_ping": True
+}
 
 # Database Engine
 engine = create_engine(

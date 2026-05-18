@@ -69,15 +69,13 @@ HARDCODED_END = (datetime.today() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 def get_engine_from_env():
     """Returns a SQLAlchemy engine using the same DATABASE_URL logic above."""
     global DATABASE_URL
-    is_pooler = "pooler.supabase.com" in DATABASE_URL or ":6543" in DATABASE_URL
-    
-    if is_pooler:
-        from sqlalchemy.pool import NullPool
-        engine_kwargs = {
-            "poolclass": NullPool
-        }
-    else:
-        engine_kwargs = {}
+    engine_kwargs = {
+        "pool_size": 10,
+        "max_overflow": 5,
+        "pool_timeout": 30,
+        "pool_recycle": 1800,
+        "pool_pre_ping": True
+    }
         
     return create_engine(DATABASE_URL, echo=False, **engine_kwargs)
 

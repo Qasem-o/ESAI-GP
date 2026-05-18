@@ -81,15 +81,13 @@ def get_engine():
     elif "postgresql://" in db_url and "+psycopg2" not in db_url:
         db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         
-    is_pooler = "pooler.supabase.com" in db_url or ":6543" in db_url
-    
-    if is_pooler:
-        from sqlalchemy.pool import NullPool
-        engine_kwargs = {
-            "poolclass": NullPool
-        }
-    else:
-        engine_kwargs = {}
+    engine_kwargs = {
+        "pool_size": 10,
+        "max_overflow": 5,
+        "pool_timeout": 30,
+        "pool_recycle": 1800,
+        "pool_pre_ping": True
+    }
         
     return create_engine(db_url, echo=False, **engine_kwargs)
 
