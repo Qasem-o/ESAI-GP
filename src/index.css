@@ -2955,35 +2955,54 @@ html {
   .custom-scrollbar,
   .posts-scroll-area {
     scrollbar-width: thin !important;
-    scrollbar-color: hsl(var(--primary) / 0.6) transparent !important;
+    scrollbar-color: hsl(var(--primary) / 0.75) transparent !important;
   }
   .custom-scrollbar::-webkit-scrollbar,
   .posts-scroll-area::-webkit-scrollbar {
-    width: 8px !important;
-    height: 8px !important;
+    width: 10px !important;
+    height: 10px !important;
     display: block !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar-button,
+  .posts-scroll-area::-webkit-scrollbar-button {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
   }
   .custom-scrollbar::-webkit-scrollbar-track,
   .posts-scroll-area::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05) !important;
-    border-radius: 10px !important;
+    background: hsl(var(--muted) / 0.55) !important;
+    border-radius: 999px !important;
+    border: 1px solid hsl(var(--border) / 0.7) !important;
   }
   .dark .custom-scrollbar::-webkit-scrollbar-track,
   .dark .posts-scroll-area::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02) !important;
+    background: hsl(var(--muted) / 0.25) !important;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb,
   .posts-scroll-area::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.6) !important;
-    border-radius: 10px !important;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.95) 0%,
+      hsl(var(--primary) / 0.6) 100%
+    ) !important;
+    border-radius: 999px !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover,
   .posts-scroll-area::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary)) !important;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary) / 0.7) 100%
+    ) !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
+  }
+  .custom-scrollbar::-webkit-scrollbar-corner,
+  .posts-scroll-area::-webkit-scrollbar-corner {
+    background: transparent !important;
   }
 
   .posts-scroll-area {
