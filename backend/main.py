@@ -96,9 +96,11 @@ else:
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
+        "https://esai-sa.me",
+        "https://www.esai-sa.me",
     ]
-    # Allow all Netlify staging and production deployments via safe regex matching
-    allow_origin_regex = r"^https?://([a-zA-Z0-9-]+\.)*netlify\.app$"
+    # Allow all Netlify deployments and production domain/subdomains via safe regex matching
+    allow_origin_regex = r"^https?://([a-zA-Z0-9-]+\.)*(netlify\.app|esai-sa\.me)$"
 
 app.add_middleware(
     CORSMiddleware,
