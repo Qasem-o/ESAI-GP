@@ -1198,7 +1198,6 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                 </DialogContent>
             </Dialog>
 
-            <Footer />
 
             {/* Comments Modal */}
             {commentsPostId !== null && (
