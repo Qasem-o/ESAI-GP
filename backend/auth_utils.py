@@ -13,7 +13,25 @@ import string
 # JWT Configuration — load from config/env, with a safe fallback
 import os as _os
 _env_secret = _os.getenv("SECRET_KEY", "")
-SECRET_KEY = _env_secret if _env_secret else "your-default-secret-key-for-development-only"
+# Detect if running in production dynamically
+IS_PRODUCTION = (
+    _os.getenv("ENV") == "production" or 
+    "railway.app" in _os.getenv("VITE_API_URL", "") or 
+    "supabase.co" in _os.getenv("DATABASE_URL", "")
+)
+
+if not _env_secret:
+    if IS_PRODUCTION:
+        raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY environment variable MUST be set in production!")
+    SECRET_KEY = "your-default-secret-key-for-development-only"
+else:
+    if _env_secret in ["your-secret-key-change-this-in-production-use-env-variable", "your-default-secret-key-for-development-only"]:
+        if IS_PRODUCTION:
+            raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY cannot be a default placeholder in production!")
+        SECRET_KEY = "your-default-secret-key-for-development-only"
+    else:
+        SECRET_KEY = _env_secret
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -202,6 +220,9 @@ def verify_google_token(token: str) -> Optional[dict]:
         idreq = requests.Request()
         
         if GOOGLE_CLIENT_ID == "your-google-client-id":
+             if IS_PRODUCTION:
+                 print("CRITICAL: Google Client ID is set to placeholder in production. Google sign-in is disabled.")
+                 return None
              import jwt as pyjwt
              decoded = pyjwt.decode(token, options={"verify_signature": False})
              return decoded
@@ -253,6 +274,9 @@ def verify_telegram_auth(data: dict) -> bool:
         
     # Development bypass for placeholder token
     if TELEGRAM_BOT_TOKEN == "your-telegram-bot-token":
+        if IS_PRODUCTION:
+            print("CRITICAL: Telegram Bot Token is set to placeholder in production. Telegram verification blocked.")
+            return False
         print("WARNING: Bypassing Telegram verification due to placeholder token")
         return True
 

@@ -35,8 +35,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Get client IP
-        client_ip = request.client.host if request.client else "unknown"
+        # Get client IP securely via proxies (using get_client_ip helper)
+        client_ip = get_client_ip(request)
         path = request.url.path
         
         # Determine rate limit based on path

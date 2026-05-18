@@ -15,8 +15,8 @@ db_url = os.getenv("DATABASE_URL")
 if not db_url:
     import urllib.parse
     PG_USER = os.getenv("PG_USER", "postgres")
-    PG_PASS = os.getenv("PG_PASS", "Esaiproject123@")
-    PG_HOST = os.getenv("PG_HOST", "db.aghjigcfigybkhuqypiy.supabase.co")
+    PG_PASS = os.getenv("PG_PASS", "your_local_db_password_here")
+    PG_HOST = os.getenv("PG_HOST", "localhost")
     PG_PORT = os.getenv("PG_PORT", "5432")
     PG_DB = os.getenv("PG_DB", "postgres")
     

@@ -85,12 +85,25 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi import Request
 
 # CORS Configuration
-# We include variations with/without trailing slashes and 127.0.0.1 just in case
-allowed_origins = ["*"]
+# Load allowed origins securely from env, or whitelist localhost and netlify staging deployments securely
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+    allow_origin_regex = None
+else:
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ]
+    # Allow all Netlify staging and production deployments via safe regex matching
+    allow_origin_regex = r"^https?://([a-zA-Z0-9-]+\.)*netlify\.app$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,7 +114,17 @@ app.add_middleware(
 def _get_cors_headers(request: Request):
     origin = request.headers.get("origin")
     headers = {}
-    if origin and (origin in allowed_origins or origin + "/" in allowed_origins or origin.rstrip("/") in allowed_origins):
+    
+    # Helper checking if origin matches allowed whitelists
+    import re
+    is_allowed = False
+    if origin:
+        if origin in allowed_origins or origin + "/" in allowed_origins or origin.rstrip("/") in allowed_origins:
+            is_allowed = True
+        elif allow_origin_regex and re.match(allow_origin_regex, origin):
+            is_allowed = True
+            
+    if is_allowed:
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
     return headers
@@ -130,9 +153,17 @@ async def generic_exception_handler(request: Request, exc: Exception):
     import traceback
     traceback.print_exc()
     headers = _get_cors_headers(request)
+    
+    # Hide internal database errors and library exceptions in production environments
+    is_prod = (
+        os.getenv("ENV") == "production" or 
+        "railway.app" in os.getenv("VITE_API_URL", "")
+    )
+    error_msg = "Internal Server Error" if is_prod else f"Internal Server Error: {str(exc)}"
+    
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
+        content={"detail": error_msg},
         headers=headers
     )
 
