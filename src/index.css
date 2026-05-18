@@ -2951,107 +2951,105 @@ html {
     font-weight: bold !important;
   }
 
-  /* ========================================================
-     PREMIUM MINIMALIST CUSTOM SCROLLBAR SYSTEM
-     ======================================================== */
-
-  /* Firefox Custom Styles (Light Mode Default) */
-  * {
+  /* Scoped themed scrollbar (no global browser scrollbar overrides) */
+  .custom-scrollbar,
+  .posts-scroll-area {
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(0, 0, 0, 0.3) transparent !important;
+    scrollbar-color: hsl(var(--primary) / 0.75) transparent !important;
   }
 
-  /* Global WebKit Scrollbars (Chrome, Edge, Safari, Opera) */
-  ::-webkit-scrollbar {
-    width: 8px !important;
-    height: 8px !important;
+  .custom-scrollbar::-webkit-scrollbar,
+  .posts-scroll-area::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
     display: block !important;
   }
 
-  /* Completely hide standard scrollbar arrows/buttons for custom look */
-  ::-webkit-scrollbar-button {
-    display: none !important;
+  .custom-scrollbar::-webkit-scrollbar-button,
+  .posts-scroll-area::-webkit-scrollbar-button {
     width: 0 !important;
     height: 0 !important;
+    display: none !important;
   }
 
-  /* Futuristic Glassmorphic Track - Light Mode (Default) */
-  ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.02) !important;
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .posts-scroll-area::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.55) !important;
     border-radius: 999px !important;
+    border: 1px solid hsl(var(--border) / 0.7) !important;
   }
 
-  /* Minimalist Capsule Thumb - Light Mode (Default: Black) */
-  ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border-radius: 999px !important;
-    border: 2px solid transparent !important;
-    background-clip: padding-box !important;
-    transition: background-color 0.2s ease !important;
+  .dark .custom-scrollbar::-webkit-scrollbar-track,
+  .dark .posts-scroll-area::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.25) !important;
   }
 
-  /* Hover effect - Light Mode */
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.55) !important;
-  }
-
-  /* Dark Mode Track and Thumb Styles */
-  .dark ::-webkit-scrollbar-track,
-  .dark::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02) !important;
-  }
-
-  /* Minimalist Capsule Thumb - Dark Mode (White) */
-  .dark ::-webkit-scrollbar-thumb,
-  .dark::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.35) !important;
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .posts-scroll-area::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.95) 0%,
+      hsl(var(--primary) / 0.6) 100%
+    ) !important;
     border-radius: 999px !important;
     border: 2px solid transparent !important;
     background-clip: padding-box !important;
   }
 
-  /* Hover effect - Dark Mode */
-  .dark ::-webkit-scrollbar-thumb:hover,
-  .dark::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.7) !important;
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .posts-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary) / 0.7) 100%
+    ) !important;
   }
 
-  /* Firefox Custom Styles (Dark Mode Override) */
-  .dark * {
-    scrollbar-color: rgba(255, 255, 255, 0.35) transparent !important;
-  }
-
-  /* Scrollbar corner cleanup */
-  ::-webkit-scrollbar-corner {
+  .custom-scrollbar::-webkit-scrollbar-corner,
+  .posts-scroll-area::-webkit-scrollbar-corner {
     background: transparent !important;
   }
 
-  /* Compact Scrollbars for Inner Panels */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px !important;
-    height: 6px !important;
-  }
+  /* ========================================================
+     TWITTER / X STYLE PAGE LAYOUT ARCHITECTURE
+     ======================================================== */
 
-  .posts-scroll-area {
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    padding-right: 0.5rem;
-    padding-left: 0.25rem;
-    max-height: min(72vh, 720px);
+  .layout-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: visible !important;
   }
 
   @supports (height: 100dvh) {
-    .posts-scroll-area {
-      max-height: min(72dvh, 720px);
+    .layout-shell {
+      min-height: 100dvh;
     }
   }
 
+  .layout-main {
+    flex: 1;
+    overflow: visible !important;
+  }
+
+  .layout-grid {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Cancel internal post feed scrollbars entirely so they scroll naturally with the window */
+  .posts-scroll-area {
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: 0;
+  }
+
   @media (min-width: 1024px) {
+    /* Sidebars stay perfectly sticky, matching Twitter/X scrolling physics */
     .layout-sticky-sidebar {
-      position: sticky;
-      top: 6rem;
-      align-self: start;
+      position: sticky !important;
+      top: 6rem !important; /* Perfect offset from the sticky Header */
+      align-self: start !important;
     }
   }
 

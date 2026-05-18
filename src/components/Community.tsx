@@ -288,22 +288,24 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background" dir={isRTL ? "rtl" : "ltr"}>
-      <Header
-        currentPage={currentPage === "home" ? "home" : currentPage}
-        onGoToHome={onGoToHome}
-        onGoToExplore={onGoToStocks}
-        onGoToPortfolio={onGoToPortfolio}
-        onGoToSimulator={onGoToSimulator}
-        onGoToProfile={onGoToProfile}
-        onGoToSignup={onGoToSignup}
-        onGoToLogin={onGoToLogin}
-        onGoToAdmin={onGoToAdmin}
-      />
+    <div className="layout-shell bg-background" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="sticky top-0 z-50">
+        <Header
+          currentPage={currentPage === "home" ? "home" : currentPage}
+          onGoToHome={onGoToHome}
+          onGoToExplore={onGoToStocks}
+          onGoToPortfolio={onGoToPortfolio}
+          onGoToSimulator={onGoToSimulator}
+          onGoToProfile={onGoToProfile}
+          onGoToSignup={onGoToSignup}
+          onGoToLogin={onGoToLogin}
+          onGoToAdmin={onGoToAdmin}
+        />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="layout-main container mx-auto px-4 lg:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start layout-grid">
           {/* Left Sidebar */}
           <div className="lg:col-span-3 space-y-6 layout-sticky-sidebar">
             {/* Quick Actions */}
@@ -355,7 +357,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
           </div>
 
           {/* Center Feed */}
-          <div className="lg:col-span-6 space-y-4">
+          <div className="lg:col-span-6 flex flex-col min-h-0 gap-4">
             {/* Post Composer */}
             {isAuthenticated && (
               <Card>
@@ -434,7 +436,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
             )}
 
             {/* Filter Tabs */}
-            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
+            <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as any)} className="w-full flex flex-col min-h-0 flex-1" dir={isRTL ? "rtl" : "ltr"}>
               <TabsList className="w-full justify-start h-12 bg-muted/50 p-1 mb-6 overflow-x-auto no-scrollbar">
                 <TabsTrigger value="all" className="cursor-pointer">
                   {t.community.allPosts}
@@ -450,13 +452,13 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               </TabsList>
 
               {/* Posts Feed */}
-              <TabsContent value="all" className="mt-4 space-y-4">
+              <TabsContent value="all" className="mt-4 flex flex-col min-h-0 flex-1">
                 {isLoading ? (
-                  <div className="flex justify-center py-20">
+                  <div className="flex justify-center py-20 flex-1">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : posts.length === 0 ? (
-                  <Card className="p-8 text-center">
+                  <Card className="p-8 text-center flex-1">
                     <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <h3 className="text-xl font-semibold mb-2">{t.community.noPosts}</h3>
                     <p className="text-muted-foreground mb-4">
@@ -467,50 +469,50 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     )}
                   </Card>
                 ) : (
-                  <div className="posts-scroll-area space-y-4">
+                  <div className="posts-scroll-area flex-1 space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="trending" className="mt-4 space-y-4">
+              <TabsContent value="trending" className="mt-4 flex flex-col min-h-0 flex-1">
                 {isLoading ? (
-                  <div className="flex justify-center py-20">
+                  <div className="flex justify-center py-20 flex-1">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : posts.length === 0 ? (
-                  <Card className="p-8 text-center">
+                  <Card className="p-8 text-center flex-1">
                     <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500 opacity-50" />
                     <h3 className="text-xl font-semibold mb-2">{t.community.noTrendingPosts}</h3>
                     <p className="text-muted-foreground">{isRTL ? "ابدأ بالإعجاب بالمنشورات لرؤية الرائج!" : "Start liking posts to see trends!"}</p>
                   </Card>
                 ) : (
-                  <div className="posts-scroll-area space-y-4">
+                  <div className="posts-scroll-area flex-1 space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="following" className="mt-4 space-y-4">
+              <TabsContent value="following" className="mt-4 flex flex-col min-h-0 flex-1">
                 {!isAuthenticated ? (
-                  <Card className="p-8 text-center">
+                  <Card className="p-8 text-center flex-1">
                     <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <h3 className="text-xl font-semibold mb-2">{t.community.signInRequired}</h3>
                     <p className="text-muted-foreground mb-4">{t.community.signInToFollow}</p>
                     <Button onClick={onGoToLogin} className="cursor-pointer">{t.nav.login}</Button>
                   </Card>
                 ) : isLoading ? (
-                  <div className="flex justify-center py-20">
+                  <div className="flex justify-center py-20 flex-1">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : posts.length === 0 ? (
-                  <Card className="p-8 text-center">
+                  <Card className="p-8 text-center flex-1">
                     <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <h3 className="text-xl font-semibold mb-2">{t.community.noFollowingPosts}</h3>
                     <p className="text-muted-foreground">{isRTL ? "تابع متداولين لعرض منشوراتهم هنا!" : "Follow traders to see their posts here!"}</p>
                   </Card>
                 ) : (
-                  <div className="posts-scroll-area space-y-4">
+                  <div className="posts-scroll-area flex-1 space-y-4">
                     {posts.map(post => renderPost(post))}
                   </div>
                 )}

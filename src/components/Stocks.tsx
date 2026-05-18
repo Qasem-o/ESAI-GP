@@ -247,23 +247,24 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
   });
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Unified Header */}
-      <Header
-        currentPage={currentPage}
-        onGoToHome={onGoToHome}
-        onGoToExplore={onGoToStocks}
-        onGoToPortfolio={onGoToPortfolio}
-        onGoToSimulator={onGoToSimulator}
-        onGoToProfile={onGoToProfile}
-        onGoToSignup={onGoToSignup}
-        onGoToLogin={onGoToLogin}
-        onGoToAdmin={onGoToAdmin}
-      />
+    <div className="layout-shell bg-background flex flex-col">
+      <div className="sticky top-0 z-50">
+        <Header
+          currentPage={currentPage}
+          onGoToHome={onGoToHome}
+          onGoToExplore={onGoToStocks}
+          onGoToPortfolio={onGoToPortfolio}
+          onGoToSimulator={onGoToSimulator}
+          onGoToProfile={onGoToProfile}
+          onGoToSignup={onGoToSignup}
+          onGoToLogin={onGoToLogin}
+          onGoToAdmin={onGoToAdmin}
+        />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="layout-main container mx-auto px-4 lg:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start layout-grid">
           {/* Left Sidebar - Hidden on mobile */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -344,7 +345,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
           {/* Center - Stocks Grid */}
           <div 
-            className="flex flex-col gap-4"
+            className="flex flex-col min-h-0 gap-4"
             style={{ gridColumn: isDesktop ? 'span 6 / span 6' : 'span 1 / span 1' }}
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
@@ -403,21 +404,11 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
 
             {/* Stocks Grid */}
             <motion.div
-              style={{ maxHeight: '80vh', overflowY: 'auto' }}
-              className="grid gap-4 pb-4 pr-2 stocks-grid-container [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-primary/20 hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+              className="posts-scroll-area flex-1 grid gap-4 pb-4"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {/* Force natural scrolling on small mobile screens if 80vh is too restrictive or weird */}
-              <style dangerouslySetInnerHTML={{ __html: `
-                @media (max-width: 640px) {
-                  .stocks-grid-container {
-                    max-height: none !important;
-                    overflow-y: visible !important;
-                  }
-                }
-              `}} />
               <AnimatePresence mode="popLayout">
                 {loading ? (
                   <motion.div 

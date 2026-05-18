@@ -594,21 +594,23 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     ];
 
     return (
-        <div className="bg-background min-h-screen flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
-            <Header
-                currentPage={currentPage}
-                onGoToHome={onGoToHome}
-                onGoToExplore={onGoToExplore}
-                onGoToPortfolio={onGoToPortfolio}
-                onGoToSimulator={onGoToSimulator}
-                onGoToProfile={onGoToProfile}
-                onGoToSignup={onGoToSignup}
-                onGoToLogin={onGoToLogin}
-            />
+        <div className="layout-shell bg-background" dir={isRTL ? "rtl" : "ltr"}>
+            <div className="sticky top-0 z-50">
+                <Header
+                    currentPage={currentPage}
+                    onGoToHome={onGoToHome}
+                    onGoToExplore={onGoToExplore}
+                    onGoToPortfolio={onGoToPortfolio}
+                    onGoToSimulator={onGoToSimulator}
+                    onGoToProfile={onGoToProfile}
+                    onGoToSignup={onGoToSignup}
+                    onGoToLogin={onGoToLogin}
+                />
+            </div>
 
             {/* Main Content */}
-            <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="layout-main container mx-auto px-4 lg:px-6 py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start layout-grid">
                     {/* Left Sidebar - Profile Info */}
                     <div className="lg:col-span-4 space-y-6 layout-sticky-sidebar">
                         {/* Profile Card */}
@@ -749,10 +751,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                     </div>
 
                     {/* Center - Main Content */}
-                    <div className="lg:col-span-8 space-y-4">
+                    <div className="lg:col-span-8 flex flex-col min-h-0 gap-4">
                         {/* Tabs */}
-                        <Card>
-                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
+                        <Card className="flex flex-col min-h-0 flex-1">
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full flex flex-col min-h-0 flex-1" dir={isRTL ? "rtl" : "ltr"}>
                                     <TabsList className="w-full grid grid-cols-3">
                                         <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
                                         <TabsTrigger value="portfolio" className="cursor-pointer">{t.nav.portfolio}</TabsTrigger>
@@ -760,7 +762,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     </TabsList>
 
                                 {/* Posts Tab */}
-                                <TabsContent value="posts" className="space-y-4 p-4">
+                                <TabsContent value="posts" className="p-4 flex flex-col min-h-0 flex-1">
                                     {posts.length === 0 ? (
                                         <div className="text-center py-12">
                                             <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -774,7 +776,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="posts-scroll-area space-y-4">
+                                        <div className="posts-scroll-area flex-1 space-y-4">
                                             {posts.map((post) => (
                                                 <PostCard 
                                                     key={post.post_id}
