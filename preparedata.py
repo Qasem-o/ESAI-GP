@@ -73,9 +73,6 @@ def get_engine_from_env():
     
     if is_pooler:
         from sqlalchemy.pool import NullPool
-        if "prepared_statement" not in DATABASE_URL:
-            separator = "&" if "?" in DATABASE_URL else "?"
-            DATABASE_URL += f"{separator}prepared_statement=false"
         engine_kwargs = {
             "poolclass": NullPool
         }

@@ -85,9 +85,6 @@ def get_engine():
     
     if is_pooler:
         from sqlalchemy.pool import NullPool
-        if "prepared_statement" not in db_url:
-            separator = "&" if "?" in db_url else "?"
-            db_url += f"{separator}prepared_statement=false"
         engine_kwargs = {
             "poolclass": NullPool
         }

@@ -59,9 +59,6 @@ is_pooler = "pooler.supabase.com" in DATABASE_URL or ":6543" in DATABASE_URL
 if is_pooler:
     # Transaction poolers require NullPool to avoid connection/prepared statement state conflicts
     from sqlalchemy.pool import NullPool
-    if "prepared_statement" not in DATABASE_URL:
-        separator = "&" if "?" in DATABASE_URL else "?"
-        DATABASE_URL += f"{separator}prepared_statement=false"
     engine_kwargs = {
         "poolclass": NullPool
     }
