@@ -774,7 +774,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             </p>
                                         </div>
                                     ) : (
-                                        <div className="max-h-[70vh] overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4">
+                                        <div className="overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4" style={{ maxHeight: '70vh' }}>
                                             {posts.map((post) => (
                                                 <PostCard 
                                                     key={post.post_id}

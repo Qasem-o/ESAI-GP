@@ -2952,20 +2952,32 @@ html {
   }
 
   /* Custom Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin !important;
+    scrollbar-color: hsl(var(--primary) / 0.6) transparent !important;
+  }
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px !important;
+    height: 8px !important;
+    display: block !important;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 10px !important;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02) !important;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 8px;
+    background: hsl(var(--primary) / 0.6) !important;
+    border-radius: 10px !important;
+    border: 2px solid transparent !important;
+    background-clip: padding-box !important;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
+    background: hsl(var(--primary)) !important;
+    border: 2px solid transparent !important;
+    background-clip: padding-box !important;
   }
 
   /* Fix date input icon color in dark mode */
