@@ -7,6 +7,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { LoadingScreen } from "./LoadingScreen";
 import { useAuth } from "../contexts/AuthContext";
+import { Progress } from "./ui/progress";
 import { simulatorAPI } from "../services/simulatorApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -285,7 +286,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Left Sidebar - Portfolio Summary */}
-                <div className="lg:col-span-4 space-y-6">
+                <div className="lg:col-span-4 space-y-6 layout-sticky-sidebar">
                   {/* Win Banner */}
                   {summary?.is_completed && (
                     <Card className="bg-yellow-500/10 border-yellow-500/50">
@@ -382,12 +383,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
                                 <span className="font-medium">{h.stock_symbol}</span>
                                 <span className="text-muted-foreground">{allocation.toFixed(1)}%</span>
                               </div>
-                              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                                  style={{ width: `${allocation}%` }}
-                                />
-                              </div>
+                              <Progress value={allocation} className="h-2" />
                             </div>
                           );
                         })}
@@ -400,12 +396,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
                                 <span className="font-medium">{isRTL ? 'السيولة' : 'Cash'}</span>
                                 <span className="text-muted-foreground">{cashAlloc.toFixed(1)}%</span>
                               </div>
-                              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
-                                  style={{ width: `${cashAlloc}%` }}
-                                />
-                              </div>
+                              <Progress value={cashAlloc} className="h-2" />
                             </div>
                           ) : null;
                         })()}

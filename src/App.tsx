@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { Community } from "./components/Community";
 import { Stocks } from "./components/Stocks";
@@ -34,6 +35,75 @@ type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login"
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Premium Twitter/X scrolling physics for sticky sidebars of any height
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const scrollDelta = scrollY - lastScrollY;
+      const viewportHeight = window.innerHeight;
+
+      const sidebars = document.querySelectorAll('.layout-sticky-sidebar');
+      sidebars.forEach((el) => {
+        const sidebar = el as HTMLElement;
+        const sidebarHeight = sidebar.offsetHeight;
+        const parentRect = sidebar.parentElement?.getBoundingClientRect();
+
+        if (!parentRect) return;
+
+        // If sidebar is shorter than viewport, just stick it to the top
+        if (sidebarHeight < viewportHeight - 120) {
+          sidebar.style.setProperty('position', 'sticky', 'important');
+          sidebar.style.setProperty('top', '96px', 'important');
+          sidebar.style.setProperty('bottom', 'auto', 'important');
+          return;
+        }
+
+        // If sidebar is taller than viewport (Twitter/X scrolling behavior)
+        const styleTop = sidebar.style.top;
+        const currentTop = styleTop ? parseFloat(styleTop) : 96;
+
+        if (scrollDelta > 0) {
+          // Scrolling down - stick sidebar to bottom when reached
+          const maxTop = viewportHeight - sidebarHeight - 24; // 24px bottom padding
+          const newTop = Math.max(maxTop, currentTop - scrollDelta);
+          sidebar.style.setProperty('position', 'sticky', 'important');
+          sidebar.style.setProperty('top', `${newTop}px`, 'important');
+          sidebar.style.setProperty('bottom', 'auto', 'important');
+        } else {
+          // Scrolling up - stick sidebar to top when reached
+          const minTop = 96; // Header offset
+          const newTop = Math.min(minTop, currentTop - scrollDelta);
+          sidebar.style.setProperty('position', 'sticky', 'important');
+          sidebar.style.setProperty('top', `${newTop}px`, 'important');
+          sidebar.style.setProperty('bottom', 'auto', 'important');
+        }
+      });
+
+      lastScrollY = scrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+    
+    // Position sidebars correctly initially, and check periodically for the first 3s
+    // to handle asynchronous content load states across all pages (Explore, Community, Simulator, etc.)
+    handleScroll();
+    let checks = 0;
+    const interval = setInterval(() => {
+      handleScroll();
+      checks++;
+      if (checks >= 6) clearInterval(interval);
+    }, 500);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      clearInterval(interval);
+    };
+  }, [location.pathname]);
 
   // Determine current page for navigation highlighting
   const getCurrentPage = (): Page | "other" => {

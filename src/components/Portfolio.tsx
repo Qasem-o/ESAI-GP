@@ -463,7 +463,7 @@ export function Portfolio({
       <div className="flex-1 container mx-auto px-4 lg:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Sidebar - Portfolio Summary */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6 layout-sticky-sidebar">
             {/* Portfolio Value Card */}
             <Card className="bg-gradient-to-br from-primary/10 to-blue-500/10 border-primary/20">
               <CardHeader>

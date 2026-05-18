@@ -271,11 +271,11 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.1 }}
             style={{ 
-              position: 'sticky', 
-              top: '6rem',
+
+
               display: isDesktop ? 'block' : 'none'
             }}
-            className="lg:col-span-3 space-y-6 pr-1"
+            className="lg:col-span-3 space-y-6 pr-1 layout-sticky-sidebar"
           >
             {/* Search */}
             <Card>
@@ -555,11 +555,11 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
             animate={{ opacity: 1, x: 0 }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
             style={{ 
-              position: 'sticky', 
-              top: '6rem',
+
+
               display: isDesktop ? 'block' : 'none'
             }}
-            className="lg:col-span-3 space-y-6 pl-1"
+            className="lg:col-span-3 space-y-6 pl-1 layout-sticky-sidebar"
           >
             {selectedStock && (
               <Card>

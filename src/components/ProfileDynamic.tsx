@@ -13,6 +13,7 @@ import { DefaultAvatar } from "./DefaultAvatar";
 import { useLanguage } from "../contexts/LanguageContext";
 import {
     TrendingUp,
+    TrendingDown,
     User,
     Settings,
     Heart,
@@ -34,7 +35,8 @@ import {
     Trash2,
     X,
     Send,
-    RotateCw
+    RotateCw,
+    Zap
 } from "lucide-react";
 import {
     Dialog,
@@ -705,49 +707,6 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             </CardContent>
                         </Card>
 
-                        {/* Trading Stats */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">{t.profile.simulationPerformance}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {tradingStats.map((stat, i) => {
-                                        const Icon = stat.icon;
-                                        return (
-                                            <div key={i} className="bg-muted/50 rounded-lg p-3 text-center">
-                                                <Icon className="w-5 h-5 mx-auto mb-2 text-primary" />
-                                                <p className="text-lg font-bold">{stat.value}</p>
-                                                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Portfolio Value */}
-                                <div className="bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-lg p-4 border">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-muted-foreground">{t.portfolio.totalValue}</span>
-                                        <Badge variant={stats && stats.portfolio_change >= 0 ? "default" : "destructive"}>
-                                            {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change?.toFixed(1) || 0}%
-                                        </Badge>
-                                    </div>
-                                    <p className="text-3xl font-bold">${stats?.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</p>
-                                    <Button onClick={onGoToSimulator} variant="link" className="p-0 h-auto mt-2 text-primary cursor-pointer">
-                                        {language === "ar" ? "عرض المحاكي الكامل ←" : "View Full Simulator →"}
-                                    </Button>
-                                </div>
-
-                                {/* Win Rate Progress */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm">{t.profile.winRate}</span>
-                                        <span className="text-sm font-bold">{stats?.win_rate?.toFixed(0) || 0}%</span>
-                                    </div>
-                                    <Progress value={stats?.win_rate || 0} className="h-2" />
-                                </div>
-                            </CardContent>
-                        </Card>
                     </div>
 
                     {/* Center - Main Content */}
@@ -757,7 +716,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full flex flex-col min-h-0 flex-1" dir={isRTL ? "rtl" : "ltr"}>
                                     <TabsList className="w-full grid grid-cols-3">
                                         <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
-                                        <TabsTrigger value="portfolio" className="cursor-pointer">{t.nav.portfolio}</TabsTrigger>
+                                        <TabsTrigger value="portfolio" className="cursor-pointer">{language === "ar" ? "أداء المحاكاة" : "Simulation Performance"}</TabsTrigger>
                                         <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
                                     </TabsList>
 
@@ -799,24 +758,136 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     )}
                                 </TabsContent>
 
-                                {/* Portfolio Tab */}
-                                <TabsContent value="portfolio" className="p-4">
-                                    {isEditingOwnProfile ? (
-                                        <div className="text-center py-12">
-                                            <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "نظرة عامة على المحفظة" : "Portfolio Overview"}</h3>
-                                            <p className="text-muted-foreground mb-4">{language === "ar" ? "اعرض محفظتك الكاملة وأصولك" : "View your complete portfolio and holdings"}</p>
-                                            <Button onClick={onGoToPortfolio} className="cursor-pointer">
-                                                {t.nav.portfolio}
-                                            </Button>
+                                {/* Simulation Performance Tab */}
+                                <TabsContent value="portfolio" className="p-4 flex-1 flex flex-col min-h-0">
+                                    <div className="space-y-6">
+                                        {/* Performance Hero Banner */}
+                                        <div className="bg-gradient-to-br from-card to-card/90 rounded-2xl p-6 border border-border/50 shadow-md relative overflow-hidden">
+                                            {/* Decorative Background Elements */}
+                                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                                            
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                                                <div>
+                                                    <span className="text-xs font-bold uppercase tracking-widest text-primary/70 bg-primary/10 px-3 py-1 rounded-full">
+                                                        {language === "ar" ? "أداء المحاكاة" : "Simulation Performance"}
+                                                    </span>
+                                                    <h3 className="text-2xl font-bold mt-3 mb-1 text-foreground">
+                                                        {language === "ar" ? "إجمالي القيمة الحالية" : "Current Simulator Value"}
+                                                    </h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {language === "ar" ? "رأس المال الافتراضي وأرباح المحاكي النشطة" : "Virtual capital and active simulation returns"}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="flex flex-col items-end gap-2 text-right md:text-right">
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-4xl font-extrabold tracking-tight text-foreground">
+                                                            ${stats?.portfolio_value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={stats && stats.portfolio_change >= 0 ? "default" : "destructive"} className="text-sm px-3 py-1 font-bold rounded-full shadow-sm">
+                                                            {stats && stats.portfolio_change >= 0 ? <TrendingUp className="w-3 h-3 mr-1 inline" /> : <TrendingDown className="w-3 h-3 mr-1 inline" />}
+                                                            {stats && stats.portfolio_change >= 0 ? '+' : ''}{stats?.portfolio_change?.toFixed(2) || 0}%
+                                                        </Badge>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {language === "ar" ? "العائد الكلي" : "Total Return"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Growth progress relative to $2,000 starting balance */}
+                                            <div className="mt-6 pt-6 border-t border-border/40">
+                                                <div className="flex justify-between text-xs mb-2">
+                                                    <span className="text-muted-foreground">{language === "ar" ? "رأس المال الأولي ($2,000)" : "Initial Capital ($2,000)"}</span>
+                                                    <span className="font-bold text-foreground">
+                                                        {stats && stats.portfolio_value >= 2000 
+                                                            ? `${language === "ar" ? "نمو بمقدار" : "Gain:"} +$${(stats.portfolio_value - 2000).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                                                            : `${language === "ar" ? "تراجع بمقدار" : "Loss:"} -$${(2000 - stats.portfolio_value).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                                                        }
+                                                    </span>
+                                                </div>
+                                                <Progress 
+                                                    value={stats ? Math.min(100, Math.max(0, (stats.portfolio_value / 2000) * 50)) : 50} 
+                                                    className="h-2.5 bg-muted rounded-full" 
+                                                />
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="text-center py-12">
-                                            <BarChart2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                                            <h3 className="text-xl font-semibold mb-2">{language === "ar" ? "المحفظة مغلقة" : "Private Portfolio"}</h3>
-                                            <p className="text-muted-foreground">{language === "ar" ? "هذه المحفظة خاصة بمالك الحساب فقط." : "This portfolio is private to the account owner."}</p>
+
+                                        {/* Stats Grid */}
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {tradingStats.map((stat, i) => {
+                                                const Icon = stat.icon;
+                                                return (
+                                                    <Card key={i} className="bg-card/40 backdrop-blur-sm hover:border-primary/30 transition-all hover:shadow-md group">
+                                                        <CardContent className="p-5 flex flex-col items-center justify-center text-center">
+                                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                                <Icon className="w-5 h-5 text-primary" />
+                                                            </div>
+                                                            <p className="text-2xl font-extrabold tracking-tight text-foreground">{stat.value}</p>
+                                                            <p className="text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{stat.label}</p>
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })}
                                         </div>
-                                    )}
+
+                                        {/* Performance Badge / Trading Tier Card */}
+                                        <Card className="bg-card/40 backdrop-blur-sm border-border/50">
+                                            <CardContent className="p-6">
+                                                <div className="flex flex-col md:flex-row items-center gap-6">
+                                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-yellow-500/20 to-orange-500/20 flex items-center justify-center border border-yellow-500/30 flex-shrink-0 shadow-inner">
+                                                        <Trophy className="w-10 h-10 text-yellow-500" />
+                                                    </div>
+                                                    <div className="flex-1 text-center md:text-left space-y-1">
+                                                        <Badge variant="outline" className="border-yellow-500/30 text-yellow-600 bg-yellow-500/5 font-bold px-3 py-0.5 mb-1">
+                                                            {stats && stats.win_rate >= 75 
+                                                                ? (language === "ar" ? "محلل نخبة • فئة ذهبية" : "Elite Analyst • Gold Class")
+                                                                : stats && stats.win_rate >= 50 
+                                                                    ? (language === "ar" ? "متداول خبير • فئة فضية" : "Veteran Trader • Silver Class")
+                                                                    : (language === "ar" ? "متداول نشط • فئة برونزية" : "Active Trader • Bronze Class")
+                                                            }
+                                                        </Badge>
+                                                        <h4 className="text-lg font-bold text-foreground">
+                                                            {language === "ar" 
+                                                                ? `رتبة المحاكاة: ${stats && stats.win_rate >= 75 ? "مستثمر ذكي" : stats && stats.win_rate >= 50 ? "محلل محترف" : "مستكشف السوق"}`
+                                                                : `Simulation Standing: ${stats && stats.win_rate >= 75 ? "Smart Investor" : stats && stats.win_rate >= 50 ? "Professional Analyst" : "Market Explorer"}`
+                                                            }
+                                                        </h4>
+                                                        <p className="text-xs text-muted-foreground max-w-xl">
+                                                            {language === "ar" 
+                                                                ? "يتم احتساب الرتب والترقيات بناءً على معدل نجاح الصفقات ومتوسط العائد المحقق عبر صفقات محاكي الأسواق الافتراضي."
+                                                                : "Rankings and performance classes are calculated automatically based on deal success rate and average simulator returns."}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Simulator CTA */}
+                                        <div className="flex justify-center pt-2">
+                                            {isEditingOwnProfile ? (
+                                                <Button 
+                                                    onClick={onGoToSimulator} 
+                                                    className="px-6 py-5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 flex items-center gap-2 group cursor-pointer"
+                                                >
+                                                    <Zap className="w-5 h-5 animate-pulse text-yellow-300" />
+                                                    <span>{language === "ar" ? "ابدأ التداول في المحاكي الآن" : "Start Trading in Simulator Now"}</span>
+                                                </Button>
+                                            ) : (
+                                                <Button 
+                                                    onClick={onGoToSimulator} 
+                                                    variant="outline" 
+                                                    className="px-6 py-5 rounded-xl font-bold border-primary/30 text-primary hover:bg-primary/5 flex items-center gap-2 cursor-pointer"
+                                                >
+                                                    <Zap className="w-5 h-5 text-primary" />
+                                                    <span>{language === "ar" ? "جرب مهاراتك التداولية الخاصة" : "Test Your Own Trading Skills"}</span>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </TabsContent>
 
                                 {/* Followers Tab */}
