@@ -61,9 +61,10 @@ def generate_unique_filename(user_id: int, original_filename: str) -> str:
 
 async def save_avatar(file: UploadFile, user_id: int) -> str:
     """
-    Save uploaded avatar file
-    Returns the file path relative to the uploads directory
+    Save uploaded avatar file in database as Base64 Data URL
     """
+    import base64
+    
     # Validate file
     validate_image_file(file)
     
@@ -86,19 +87,10 @@ async def save_avatar(file: UploadFile, user_id: int) -> str:
             detail="File is not a valid image"
         )
     
-    # Generate unique filename
-    filename = generate_unique_filename(user_id, file.filename or "avatar.jpg")
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    
-    # Ensure upload directory exists
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    
-    # Save file
-    with open(file_path, 'wb') as f:
-        f.write(content)
-    
-    # Return URL path (relative to server root)
-    return f"/uploads/avatars/{filename}"
+    # Encode content to base64 and format as Data URL
+    mime_type = file.content_type or f"image/{image_type}"
+    base64_encoded = base64.b64encode(content).decode('utf-8')
+    return f"data:{mime_type};base64,{base64_encoded}"
 
 def delete_avatar(file_path: str) -> None:
     """Delete an avatar file"""

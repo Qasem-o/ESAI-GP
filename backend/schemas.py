@@ -93,7 +93,7 @@ class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
     phone_number: Optional[str] = Field(None, max_length=20)
     bio: Optional[str] = Field(None, max_length=500)
-    profile_picture_url: Optional[str] = Field(None, max_length=255)
+    profile_picture_url: Optional[str] = Field(None)
 
 
 class MessageResponse(BaseModel):

@@ -14,7 +14,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=True)  # Nullable for OAuth-only users
     phone_number = Column(String(20), nullable=True)  # User's phone number
-    profile_picture_url = Column(String(255), nullable=True)
+    profile_picture_url = Column(Text, nullable=True)
     bio = Column(Text, nullable=True)
     profile_completed = Column(Boolean, default=False, nullable=False)  # Profile completion status
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

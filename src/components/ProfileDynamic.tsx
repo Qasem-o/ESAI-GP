@@ -33,7 +33,8 @@ import {
     Clock,
     Trash2,
     X,
-    Send
+    Send,
+    RotateCw
 } from "lucide-react";
 import {
     Dialog,
@@ -106,6 +107,15 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const [usernameError, setUsernameError] = useState("");
     const [usernameChecking, setUsernameChecking] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Cropper modal states
+    const [isCropperOpen, setIsCropperOpen] = useState(false);
+    const [cropperSrc, setCropperSrc] = useState("");
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     // Fetch user data
     useEffect(() => {
@@ -303,6 +313,86 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         return () => clearTimeout(timeoutId);
     };
 
+    const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsDragging(true);
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        setDragStart({ x: clientX - offset.x, y: clientY - offset.y });
+    };
+
+    const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDragging) return;
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        setOffset({ x: clientX - dragStart.x, y: clientY - dragStart.y });
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+    };
+
+    const handleCropApply = () => {
+        if (!cropperSrc) return;
+        const image = new Image();
+        image.src = cropperSrc;
+        image.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 400;
+            canvas.height = 400;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            // Clear canvas
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, 400, 400);
+
+            // Save context
+            ctx.save();
+
+            // Move origin to center of canvas
+            ctx.translate(200, 200);
+
+            // Apply rotation
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            // Calculate base dimensions fitting inside the 280x280 box
+            const previewSize = 280;
+            const scaleFactor = 400 / previewSize;
+            const imgRatio = image.width / image.height;
+
+            let drawW, drawH;
+            if (imgRatio > 1) {
+                drawW = previewSize;
+                drawH = previewSize / imgRatio;
+            } else {
+                drawH = previewSize;
+                drawW = previewSize * imgRatio;
+            }
+
+            // Apply scaling
+            const finalW = drawW * zoom * scaleFactor;
+            const finalH = drawH * zoom * scaleFactor;
+
+            // Apply offset mapped to canvas coordinates
+            const dx = offset.x * scaleFactor;
+            const dy = offset.y * scaleFactor;
+
+            // Draw image centered at origin
+            ctx.drawImage(image, dx - finalW / 2, dy - finalH / 2, finalW, finalH);
+
+            ctx.restore();
+
+            // Convert canvas to Blob
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const croppedFile = new File([blob], "avatar.png", { type: "image/png" });
+                setEditAvatarFile(croppedFile);
+                setAvatarPreview(canvas.toDataURL("image/png"));
+                setIsCropperOpen(false);
+            }, "image/png");
+        };
+    };
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -321,12 +411,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             return;
         }
 
-        setEditAvatarFile(file);
-
-        // Create preview
+        // Create reader to open crop editor modal
         const reader = new FileReader();
         reader.onloadend = () => {
-            setAvatarPreview(reader.result as string);
+            setCropperSrc(reader.result as string);
+            setZoom(1);
+            setRotation(0);
+            setOffset({ x: 0, y: 0 });
+            setIsCropperOpen(true);
         };
         reader.readAsDataURL(file);
     };
@@ -959,6 +1051,114 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         <Button onClick={handleSaveProfile} disabled={isSaving || !!usernameError || usernameChecking} className="cursor-pointer">
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                             {t.profile.saveChanges}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Custom Interactive Avatar Cropper Modal */}
+            <Dialog open={isCropperOpen} onOpenChange={setIsCropperOpen}>
+                <DialogContent className="sm:max-w-[450px] overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
+                    <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                        <DialogTitle>
+                            {language === "ar" ? "تعديل واقتصاص صورة الأفاتار" : "Adjust and Crop Avatar Image"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {language === "ar" 
+                                ? "اسحب الصورة لتحريكها، واستخدم شريط التكبير لضبط الحجم." 
+                                : "Drag the image to reposition it, and use the slider to zoom."}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex flex-col items-center justify-center py-6 space-y-6">
+                        {/* Drag Container and Circular Mask */}
+                        <div 
+                            className="relative w-[280px] h-[280px] rounded-full overflow-hidden border-4 border-primary/30 bg-muted/40 shadow-inner flex items-center justify-center cursor-move active:cursor-grabbing select-none"
+                            onMouseDown={handleDragStart}
+                            onMouseMove={handleDragMove}
+                            onMouseUp={handleDragEnd}
+                            onMouseLeave={handleDragEnd}
+                            onTouchStart={handleDragStart}
+                            onTouchMove={handleDragMove}
+                            onTouchEnd={handleDragEnd}
+                        >
+                            {cropperSrc && (
+                                <img
+                                    src={cropperSrc}
+                                    alt="Cropping area"
+                                    className="select-none pointer-events-none origin-center"
+                                    style={{
+                                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${rotation}deg)`,
+                                        transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                        maxWidth: '100%',
+                                        maxHeight: '100%',
+                                        objectFit: 'contain',
+                                        userSelect: 'none'
+                                    }}
+                                />
+                            )}
+                            
+                            {/* Visual Crop Guideline Circle */}
+                            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary pointer-events-none ring-offset-4 ring-2 ring-background/50" />
+                        </div>
+
+                        {/* Zoom Slider */}
+                        <div className="w-full px-4 space-y-2">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{language === "ar" ? "تصغير" : "Zoom Out"}</span>
+                                <span className="font-mono text-primary font-bold">{(zoom * 100).toFixed(0)}%</span>
+                                <span>{language === "ar" ? "تكبير" : "Zoom In"}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.05"
+                                value={zoom}
+                                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                                className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg appearance-none"
+                            />
+                        </div>
+
+                        {/* Controls Toolbar (Rotate, Reset) */}
+                        <div className="flex items-center gap-3 w-full px-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 cursor-pointer"
+                                onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                            >
+                                <RotateCw className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                {language === "ar" ? "تدوير 90°" : "Rotate 90°"}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 cursor-pointer"
+                                onClick={() => {
+                                    setZoom(1);
+                                    setRotation(0);
+                                    setOffset({ x: 0, y: 0 });
+                                }}
+                            >
+                                {language === "ar" ? "إعادة تعيين" : "Reset"}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setIsCropperOpen(false)} 
+                            className="cursor-pointer"
+                        >
+                            {t.common.cancel}
+                        </Button>
+                        <Button 
+                            onClick={handleCropApply} 
+                            className="cursor-pointer font-bold px-6"
+                        >
+                            {language === "ar" ? "اعتماد الصورة" : "Apply Image"}
                         </Button>
                     </div>
                 </DialogContent>
