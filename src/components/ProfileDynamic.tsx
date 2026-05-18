@@ -117,6 +117,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [imgAspect, setImgAspect] = useState(1);
 
     // Fetch user data
     useEffect(() => {
@@ -363,11 +364,13 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
 
             let drawW, drawH;
             if (imgRatio > 1) {
-                drawW = previewSize;
-                drawH = previewSize / imgRatio;
-            } else {
+                // Landscape: fill height, scale width
                 drawH = previewSize;
                 drawW = previewSize * imgRatio;
+            } else {
+                // Portrait: fill width, scale height
+                drawW = previewSize;
+                drawH = previewSize / imgRatio;
             }
 
             // Apply scaling
@@ -415,11 +418,16 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         // Create reader to open crop editor modal
         const reader = new FileReader();
         reader.onloadend = () => {
-            setCropperSrc(reader.result as string);
-            setZoom(1);
-            setRotation(0);
-            setOffset({ x: 0, y: 0 });
-            setIsCropperOpen(true);
+            const img = new Image();
+            img.onload = () => {
+                setImgAspect(img.width / img.height);
+                setCropperSrc(reader.result as string);
+                setZoom(1);
+                setRotation(0);
+                setOffset({ x: 0, y: 0 });
+                setIsCropperOpen(true);
+            };
+            img.src = reader.result as string;
         };
         reader.readAsDataURL(file);
     };
@@ -766,24 +774,26 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             </p>
                                         </div>
                                     ) : (
-                                        posts.map((post) => (
-                                            <PostCard 
-                                                key={post.post_id}
-                                                post={{
-                                                    ...post,
-                                                    author: {
-                                                        user_id: targetUserId,
-                                                        username: targetUser?.username,
-                                                        full_name: targetUser?.full_name,
-                                                        profile_picture_url: targetUser?.profile_picture_url
-                                                    }
-                                                }}
-                                                onLike={toggleLike}
-                                                onComment={setCommentsPostId}
-                                                onBookmark={toggleBookmark}
-                                                onShare={handleSharePost}
-                                            />
-                                        ))
+                                        <div className="max-h-[70vh] overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4">
+                                            {posts.map((post) => (
+                                                <PostCard 
+                                                    key={post.post_id}
+                                                    post={{
+                                                        ...post,
+                                                        author: {
+                                                            user_id: targetUserId,
+                                                            username: targetUser?.username,
+                                                            full_name: targetUser?.full_name,
+                                                            profile_picture_url: targetUser?.profile_picture_url
+                                                        }
+                                                    }}
+                                                    onLike={toggleLike}
+                                                    onComment={setCommentsPostId}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={handleSharePost}
+                                                />
+                                            ))}
+                                        </div>
                                     )}
                                 </TabsContent>
 
@@ -937,32 +947,32 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent 
-                    className="edit-profile-dialog max-w-[92%] sm:max-w-[440px] rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
+                    className="max-w-[92%] sm:max-w-[440px] max-h-[85vh] flex flex-col p-0 rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md overflow-hidden" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
-                    <DialogHeader className={`edit-profile-header ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <DialogHeader className={`p-6 pb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                         <DialogTitle>{t.profile.editProfile}</DialogTitle>
                         <DialogDescription>
                             {language === "ar" ? "قم بتحديث معلومات ملفك الشخصي. جميع الحقول اختيارية باستثناء اسم المستخدم." : "Update your profile information. All fields are optional except username."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="edit-profile-body space-y-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4 custom-scrollbar">
                         {/* Avatar Upload */}
-                        <div className="edit-profile-section">
+                        <div className="space-y-2">
                             <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
-                            <div className="edit-profile-avatar-row">
+                            <div className="flex items-center gap-4">
                                 {avatarPreview ? (
                                     <img
                                         src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
                                         alt="Preview"
-                                        className="edit-profile-avatar-img"
+                                        className="h-16 w-16 rounded-full object-cover border"
                                     />
                                 ) : (
-                                    <div className="edit-profile-avatar-fallback">
-                                        <User className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
+                                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border">
+                                        <User className="w-8 h-8 text-primary" />
                                     </div>
                                 )}
-                                <div className="edit-profile-avatar-controls">
+                                <div className="flex-1 space-y-1">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -979,7 +989,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
                                         {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
                                     </Button>
-                                    <p className={`edit-profile-help ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}>
+                                    <p className={`text-[10px] text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
                                         {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
                                     </p>
                                     {isUploading && (
@@ -1048,7 +1058,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             />
                         </div>
                     </div>
-                    <div className="edit-profile-footer">
+                    <div className="flex items-center justify-end gap-2 p-6 pt-2 border-t mt-2">
                         <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
                             {t.common.cancel}
                         </Button>
@@ -1063,10 +1073,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Custom Interactive Avatar Cropper Modal */}
             <Dialog open={isCropperOpen} onOpenChange={setIsCropperOpen}>
                 <DialogContent 
-                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] overflow-y-auto p-4 sm:p-6" 
+                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] flex flex-col p-0 rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md overflow-hidden" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
-                    <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+                    <DialogHeader className={`p-6 pb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                         <DialogTitle className="text-base sm:text-lg">
                             {language === "ar" ? "تعديل واقتصاص صورة الأفاتار" : "Adjust and Crop Avatar Image"}
                         </DialogTitle>
@@ -1077,7 +1087,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex flex-col items-center justify-center py-3 space-y-4 my-auto">
+                    <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center justify-center space-y-4 custom-scrollbar">
                         {/* Drag Container and Circular Mask - Guaranteed PERFECT CIRCLE & responsive */}
                         <div 
                             className="relative flex-shrink-0 rounded-full overflow-hidden border-4 border-primary/30 bg-muted/40 shadow-inner flex items-center justify-center cursor-move active:cursor-grabbing select-none aspect-square"
@@ -1106,9 +1116,11 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     style={{
                                         transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                                         transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                                        maxWidth: '100%',
-                                        maxHeight: '100%',
-                                        objectFit: 'contain',
+                                        maxWidth: 'none',
+                                        maxHeight: 'none',
+                                        width: imgAspect > 1 ? 'auto' : '200px',
+                                        height: imgAspect > 1 ? '200px' : 'auto',
+                                        objectFit: 'cover',
                                         userSelect: 'none'
                                     }}
                                 />
@@ -1164,7 +1176,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-3 border-t mt-auto">
+                    <div className="flex justify-end gap-3 p-6 pt-2 border-t mt-2">
                         <Button 
                             variant="ghost" 
                             size="sm"
@@ -1178,7 +1190,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             onClick={handleCropApply} 
                             className="cursor-pointer font-bold px-5 h-9 text-xs sm:text-sm"
                         >
-                            {language === "ar" ? "اعتماد الصورة" : "Apply Image"}
+                            {language === "ar" ? "اعتماد" : "Apply"}
                         </Button>
                     </div>
                 </DialogContent>

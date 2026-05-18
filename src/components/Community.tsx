@@ -467,7 +467,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     )}
                   </Card>
                 ) : (
-                  posts.map(post => renderPost(post))
+                  <div className="max-h-[72vh] overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4">
+                    {posts.map(post => renderPost(post))}
+                  </div>
                 )}
               </TabsContent>
 
@@ -483,7 +485,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <p className="text-muted-foreground">{isRTL ? "ابدأ بالإعجاب بالمنشورات لرؤية الرائج!" : "Start liking posts to see trends!"}</p>
                   </Card>
                 ) : (
-                  posts.map(post => renderPost(post))
+                  <div className="max-h-[72vh] overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4">
+                    {posts.map(post => renderPost(post))}
+                  </div>
                 )}
               </TabsContent>
 
@@ -506,7 +510,9 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <p className="text-muted-foreground">{isRTL ? "تابع متداولين لعرض منشوراتهم هنا!" : "Follow traders to see their posts here!"}</p>
                   </Card>
                 ) : (
-                  posts.map(post => renderPost(post))
+                  <div className="max-h-[72vh] overflow-y-auto pr-2 pl-1 custom-scrollbar space-y-4">
+                    {posts.map(post => renderPost(post))}
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
