@@ -627,7 +627,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-red-500 flex-shrink-0"
+                              className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer flex-shrink-0"
                               onClick={() => handleDeleteComment(c.comment_id)}
                             >
                               <Trash2 className="w-3 h-3" />

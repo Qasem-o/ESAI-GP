@@ -100,7 +100,7 @@ export function PostCard({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors" 
+              className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer" 
               onClick={() => onDelete(post.post_id)}
               disabled={isDeleting}
             >

@@ -1320,7 +1320,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className={`h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer absolute top-2 ${isRTL ? "left-2" : "right-2"}`}
+                                                            className={`h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer absolute top-2 ${isRTL ? "left-2" : "right-2"}`}
                                                             onClick={() => handleDeleteComment(c.comment_id)}
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
