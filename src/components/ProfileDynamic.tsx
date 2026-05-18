@@ -936,7 +936,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             {/* Edit Profile Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent 
-                    className="max-w-[92%] sm:max-w-[500px] max-h-[85vh] overflow-y-auto p-5 rounded-2xl flex flex-col shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
+                    className="max-w-[92%] sm:max-w-[420px] max-h-[85vh] overflow-y-auto p-5 rounded-2xl flex flex-col shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
                     <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
@@ -945,23 +945,23 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                             {language === "ar" ? "قم بتحديث معلومات ملفك الشخصي. جميع الحقول اختيارية باستثناء اسم المستخدم." : "Update your profile information. All fields are optional except username."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-6 py-4">
+                    <div className="space-y-4 py-3">
                         {/* Avatar Upload */}
                         <div className="space-y-2">
                             <Label className={isRTL ? 'text-right block' : 'block'}>{t.profile.changePicture}</Label>
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
                                 {avatarPreview ? (
                                     <img
                                         src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
                                         alt="Preview"
-                                        className="w-24 h-24 rounded-full object-cover border-2"
+                                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 flex-shrink-0 shadow-sm"
                                     />
                                 ) : (
-                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center border-2">
-                                        <User className="w-12 h-12 text-primary" />
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center border-2 flex-shrink-0">
+                                        <User className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
                                     </div>
                                 )}
-                                <div className="flex-1">
+                                <div className="w-full flex-1 flex flex-col items-center sm:items-stretch text-center sm:text-start">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -973,16 +973,16 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full cursor-pointer"
+                                        className="w-full sm:w-auto cursor-pointer text-xs sm:text-sm h-9"
                                     >
-                                        <Upload className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                                        <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
                                         {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
                                     </Button>
-                                    <p className={`text-xs text-muted-foreground mt-2 ${isRTL ? 'text-right' : ''}`}>
+                                    <p className={`text-[10px] sm:text-xs text-muted-foreground mt-2 ${isRTL ? 'sm:text-right text-center' : 'sm:text-left text-center'}`}>
                                         {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
                                     </p>
                                     {isUploading && (
-                                        <Progress value={uploadProgress} className="mt-2" />
+                                        <Progress value={uploadProgress} className="mt-2 h-1.5 w-full" />
                                     )}
                                 </div>
                             </div>

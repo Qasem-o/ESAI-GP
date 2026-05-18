@@ -68,7 +68,7 @@ export function DisclaimerModal() {
     <AnimatePresence>
       {show && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-xl flex items-center justify-center p-4 md:p-6"
+          className="fixed inset-0 bg-background/80 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6"
           style={{ position: 'fixed', zIndex: 999999, top: 0, left: 0, right: 0, bottom: 0 }}
           dir={isRTL ? "rtl" : "ltr"}
         >
@@ -76,80 +76,83 @@ export function DisclaimerModal() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full overflow-hidden border border-border/50 relative mx-auto"
-            style={{ maxWidth: '450px' }}
+            className="bg-card rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full overflow-y-auto border border-border/50 relative mx-auto flex flex-col max-h-[88vh]"
+            style={{ maxWidth: '420px' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-500 to-primary" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-500 to-primary flex-shrink-0" />
 
-            <div className="p-8 pb-4 text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3 border border-primary/20 shadow-inner">
-                <ShieldCheck className="w-10 h-10 text-primary" />
+            {/* Header Content */}
+            <div className="p-5 sm:p-8 pb-3 text-center flex-shrink-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 transform rotate-3 border border-primary/20 shadow-inner flex-shrink-0">
+                <ShieldCheck className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 {t.disclaimer.title}
               </h2>
-              <p className="text-muted-foreground text-xs mt-2 font-medium uppercase tracking-widest opacity-70">
+              <p className="text-muted-foreground text-[10px] sm:text-xs mt-1 sm:text-2xl font-medium uppercase tracking-widest opacity-70">
                 {isRTL ? "معلومات هامة" : "Important Information"}
               </p>
             </div>
 
-            <div className="p-8 pt-2 space-y-5">
-              <div className="space-y-4">
+            {/* List Body Section */}
+            <div className="p-5 sm:p-8 pt-0 pb-4 space-y-4 overflow-y-auto flex-1">
+              <div className="space-y-3">
                 {items.map((item, i) => (
                   <div
                     key={i}
-                    className={`flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border border-transparent ${item.hoverBorder} transition-colors`}
+                    className={`flex items-start gap-3 p-3 sm:p-4 rounded-2xl bg-muted/30 border border-transparent ${item.hoverBorder} transition-colors`}
                   >
-                    <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
                       {item.icon}
                     </div>
-                    <div className="space-y-1">
-                      <p className="font-bold text-foreground text-sm">{item.title}</p>
-                      <p className="text-muted-foreground leading-relaxed text-[13px]">{item.desc}</p>
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-foreground text-xs sm:text-sm">{item.title}</p>
+                      <p className="text-muted-foreground leading-relaxed text-[11px] sm:text-[13px]">{item.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div className="pt-2">
-                <Button
-                  onClick={handleAccept}
-                  className="w-full h-14 text-base font-bold shadow-2xl shadow-primary/20 rounded-2xl group relative overflow-hidden"
-                >
-                  <span className="relative z-10">{t.disclaimer.accept}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Button>
+            {/* Footer Buttons Section */}
+            <div className="p-5 sm:p-8 pt-3 border-t bg-card flex-shrink-0 mt-auto rounded-b-3xl">
+              <Button
+                onClick={handleAccept}
+                className="w-full h-11 sm:h-13 text-sm sm:text-base font-bold shadow-2xl shadow-primary/20 rounded-2xl group relative overflow-hidden flex items-center justify-center cursor-pointer"
+              >
+                <span className="relative z-10">{t.disclaimer.accept}</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Button>
 
-                <p className="text-center text-[10px] text-muted-foreground mt-4 uppercase tracking-[0.2em] font-medium">
-                  {isRTL ? (
-                    <>
-                      بالنقر فوق، تقر بـ{" "}
-                      <a
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline underline-offset-4 font-bold transition-all"
-                        style={{ textTransform: "none" }}
-                      >
-                        سياستنا للخصوصية
-                      </a>
-                    </>
-                  ) : (
-                    <>
-                      By clicking, you acknowledge our{" "}
-                      <a
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline underline-offset-4 font-bold transition-all"
-                      >
-                        privacy policy
-                      </a>
-                    </>
-                  )}
-                </p>
-              </div>
+              <p className="text-center text-[10px] text-muted-foreground mt-3 uppercase tracking-[0.15em] font-medium leading-normal">
+                {isRTL ? (
+                  <>
+                    بالنقر فوق، تقر بـ{" "}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline underline-offset-4 font-bold transition-all inline-block"
+                      style={{ textTransform: "none" }}
+                    >
+                      سياستنا للخصوصية
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    By clicking, you acknowledge our{" "}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline underline-offset-4 font-bold transition-all inline-block"
+                    >
+                      privacy policy
+                    </a>
+                  </>
+                )}
+              </p>
             </div>
           </motion.div>
         </div>
