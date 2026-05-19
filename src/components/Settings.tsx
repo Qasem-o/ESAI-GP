@@ -623,8 +623,8 @@ export function Settings(props: any) {
                                                         id="email"
                                                         type="email"
                                                         value={editEmail}
-                                                        onChange={(e) => setEditEmail(e.target.value)}
-                                                        className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
+                                                        readOnly
+                                                        className={isRTL ? 'text-right rounded-xl h-10.5 bg-muted/50 cursor-not-allowed opacity-70' : 'rounded-xl h-10.5 bg-muted/50 cursor-not-allowed opacity-70'}
                                                     />
                                                 </div>
                                             </div>
@@ -814,13 +814,13 @@ export function Settings(props: any) {
                                                 </div>
 
                                                 {/* Delete Account Box */}
-                                                <div className="settings-reset-box border-red-500/20 bg-red-500/[0.02]">
+                                                <div className="settings-reset-box settings-danger-box">
                                                     <div className="settings-reset-header-row">
-                                                        <div className="settings-reset-icon-wrapper bg-red-500/10 text-red-500">
-                                                            <User className="settings-reset-icon text-red-500" />
+                                                        <div className="settings-reset-icon-wrapper">
+                                                            <User className="settings-reset-icon" />
                                                         </div>
                                                         <div className="settings-reset-info">
-                                                            <h4 className="settings-reset-title text-red-500">
+                                                            <h4 className="settings-reset-title">
                                                                 {language === "ar" ? "حذف الحساب نهائياً" : "Permanently Delete Account"}
                                                             </h4>
                                                             <p className="settings-reset-description">

@@ -128,9 +128,16 @@
 }
 
 .settings-nav-button.active {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: 0 4px 12px hsl(var(--primary) / 0.15);
+  background: hsl(var(--primary) / 0.1) !important;
+  color: hsl(var(--primary)) !important;
+  border-left: 3px solid hsl(var(--primary)) !important;
+  border-radius: 0.375rem 0.75rem 0.75rem 0.375rem;
+}
+
+[dir="rtl"] .settings-nav-button.active {
+  border-left: none !important;
+  border-right: 3px solid hsl(var(--primary)) !important;
+  border-radius: 0.75rem 0.375rem 0.375rem 0.75rem;
 }
 
 .settings-nav-icon {
@@ -407,6 +414,29 @@ html.lang-ar .settings-action-bar {
   gap: 0.75rem;
   width: 100%;
 }
+
+/* Danger Reset Box (Delete Account) */
+.settings-reset-box.settings-danger-box {
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.settings-danger-box .settings-reset-icon-wrapper {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.settings-danger-box .settings-reset-icon {
+  color: #ef4444 !important;
+}
+
+.settings-danger-box .settings-reset-title {
+  color: #dc2626 !important;
+}
+
+.dark .settings-danger-box .settings-reset-title {
+  color: #f87171 !important;
+}
+
 
 /* Password Strength Indicator */
 .password-strength-container {

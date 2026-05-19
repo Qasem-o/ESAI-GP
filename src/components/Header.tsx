@@ -239,8 +239,8 @@ export function Header({
                 onGoToExplore={onGoToExplore}
                 onGoToPortfolio={onGoToPortfolio}
                 onGoToSimulator={onGoToSimulator}
-                onGoToProfile={onGoToProfile}
-                onGoToSettings={onGoToSettings}
+                onGoToProfile={handleGoToProfile}
+                onGoToSettings={handleGoToSettings}
                 onGoToSignup={onGoToSignup}
                 onGoToLogin={onGoToLogin}
                 isAuthenticated={isAuthenticated}

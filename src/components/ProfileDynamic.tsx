@@ -885,10 +885,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         {/* Tabs */}
                         <Card className="flex flex-col min-h-0 flex-1">
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full flex flex-col min-h-0 flex-1" dir={isRTL ? "rtl" : "ltr"}>
-                                    <TabsList className="w-full grid grid-cols-3">
-                                        <TabsTrigger value="posts" className="cursor-pointer">{t.profile.posts}</TabsTrigger>
-                                        <TabsTrigger value="portfolio" className="cursor-pointer">{language === "ar" ? "أداء المحاكاة" : "Simulation Performance"}</TabsTrigger>
-                                        <TabsTrigger value="followers" className="cursor-pointer">{t.profile.followers}</TabsTrigger>
+                                    <TabsList className="w-full grid grid-cols-3 h-auto py-1">
+                                        <TabsTrigger value="posts" className="cursor-pointer text-[10px] sm:text-sm px-1 py-1.5 whitespace-normal sm:whitespace-nowrap text-center leading-tight">{t.profile.posts}</TabsTrigger>
+                                        <TabsTrigger value="portfolio" className="cursor-pointer text-[10px] sm:text-sm px-1 py-1.5 whitespace-normal sm:whitespace-nowrap text-center leading-tight">{language === "ar" ? "أداء المحاكاة" : "Simulation Performance"}</TabsTrigger>
+                                        <TabsTrigger value="followers" className="cursor-pointer text-[10px] sm:text-sm px-1 py-1.5 whitespace-normal sm:whitespace-nowrap text-center leading-tight">{t.profile.followers}</TabsTrigger>
                                     </TabsList>
 
                                 {/* Posts Tab */}
