@@ -48,6 +48,19 @@ export default function App() {
       const viewportHeight = window.innerHeight;
 
       const sidebars = document.querySelectorAll('.layout-sticky-sidebar');
+      
+      // On mobile/tablet, let sidebar stack naturally without JS-driven sticky positioning
+      if (window.innerWidth < 1024) {
+        sidebars.forEach((el) => {
+          const sidebar = el as HTMLElement;
+          sidebar.style.removeProperty('position');
+          sidebar.style.removeProperty('top');
+          sidebar.style.removeProperty('bottom');
+        });
+        lastScrollY = scrollY;
+        return;
+      }
+
       sidebars.forEach((el) => {
         const sidebar = el as HTMLElement;
         const sidebarHeight = sidebar.offsetHeight;
