@@ -178,15 +178,16 @@ async def get_feed(
 
 
 
-    if filter == "following" and user_id:
-
+    if filter == "following":
+        if not user_id:
+            return []
         following_ids = [f.following_id for f in db.query(UserFollow.following_id).filter(
-
             UserFollow.follower_id == user_id
-
         ).all()]
-
-        query = query.filter(Post.user_id.in_(following_ids))
+        if following_ids:
+            query = query.filter(Post.user_id.in_(following_ids))
+        else:
+            query = query.filter(Post.post_id == -1)
 
 
 

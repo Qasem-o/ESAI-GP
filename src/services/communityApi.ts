@@ -53,7 +53,7 @@ class CommunityAPI {
     async getFeed(page = 1, limit = 20, filter: 'all' | 'trending' | 'following' = 'all'): Promise<FeedPost[]> {
         const response = await fetch(
             `${API_BASE_URL}/community/feed?page=${page}&limit=${limit}&filter=${filter}`,
-            { headers: this.getHeaders(false) }
+            { headers: this.getHeaders() }
         );
         if (!response.ok) throw new Error('Failed to fetch feed');
         return response.json();
@@ -62,7 +62,7 @@ class CommunityAPI {
     async getStockPosts(symbol: string, page = 1, limit = 20): Promise<FeedPost[]> {
         const response = await fetch(
             `${API_BASE_URL}/community/stocks/${symbol}/posts?page=${page}&limit=${limit}`,
-            { headers: this.getHeaders(false) }
+            { headers: this.getHeaders() }
         );
         if (!response.ok) throw new Error('Failed to fetch stock posts');
         return response.json();
