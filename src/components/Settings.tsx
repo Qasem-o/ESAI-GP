@@ -833,8 +833,8 @@ export function Settings(props: any) {
 
                                                     {!accountDeleteConfirm ? (
                                                         <Button 
-                                                            variant="destructive" 
-                                                            className="w-full cursor-pointer bg-red-500 text-white hover:bg-red-600 rounded-xl h-11 font-semibold"
+                                                            variant="outline" 
+                                                            className="w-full cursor-pointer border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-600 rounded-xl h-11 font-semibold bg-transparent border"
                                                             onClick={() => setAccountDeleteConfirm(true)}
                                                         >
                                                             {language === "ar" ? "حذف الحساب" : "Delete Account"}
@@ -842,8 +842,8 @@ export function Settings(props: any) {
                                                     ) : (
                                                         <div className="settings-reset-actions">
                                                             <Button 
-                                                                variant="destructive" 
-                                                                className="flex-1 cursor-pointer bg-red-600 text-white hover:bg-red-700 rounded-xl h-11 font-bold"
+                                                                variant="outline" 
+                                                                className="flex-1 cursor-pointer border-red-600 text-red-600 hover:bg-red-600/10 hover:text-red-700 rounded-xl h-11 font-bold bg-transparent border"
                                                                 onClick={handleDeleteAccount}
                                                                 disabled={isDeletingAccount}
                                                             >
