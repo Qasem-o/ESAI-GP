@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../services/apiConfig";
 
 interface PostCardProps {
   post: any;
@@ -43,7 +44,7 @@ export function PostCard({
   const isOwnPost = user && Number(post.author.user_id) === Number((user as any).user_id);
   
   const profilePicUrl = post.author.profile_picture_url?.startsWith('/')
-    ? `https://esai-firstdraft-production.up.railway.app${post.author.profile_picture_url}`
+    ? `${API_BASE_URL}${post.author.profile_picture_url}`
     : post.author.profile_picture_url;
 
   const formatTimeAgo = (dateStr: string) => {

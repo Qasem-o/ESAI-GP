@@ -607,7 +607,7 @@ export function Settings(props: any) {
                                                 />
                                             </div>
  
-                                            {/* Investor Profiling */}
+                                            {/* Investor Profiling commented out
                                             <div className="border-t pt-5 space-y-4">
                                                 <h3 className="text-base font-bold text-primary">
                                                     {language === "ar" ? "الملف الاستثماري والمخاطر" : "Investor Profiling & Goals"}
@@ -652,6 +652,7 @@ export function Settings(props: any) {
                                                     </div>
                                                 </div>
                                             </div>
+                                            */}
  
                                             {/* Action Bar */}
                                             <div className="settings-action-bar">

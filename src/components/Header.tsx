@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { DefaultAvatar } from "./DefaultAvatar";
+import { API_BASE_URL } from "../services/apiConfig";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,7 +157,7 @@ export function Header({
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={user?.profile_picture_url?.startsWith('/')
-                        ? `https://esai-firstdraft-production.up.railway.app${user.profile_picture_url}`
+                        ? `${API_BASE_URL}${user.profile_picture_url}`
                         : (user?.profile_picture_url || "")}
                       alt={user?.username}
                     />
@@ -405,7 +406,7 @@ function MobileNav({
                         <Avatar className="h-8 w-8 ring-1 ring-primary/20">
                           <AvatarImage
                             src={user?.profile_picture_url?.startsWith('/')
-                              ? `https://esai-firstdraft-production.up.railway.app${user.profile_picture_url}`
+                              ? `${API_BASE_URL}${user.profile_picture_url}`
                               : (user?.profile_picture_url || "")}
                             alt={user?.username}
                           />

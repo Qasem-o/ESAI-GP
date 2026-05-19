@@ -69,7 +69,8 @@ import {
   FileText
 } from "lucide-react";
 
-const API_URL = "https://esai-firstdraft-production.up.railway.app";
+import { API_BASE_URL } from "../services/apiConfig";
+const API_URL = API_BASE_URL;
 
 // Mock stock data
 const stockData = {
@@ -902,7 +903,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                       <Avatar className="h-10 w-10">
                         <AvatarImage
                           src={user?.profile_picture_url?.startsWith('/')
-                            ? `https://esai-firstdraft-production.up.railway.app${user.profile_picture_url}`
+                            ? `${API_URL}${user.profile_picture_url}`
                             : (user?.profile_picture_url || "")}
                           alt={user?.username}
                         />

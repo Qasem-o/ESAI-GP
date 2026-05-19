@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -25,7 +26,7 @@ export function SocialLogin({ mode }: SocialLoginProps) {
                 navigate('/');
             } catch (error) {
                 console.error('Google login failed:', error);
-                alert('Google login failed. Please try again.');
+                toast.error(language === 'ar' ? 'فشل تسجيل الدخول بواسطة Google. يرجى المحاولة مرة أخرى.' : 'Google login failed. Please try again.');
             } finally {
                 setIsGoogleLoading(false);
             }

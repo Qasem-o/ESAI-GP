@@ -14,6 +14,7 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { useLanguage } from "../contexts/LanguageContext";
+import { toast } from "sonner";
 import {
     TrendingUp,
     TrendingDown,
@@ -291,7 +292,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         const postUrl = `${window.location.origin}/post/${postId}`;
         try {
             await navigator.clipboard.writeText(postUrl);
-            alert(language === "ar" ? "تم نسخ رابط المنشور إلى الحافظة!" : "Post link copied to clipboard!");
+            toast.success(language === "ar" ? "تم نسخ رابط المنشور إلى الحافظة!" : "Post link copied to clipboard!");
         } catch (err) {
             console.error("Failed to copy link:", err);
         }
@@ -363,10 +364,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         try {
             await simulatorAPI.resetSimulator();
             setSimResetConfirm(false);
-            alert(language === "ar" ? "تمت إعادة تعيين محاكاة التداول بنجاح!" : "Trading simulator reset successfully!");
+            toast.success(language === "ar" ? "تمت إعادة تعيين محاكاة التداول بنجاح!" : "Trading simulator reset successfully!");
         } catch (err: any) {
             console.error("Error resetting simulator:", err);
-            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحاكي الافتراضي." : "Failed to reset virtual simulator."));
+            toast.error(err.message || (language === "ar" ? "فشل إعادة تعيين المحاكي الافتراضي." : "Failed to reset virtual simulator."));
         } finally {
             setIsResettingSim(false);
         }
@@ -377,10 +378,10 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         try {
             await portfolioAPI.resetPortfolio();
             setPortResetConfirm(false);
-            alert(language === "ar" ? "تمت إعادة تعيين محفظتك اليدوية بنجاح!" : "Your manual portfolio was reset successfully!");
+            toast.success(language === "ar" ? "تمت إعادة تعيين محفظتك اليدوية بنجاح!" : "Your manual portfolio was reset successfully!");
         } catch (err: any) {
             console.error("Error resetting portfolio:", err);
-            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحفظة اليدوية." : "Failed to reset manual portfolio."));
+            toast.error(err.message || (language === "ar" ? "فشل إعادة تعيين المحفظة اليدوية." : "Failed to reset manual portfolio."));
         } finally {
             setIsResettingPort(false);
         }
@@ -540,14 +541,14 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         // Validate file size (10MB)
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            alert(language === "ar" ? "يجب أن يكون حجم الملف أقل من 10 ميجابايت" : "File size must be less than 10MB");
+            toast.error(language === "ar" ? "يجب أن يكون حجم الملف أقل من 10 ميجابايت" : "File size must be less than 10MB");
             return;
         }
 
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert(language === "ar" ? "يُسمح فقط بصور JPG و PNG و GIF و WEBP" : "Only JPG, PNG, GIF, and WEBP images are allowed");
+            toast.error(language === "ar" ? "يُسمح فقط بصور JPG و PNG و GIF و WEBP" : "Only JPG, PNG, GIF, and WEBP images are allowed");
             return;
         }
 
@@ -606,7 +607,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         if (!currentUser) return;
 
         if (usernameError) {
-            alert(language === "ar" ? "يرجى إصلاح الأخطاء قبل الحفظ" : "Please fix errors before saving");
+            toast.warning(language === "ar" ? "يرجى إصلاح الأخطاء قبل الحفظ" : "Please fix errors before saving");
             return;
         }
 
@@ -642,7 +643,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             fetchUserData();
         } catch (error: any) {
             console.error("Error updating profile:", error);
-            alert(error.message || (language === "ar" ? "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى." : "Failed to update profile. Please try again."));
+            toast.error(error.message || (language === "ar" ? "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى." : "Failed to update profile. Please try again."));
         } finally {
             setIsSaving(false);
         }
@@ -802,6 +803,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                 {cleanBio || t.profile.noBio}
                                             </p>
                                             
+                                            {/* Profiling badges commented out
                                             {(invTypeInfo || invGoalInfo) && (
                                                 <div className="flex flex-wrap gap-1.5 justify-center pb-2">
                                                     {invTypeInfo && (
@@ -816,6 +818,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                     )}
                                                 </div>
                                             )}
+                                            */}
                                         </div>
                                     );
                                 })()}
@@ -1316,7 +1319,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                     />
                                 </div>
 
-                                {/* Investor Profiling Options */}
+                                {/* Investor Profiling Options commented out
                                 <div className="border-t pt-4 mt-4 space-y-4">
                                     <h4 className="text-sm font-semibold text-primary">
                                         {language === "ar" ? "الملف التعريفي للمستثمر" : "Investor Profiling"}
@@ -1362,6 +1365,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         </div>
                                     </div>
                                 </div>
+                                */}
                             </TabsContent>
 
                             <TabsContent value="portfolio" className="space-y-6 outline-hidden mt-0 py-2">

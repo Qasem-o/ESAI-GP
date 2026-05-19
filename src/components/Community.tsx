@@ -9,10 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../services/apiConfig";
 import { communityAPI, FeedPost, TopTrader, PostComment as CommentType } from "../services/communityApi";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useLanguage } from "../contexts/LanguageContext";
+import { toast } from "sonner";
 import {
   TrendingUp,
   TrendingDown,
@@ -177,7 +179,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
       setPosts(prev => prev.filter(p => p.post_id !== postId));
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("Failed to delete post. Make sure you are the author.");
+      toast.error(isRTL ? "فشل حذف المنشور. تأكد من أنك الكاتب." : "Failed to delete post. Make sure you are the author.");
     } finally {
       setDeletingPostId(null);
     }
@@ -249,7 +251,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
     const postUrl = `${window.location.origin}/post/${postId}`;
     try {
       await navigator.clipboard.writeText(postUrl);
-      alert(isRTL ? "تم نسخ رابط المنشور!" : "Post link copied!");
+      toast.success(isRTL ? "تم نسخ رابط المنشور!" : "Post link copied!");
     } catch (err) {
       console.error("Failed to copy link:", err);
     }
@@ -366,7 +368,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                     <Avatar className="h-10 w-10">
                       <AvatarImage
                         src={user?.profile_picture_url?.startsWith('/')
-                          ? `https://esai-firstdraft-production.up.railway.app${user.profile_picture_url}`
+                          ? `${API_BASE_URL}${user.profile_picture_url}`
                           : (user?.profile_picture_url || "")}
                         alt={user?.username}
                       />
@@ -535,7 +537,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
                 ) : (
                   topTraders.map((trader) => {
                     const traderPicUrl = trader.profile_picture_url?.startsWith('/')
-                      ? `https://esai-firstdraft-production.up.railway.app${trader.profile_picture_url}`
+                      ? `${API_BASE_URL}${trader.profile_picture_url}`
                       : trader.profile_picture_url;
 
                     return (
@@ -606,7 +608,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
               ) : (
                 Array.isArray(comments) && comments.map((c) => {
                   const cPicUrl = c.author.profile_picture_url?.startsWith('/')
-                    ? `https://esai-firstdraft-production.up.railway.app${c.author.profile_picture_url}`
+                    ? `${API_BASE_URL}${c.author.profile_picture_url}`
                     : c.author.profile_picture_url;
                   return (
                     <div key={c.comment_id} className="flex gap-3">
