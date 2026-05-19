@@ -38,6 +38,7 @@ import { simulatorAPI } from "../services/simulatorApi";
 import { portfolioAPI } from "../services/portfolioApi";
 import { API_BASE_URL as API_URL } from "../services/apiConfig";
 import { DefaultAvatar } from "./DefaultAvatar";
+import "../styles/settings.css";
 
 const parseBioData = (rawBio: string | null) => {
     if (!rawBio) return { cleanBio: "", investorType: "", investmentGoal: "" };
@@ -414,118 +415,103 @@ export function Settings(props: any) {
         <div className="min-h-screen bg-background flex flex-col">
             <Header {...props} currentPage="settings" />
 
-            <main className="flex-1 container mx-auto px-4 py-8 md:py-12" dir={isRTL ? "rtl" : "ltr"}>
-                <div className="max-w-6xl mx-auto space-y-6">
-                    {/* Page Title */}
-                    <div className={isRTL ? "text-right" : "text-left"}>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-                            {language === "ar" ? "إعدادات الحساب" : "Account Settings"}
-                        </h1>
-                        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                            {language === "ar" 
-                                ? "قم بإدارة بياناتك الشخصية، ملفك الاستثماري، وحماية حسابك وتصفير محفظتك." 
-                                : "Manage your personal profile, investor preferences, account security, and portfolio resets."}
-                        </p>
-                    </div>
+            <main className="flex-1 settings-container" dir={isRTL ? "rtl" : "ltr"}>
+                <div className="settings-header">
+                    <h1 className="settings-title">
+                        {language === "ar" ? "إعدادات الحساب" : "Account Settings"}
+                    </h1>
+                    <p className="settings-subtitle">
+                        {language === "ar" 
+                            ? "قم بإدارة بياناتك الشخصية، ملفك الاستثماري، وحماية حسابك وتصفير محفظتك." 
+                            : "Manage your personal profile, investor preferences, account security, and portfolio resets."}
+                    </p>
+                </div>
 
-                    {/* Dashboard Layout Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                        {/* Sidebar Navigation */}
-                        <div className="lg:col-span-3 space-y-4">
-                            <Card className="border-border/50 bg-card/60 backdrop-blur-sm shadow-md">
-                                <CardContent className="p-5 flex flex-col items-center text-center">
-                                    <div className="relative">
-                                        <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/20 bg-muted/30">
-                                            {avatarPreview ? (
-                                                <img
-                                                    src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
-                                                    alt="User avatar"
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center">
-                                                    <User className="w-10 h-10 text-primary" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <h3 className="font-bold text-base text-foreground mt-3 leading-snug">
-                                        {currentUser?.full_name || currentUser?.username}
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground mt-0.5">@{currentUser?.username}</p>
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex flex-col gap-1.5">
-                                {[
-                                    { id: "profile", label: language === "ar" ? "الملف الشخصي" : "Profile Details", icon: User },
-                                    { id: "portfolio", label: language === "ar" ? "إدارة المحفظة" : "Portfolio Settings", icon: Briefcase },
-                                    { id: "security", label: language === "ar" ? "الأمان والحماية" : "Security & Password", icon: Lock },
-                                ].map((tab) => {
-                                    const Icon = tab.icon;
-                                    const isActive = activeTab === tab.id;
-                                    return (
-                                        <Button
-                                            key={tab.id}
-                                            variant={isActive ? "default" : "ghost"}
-                                            onClick={() => setActiveTab(tab.id as any)}
-                                            className={`w-full justify-start cursor-pointer rounded-xl h-11 text-sm font-semibold transition-all ${
-                                                isActive 
-                                                    ? "shadow-md shadow-primary/10" 
-                                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                                            }`}
-                                        >
-                                            <Icon className={`w-4 h-4 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                                            <span>{tab.label}</span>
-                                        </Button>
-                                    );
-                                })}
-
-                                <div className="border-t my-2 border-border/50" />
-
-                                <Button
-                                    variant="outline"
-                                    onClick={() => navigate("/profile")}
-                                    className="w-full justify-start cursor-pointer rounded-xl h-11 text-sm text-foreground/80 hover:bg-muted/50 border-border/60"
-                                >
-                                    {isRTL ? <ChevronRight className="w-4 h-4 ml-3" /> : <ChevronLeft className="w-4 h-4 mr-3" />}
-                                    <span>{language === "ar" ? "العودة للملف الشخصي" : "Back to Profile"}</span>
-                                </Button>
+                {/* Dashboard Layout Grid */}
+                <div className="settings-grid">
+                    {/* Sidebar Navigation */}
+                    <div className="settings-sidebar">
+                        <div className="settings-profile-summary">
+                            <div className="settings-profile-avatar-wrapper">
+                                {avatarPreview ? (
+                                    <img
+                                        src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
+                                        alt="User avatar"
+                                        className="settings-profile-avatar-img"
+                                    />
+                                ) : (
+                                    <User className="w-10 h-10 text-primary" />
+                                )}
                             </div>
+                            <h3 className="settings-profile-name">
+                                {currentUser?.full_name || currentUser?.username}
+                            </h3>
+                            <p className="settings-profile-username">@{currentUser?.username}</p>
                         </div>
 
-                        {/* Content Area */}
-                        <div className="lg:col-span-9">
-                            <Card className="border-border/50 bg-card/40 backdrop-blur-sm shadow-lg rounded-2xl">
-                                <CardContent className="p-6 md:p-8">
+                        <div className="settings-nav-group">
+                            {[
+                                { id: "profile", label: language === "ar" ? "الملف الشخصي" : "Profile Details", icon: User },
+                                { id: "portfolio", label: language === "ar" ? "إدارة المحفظة" : "Portfolio Settings", icon: Briefcase },
+                                { id: "security", label: language === "ar" ? "الأمان والحماية" : "Security & Password", icon: Lock },
+                            ].map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`settings-nav-button ${isActive ? "active" : ""}`}
+                                    >
+                                        <Icon className={`settings-nav-icon ${isRTL ? 'settings-nav-icon-rtl' : 'settings-nav-icon-ltr'}`} />
+                                        <span>{tab.label}</span>
+                                    </button>
+                                );
+                            })}
+
+                            <div className="settings-divider" />
+
+                            <button
+                                onClick={() => navigate("/profile")}
+                                className="settings-back-button"
+                            >
+                                {isRTL ? <ChevronRight className="settings-nav-icon settings-nav-icon-rtl" /> : <ChevronLeft className="settings-nav-icon settings-nav-icon-ltr" />}
+                                <span>{language === "ar" ? "العودة للملف الشخصي" : "Back to Profile"}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="settings-content-card">
+                        <div className="settings-content-body">
                                     {/* 1. PROFILE DETAILS TAB */}
                                     {activeTab === "profile" && (
-                                        <div className="space-y-6">
-                                            <div className="border-b pb-4">
-                                                <h2 className="text-xl font-bold text-foreground">
+                                        <div className="settings-tab-section">
+                                            <div className="settings-tab-header">
+                                                <h2 className="settings-tab-title">
                                                     {language === "ar" ? "الملف الشخصي والبيانات" : "Profile Details"}
                                                 </h2>
-                                                <p className="text-xs text-muted-foreground mt-1">
+                                                <p className="settings-tab-desc">
                                                     {language === "ar" ? "تحديث بياناتك الشخصية واقتصاص الصورة الرمزية وتحديد اهدافك الاستثمارية." : "Update your profile details, avatar image, and investment styles."}
                                                 </p>
                                             </div>
-
+ 
                                             {/* Avatar Upload */}
-                                            <div className="space-y-3 bg-muted/20 p-4.5 rounded-2xl border border-border/40">
-                                                <Label className={isRTL ? 'text-right block' : 'block font-semibold'}>{t.profile.changePicture}</Label>
-                                                <div className="flex flex-col sm:flex-row items-center gap-5">
-                                                    <div className="h-16 w-16 rounded-full overflow-hidden border bg-background flex items-center justify-center flex-shrink-0">
+                                            <div className="settings-avatar-uploader">
+                                                <Label className={isRTL ? 'text-right block font-semibold' : 'block font-semibold'}>{t.profile.changePicture}</Label>
+                                                <div className="settings-avatar-row">
+                                                    <div className="settings-avatar-preview-box">
                                                         {avatarPreview ? (
                                                             <img
                                                                 src={avatarPreview.startsWith('/') ? `${API_URL}${avatarPreview}` : avatarPreview}
                                                                 alt="Preview"
-                                                                className="h-full w-full object-cover"
+                                                                className="settings-avatar-preview-img"
                                                             />
                                                         ) : (
                                                             <User className="w-8 h-8 text-primary" />
                                                         )}
                                                     </div>
-                                                    <div className="flex-1 space-y-1.5 text-center sm:text-start w-full">
+                                                    <div className="settings-avatar-controls">
                                                         <input
                                                             ref={fileInputRef}
                                                             type="file"
@@ -542,7 +528,7 @@ export function Settings(props: any) {
                                                             <Upload className={`w-3.5 h-3.5 ${isRTL ? 'ml-1.5' : 'mr-1.5'}`} />
                                                             {editAvatarFile ? (language === "ar" ? 'تغيير الصورة' : 'Change Image') : (language === "ar" ? 'تحميل صورة' : 'Upload Image')}
                                                         </Button>
-                                                        <p className={`text-[10px] text-muted-foreground ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}>
+                                                        <p className="settings-avatar-help-text">
                                                             {language === "ar" ? "الحد الأقصى 10 ميجابايت. JPG أو PNG أو GIF أو WEBP فقط." : "Max 10MB. JPG, PNG, GIF, or WEBP only."}
                                                         </p>
                                                         {isUploading && (
@@ -551,10 +537,10 @@ export function Settings(props: any) {
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+ 
+                                            <div className="settings-form-row">
                                                 {/* Full Name */}
-                                                <div className="space-y-2">
+                                                <div className="settings-form-group">
                                                     <Label htmlFor="editFullName" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                         {language === "ar" ? "الاسم المعروض (الاسم الكامل)" : "Display Name (Full Name)"}
                                                     </Label>
@@ -566,9 +552,9 @@ export function Settings(props: any) {
                                                         className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
                                                     />
                                                 </div>
-
+ 
                                                 {/* Username */}
-                                                <div className="space-y-2">
+                                                <div className="settings-form-group">
                                                     <Label htmlFor="username" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                         {t.auth.username} *
                                                     </Label>
@@ -590,9 +576,9 @@ export function Settings(props: any) {
                                                         <p className="text-[11px] text-green-500 font-semibold">{language === "ar" ? "✓ اسم المستخدم متاح" : "✓ Username available"}</p>
                                                     )}
                                                 </div>
-
+ 
                                                 {/* Phone Number */}
-                                                <div className="space-y-2">
+                                                <div className="settings-form-group">
                                                     <Label htmlFor="phone" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                         {language === "ar" ? "رقم الهاتف" : "Phone Number"}
                                                     </Label>
@@ -606,9 +592,9 @@ export function Settings(props: any) {
                                                     />
                                                 </div>
                                             </div>
-
+ 
                                             {/* Bio */}
-                                            <div className="space-y-2">
+                                            <div className="settings-form-group">
                                                 <Label htmlFor="bio" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                     {t.profile.bio}
                                                 </Label>
@@ -617,17 +603,17 @@ export function Settings(props: any) {
                                                     value={editBio}
                                                     onChange={(e) => setEditBio(e.target.value)}
                                                     placeholder={language === "ar" ? "أخبرنا قليلاً عن نفسك كمتداول أو مستثمر..." : "Tell us a bit about yourself as a trader or investor..."}
-                                                    className={`min-h-[100px] rounded-xl ${isRTL ? 'text-right' : ''}`}
+                                                    className={`settings-textarea-input ${isRTL ? 'text-right' : ''}`}
                                                 />
                                             </div>
-
+ 
                                             {/* Investor Profiling */}
                                             <div className="border-t pt-5 space-y-4">
                                                 <h3 className="text-base font-bold text-primary">
                                                     {language === "ar" ? "الملف الاستثماري والمخاطر" : "Investor Profiling & Goals"}
                                                 </h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                    <div className="space-y-2">
+                                                <div className="settings-form-row">
+                                                    <div className="settings-form-group">
                                                         <Label htmlFor="investorType" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                             {language === "ar" ? "أسلوب التداول والاستثمار" : "Investing Style"}
                                                         </Label>
@@ -635,7 +621,7 @@ export function Settings(props: any) {
                                                             id="investorType"
                                                             value={investorType}
                                                             onChange={(e) => setInvestorType(e.target.value)}
-                                                            className={`flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                                                            className="settings-select-input"
                                                             style={{ direction: isRTL ? 'rtl' : 'ltr' }}
                                                         >
                                                             <option value="">{language === "ar" ? "-- حدد أسلوبك --" : "-- Select style --"}</option>
@@ -645,8 +631,8 @@ export function Settings(props: any) {
                                                             <option value="long_term">{language === "ar" ? "🛡️ مستثمر طويل الأجل" : "🛡️ Long-term Investor"}</option>
                                                         </select>
                                                     </div>
-
-                                                    <div className="space-y-2">
+ 
+                                                    <div className="settings-form-group">
                                                         <Label htmlFor="investmentGoal" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
                                                             {language === "ar" ? "هدف الاستثمار الرئيسي" : "Primary Goal"}
                                                         </Label>
@@ -654,7 +640,7 @@ export function Settings(props: any) {
                                                             id="investmentGoal"
                                                             value={investmentGoal}
                                                             onChange={(e) => setInvestmentGoal(e.target.value)}
-                                                            className={`flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                                                            className="settings-select-input"
                                                             style={{ direction: isRTL ? 'rtl' : 'ltr' }}
                                                         >
                                                             <option value="">{language === "ar" ? "-- حدد هدفك --" : "-- Select goal --"}</option>
@@ -666,9 +652,9 @@ export function Settings(props: any) {
                                                     </div>
                                                 </div>
                                             </div>
-
+ 
                                             {/* Action Bar */}
-                                            <div className="flex justify-end gap-3 border-t pt-5">
+                                            <div className="settings-action-bar">
                                                 <Button
                                                     onClick={handleSaveProfile}
                                                     disabled={isSaving || !!usernameError || usernameChecking}
@@ -683,37 +669,37 @@ export function Settings(props: any) {
 
                                     {/* 2. PORTFOLIO SETTINGS TAB */}
                                     {activeTab === "portfolio" && (
-                                        <div className="space-y-6">
-                                            <div className="border-b pb-4">
-                                                <h2 className="text-xl font-bold text-foreground">
+                                        <div className="settings-tab-section">
+                                            <div className="settings-tab-header">
+                                                <h2 className="settings-tab-title">
                                                     {language === "ar" ? "إعادة تعيين وإدارة المحافظ" : "Portfolio & Simulator Settings"}
                                                 </h2>
-                                                <p className="text-xs text-muted-foreground mt-1">
+                                                <p className="settings-tab-desc">
                                                     {language === "ar" 
                                                         ? "تصفير حساب محاكاة التداول الافتراضي أو حذف محفظتك المسجلة يدوياً بنقرة زر واحدة." 
                                                         : "Reset your simulator balance to starting capital or clear all manual holdings tracker records."}
                                                 </p>
                                             </div>
-
-                                            <div className="space-y-6">
+ 
+                                            <div className="settings-tab-section">
                                                 {/* Simulator Reset Box */}
-                                                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
-                                                    <div className="flex items-start gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                                            <Zap className="w-5 h-5 text-amber-500" />
+                                                <div className="settings-reset-box">
+                                                    <div className="settings-reset-header-row">
+                                                        <div className="settings-reset-icon-wrapper">
+                                                            <Zap className="settings-reset-icon" />
                                                         </div>
-                                                        <div>
-                                                            <h4 className="text-base font-bold text-amber-600 dark:text-amber-400">
+                                                        <div className="settings-reset-info">
+                                                            <h4 className="settings-reset-title">
                                                                 {language === "ar" ? "تصفير محاكي التداول الافتراضي" : "Reset Virtual Trade Simulator"}
                                                             </h4>
-                                                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                                                            <p className="settings-reset-description">
                                                                 {language === "ar" 
                                                                     ? "سيؤدي هذا الخيار إلى تصفية جميع أسهمك الافتراضية، حذف عمليات التداول الافتراضية بالكامل، وإعادة تعيين رصيدك الأولي إلى $2,000 لبدء التحدي مجدداً."
                                                                     : "This will permanently sell all virtual simulator stocks, delete trade logs, and set your simulator starting cash back to $2,000."}
                                                             </p>
                                                         </div>
                                                     </div>
-
+ 
                                                     {!simResetConfirm ? (
                                                         <Button 
                                                             variant="destructive" 
@@ -723,7 +709,7 @@ export function Settings(props: any) {
                                                             {language === "ar" ? "إعادة تعيين المحاكي الافتراضي" : "Reset Virtual Simulator"}
                                                         </Button>
                                                     ) : (
-                                                        <div className="flex gap-3">
+                                                        <div className="settings-reset-actions">
                                                             <Button 
                                                                 variant="destructive" 
                                                                 className="flex-1 cursor-pointer rounded-xl h-11 font-bold"
@@ -742,25 +728,25 @@ export function Settings(props: any) {
                                                         </div>
                                                     )}
                                                 </div>
-
+ 
                                                 {/* Manual Portfolio Reset Box */}
-                                                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
-                                                    <div className="flex items-start gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                                            <RotateCw className="w-5 h-5 text-amber-500" />
+                                                <div className="settings-reset-box">
+                                                    <div className="settings-reset-header-row">
+                                                        <div className="settings-reset-icon-wrapper">
+                                                            <RotateCw className="settings-reset-icon" />
                                                         </div>
-                                                        <div>
-                                                            <h4 className="text-base font-bold text-amber-600 dark:text-amber-400">
+                                                        <div className="settings-reset-info">
+                                                            <h4 className="settings-reset-title">
                                                                 {language === "ar" ? "إعادة تعيين المحفظة الحقيقية اليدوية" : "Reset Manual Portfolio Tracker"}
                                                             </h4>
-                                                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                                                            <p className="settings-reset-description">
                                                                 {language === "ar" 
                                                                     ? "سيؤدي هذا الإجراء إلى حذف كافة الصفقات والأسهم والمدخلات اليدوية التي سجلتها داخل المحفظة لتصفير سجلاتك وإدخال بيانات جديدة."
                                                                     : "This option will permanently delete all manually inputted trades, holdings, and transaction records from your Portfolio tab."}
                                                             </p>
                                                         </div>
                                                     </div>
-
+ 
                                                     {!portResetConfirm ? (
                                                         <Button 
                                                             variant="destructive" 
@@ -770,7 +756,7 @@ export function Settings(props: any) {
                                                             {language === "ar" ? "إعادة تعيين المحفظة اليدوية" : "Reset Manual Portfolio"}
                                                         </Button>
                                                     ) : (
-                                                        <div className="flex gap-3">
+                                                        <div className="settings-reset-actions">
                                                             <Button 
                                                                 variant="destructive" 
                                                                 className="flex-1 cursor-pointer rounded-xl h-11 font-bold"
@@ -792,34 +778,34 @@ export function Settings(props: any) {
                                             </div>
                                         </div>
                                     )}
-
+ 
                                     {/* 3. SECURITY TAB */}
                                     {activeTab === "security" && (
-                                        <div className="space-y-6">
-                                            <div className="border-b pb-4">
-                                                <h2 className="text-xl font-bold text-foreground">
+                                        <div className="settings-tab-section">
+                                            <div className="settings-tab-header">
+                                                <h2 className="settings-tab-title">
                                                     {language === "ar" ? "تغيير كلمة المرور والحماية" : "Password & Account Security"}
                                                 </h2>
-                                                <p className="text-xs text-muted-foreground mt-1">
+                                                <p className="settings-tab-desc">
                                                     {language === "ar" ? "تأمين حسابك عبر تحديث كلمة المرور بشكل دوري." : "Secure your investment account by updating your login password regularly."}
                                                 </p>
                                             </div>
-
-                                            <form onSubmit={handleChangePassword} className="space-y-4">
+ 
+                                            <form onSubmit={handleChangePassword} className="settings-tab-section">
                                                 {passwordError && (
                                                     <div className="p-3 bg-red-500/10 text-red-500 text-xs rounded-xl border border-red-500/20">
                                                         {passwordError}
                                                     </div>
                                                 )}
-
+ 
                                                 {passwordSuccess && (
                                                     <div className="p-3 bg-green-500/10 text-green-500 text-xs rounded-xl border border-green-500/20">
                                                         {passwordSuccess}
                                                     </div>
                                                 )}
-
+ 
                                                 {currentUser?.password_hash && (
-                                                    <div className="space-y-2">
+                                                    <div className="settings-form-group">
                                                         <Label htmlFor="currentPassword">{language === "ar" ? "كلمة المرور الحالية" : "Current Password"}</Label>
                                                         <Input
                                                             id="currentPassword"
@@ -831,8 +817,8 @@ export function Settings(props: any) {
                                                         />
                                                     </div>
                                                 )}
-
-                                                <div className="space-y-2">
+ 
+                                                <div className="settings-form-group">
                                                     <Label htmlFor="newPassword">{language === "ar" ? "كلمة المرور الجديدة" : "New Password"}</Label>
                                                     <Input
                                                         id="newPassword"
@@ -844,11 +830,11 @@ export function Settings(props: any) {
                                                         placeholder={language === "ar" ? "8 رموز على الأقل" : "At least 8 characters"}
                                                     />
                                                     {newPassword && (
-                                                        <div className="space-y-1">
-                                                            <div className="flex gap-1 h-1.5 w-full bg-muted rounded-full overflow-hidden mt-2">
-                                                                <div className={`h-full transition-all duration-350 ${newPassword.length >= 12 ? 'w-full bg-green-500' : newPassword.length >= 8 ? 'w-2/3 bg-amber-500' : 'w-1/3 bg-red-500'}`} />
+                                                        <div className="password-strength-container">
+                                                            <div className="password-strength-bar-bg">
+                                                                <div className={`password-strength-bar-fill ${newPassword.length >= 12 ? 'strong' : newPassword.length >= 8 ? 'medium' : 'weak'}`} />
                                                             </div>
-                                                            <p className={`text-[10px] text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                                                            <p className="password-strength-text">
                                                                 {newPassword.length >= 12 
                                                                     ? (language === "ar" ? "كلمة مرور قوية جداً 💪" : "Very strong password 💪")
                                                                     : newPassword.length >= 8 
@@ -858,8 +844,8 @@ export function Settings(props: any) {
                                                         </div>
                                                     )}
                                                 </div>
-
-                                                <div className="space-y-2">
+ 
+                                                <div className="settings-form-group">
                                                     <Label htmlFor="confirmPassword">{language === "ar" ? "تأكيد كلمة المرور الجديدة" : "Confirm New Password"}</Label>
                                                     <Input
                                                         id="confirmPassword"
@@ -870,7 +856,7 @@ export function Settings(props: any) {
                                                         className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
                                                     />
                                                 </div>
-
+ 
                                                 <Button 
                                                     type="submit" 
                                                     className="w-full cursor-pointer mt-4 rounded-xl h-11 font-bold" 
@@ -882,44 +868,33 @@ export function Settings(props: any) {
                                             </form>
                                         </div>
                                     )}
-                                </CardContent>
-                            </Card>
                         </div>
                     </div>
                 </div>
             </main>
-
+ 
             <Footer />
-
+ 
             {/* Custom Interactive Avatar Cropper Modal */}
             <Dialog open={isCropperOpen} onOpenChange={setIsCropperOpen}>
                 <DialogContent 
-                    className="max-w-[90%] sm:max-w-[420px] max-h-[92vh] flex flex-col p-0 rounded-2xl shadow-2xl border border-muted/50 bg-background/95 backdrop-blur-md overflow-hidden" 
+                    className="cropper-dialog-content bg-background/95 backdrop-blur-md border border-muted/50 shadow-2xl" 
                     dir={isRTL ? "rtl" : "ltr"}
                 >
-                    <DialogHeader className={`p-6 pb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <div className="cropper-header">
                         <DialogTitle className="text-base sm:text-lg">
                             {language === "ar" ? "تعديل واقتصاص صورة الأفاتار" : "Adjust and Crop Avatar Image"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm">
+                        <DialogDescription className="text-xs sm:text-sm mt-1">
                             {language === "ar" 
                                 ? "اسحب الصورة لتحريكها، واستخدم شريط التكبير لضبط الحجم." 
                                 : "Drag the image to reposition it, and use the slider to zoom."}
                         </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center justify-center space-y-4 custom-scrollbar">
+                    </div>
+ 
+                    <div className="cropper-body">
                         <div 
-                            className="relative flex-shrink-0 rounded-full overflow-hidden border-4 border-primary/30 bg-muted/40 shadow-inner flex items-center justify-center cursor-move active:cursor-grabbing select-none aspect-square animate-in zoom-in-95 duration-200"
-                            style={{ 
-                                width: '200px', 
-                                height: '200px', 
-                                minWidth: '200px', 
-                                minHeight: '200px',
-                                maxWidth: '200px',
-                                maxHeight: '200px',
-                                borderRadius: '50%'
-                            }}
+                            className="cropper-preview-ring"
                             onMouseDown={handleDragStart}
                             onMouseMove={handleDragMove}
                             onMouseUp={handleDragEnd}
@@ -932,7 +907,7 @@ export function Settings(props: any) {
                                 <img
                                     src={cropperSrc}
                                     alt="Cropping area"
-                                    className="select-none pointer-events-none origin-center"
+                                    className="cropper-source-img"
                                     style={{
                                         transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                                         transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -940,19 +915,17 @@ export function Settings(props: any) {
                                         maxHeight: 'none',
                                         width: imgAspect > 1 ? 'auto' : '200px',
                                         height: imgAspect > 1 ? '200px' : 'auto',
-                                        objectFit: 'cover',
-                                        userSelect: 'none'
                                     }}
                                 />
                             )}
                             
-                            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary pointer-events-none ring-offset-4 ring-2 ring-background/50" style={{ borderRadius: '50%' }} />
+                            <div className="cropper-dashed-guide" />
                         </div>
-
-                        <div className="w-full px-2 space-y-1">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+ 
+                        <div className="cropper-slider-container">
+                            <div className="cropper-slider-labels">
                                 <span>{language === "ar" ? "تصغير" : "Zoom Out"}</span>
-                                <span className="font-mono text-primary font-bold text-xs">{(zoom * 100).toFixed(0)}%</span>
+                                <span className="font-mono text-primary font-bold">{(zoom * 100).toFixed(0)}%</span>
                                 <span>{language === "ar" ? "تكبير" : "Zoom In"}</span>
                             </div>
                             <input
@@ -962,11 +935,11 @@ export function Settings(props: any) {
                                 step="0.05"
                                 value={zoom}
                                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-lg appearance-none"
+                                className="cropper-slider"
                             />
                         </div>
-
-                        <div className="flex items-center gap-3 w-full px-2">
+ 
+                        <div className="cropper-buttons-row">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -992,8 +965,8 @@ export function Settings(props: any) {
                             </Button>
                         </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 p-6 pt-2 border-t mt-2">
+ 
+                    <div className="cropper-footer">
                         <Button 
                             variant="ghost" 
                             size="sm"
