@@ -54,8 +54,8 @@ elif "postgresql://" in DATABASE_URL and "+psycopg2" not in DATABASE_URL:
 from models import Base as AuthBase
 
 engine_kwargs = {
-    "pool_size": 20,
-    "max_overflow": 10,
+    "pool_size": 5,
+    "max_overflow": 2,
     "pool_timeout": 30,
     "pool_recycle": 1800,
     "pool_pre_ping": True

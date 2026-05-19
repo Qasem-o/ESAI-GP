@@ -107,7 +107,7 @@ export function Simulator({ onGoToStocks, onGoToPortfolio, onGoToCommunity, onGo
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => fetchData(true), 30000);
+    const interval = setInterval(() => fetchData(true), 120000);
     return () => clearInterval(interval);
   }, [fetchData]);
 

@@ -208,7 +208,7 @@ export function Portfolio({
   // Auto-refresh prices every 30 seconds
   useEffect(() => {
     if (!isAuthenticated) return;
-    const interval = setInterval(() => fetchData(true), 30000);
+    const interval = setInterval(() => fetchData(true), 120000);
     return () => clearInterval(interval);
   }, [isAuthenticated, fetchData]);
 

@@ -125,7 +125,7 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
 
   // Auto-refresh every 30s
   useEffect(() => {
-    const interval = setInterval(() => fetchFeed(true), 30000);
+    const interval = setInterval(() => fetchFeed(true), 120000);
     return () => clearInterval(interval);
   }, [fetchFeed]);
 
