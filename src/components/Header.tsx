@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
@@ -50,6 +51,17 @@ export function Header({
   const { theme } = useTheme();
   const { user, isAuthenticated, logout } = useAuth();
   const { t, language, toggleLanguage, isRTL } = useLanguage();
+  const navigate = useNavigate();
+
+  const handleGoToSettings = () => {
+    if (onGoToSettings) onGoToSettings();
+    else navigate("/settings");
+  };
+
+  const handleGoToProfile = () => {
+    if (onGoToProfile) onGoToProfile();
+    else navigate("/profile");
+  };
 
   const handleLogout = () => {
     logout();
@@ -151,7 +163,7 @@ export function Header({
                 <Button
                   variant="ghost"
                   className="relative h-10 w-10 rounded-full p-0 hover:opacity-80 transition-opacity"
-                  onClick={onGoToProfile}
+                  onClick={handleGoToProfile}
                   title={t.header.goToProfile}
                 >
                   <Avatar className="h-10 w-10">
@@ -184,11 +196,11 @@ export function Header({
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onGoToProfile} className="cursor-pointer">
+                    <DropdownMenuItem onClick={handleGoToProfile} className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       <span>{t.nav.profile}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={onGoToSettings} className="cursor-pointer">
+                    <DropdownMenuItem onClick={handleGoToSettings} className="cursor-pointer">
                       <SettingsIcon className="mr-2 h-4 w-4" style={{ transform: language === 'ar' ? 'scaleX(-1)' : 'none' }} />
                       <span>{language === "ar" ? "الإعدادات" : "Settings"}</span>
                     </DropdownMenuItem>

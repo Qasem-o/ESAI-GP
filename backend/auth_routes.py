@@ -419,6 +419,19 @@ async def update_profile(
             raise HTTPException(status_code=400, detail="Username already taken")
         
         current_user.username = profile_data.username
+        
+    # Update email if provided
+    if profile_data.email:
+        # Check if email is taken by another user
+        existing_email = db.query(User).filter(
+            User.email == profile_data.email,
+            User.user_id != current_user.user_id
+        ).first()
+        
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        current_user.email = profile_data.email
     
     # Update full name if provided
     if profile_data.full_name is not None:
@@ -740,4 +753,48 @@ async def change_password(
         message="تم تغيير كلمة المرور بنجاح",
         success=True
     )
+
+@router.delete("/profile", response_model=MessageResponse)
+async def delete_user_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete current user's account and all related data."""
+    try:
+        # Import the model classes locally to avoid any circular dependency issues
+        from simulator_models import SimulatorHolding, SimulatorTransaction, SimulatorState
+        from portfolio_models import PortfolioHolding, PortfolioTransaction, PortfolioCash, Watchlist
+        from community_models import Post, PostLike, PostComment, UserFollow, UserStats
+        from models import OAuthProvider, EmailVerification
+        
+        # Delete related simulator state and logs
+        db.query(SimulatorHolding).filter(SimulatorHolding.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(SimulatorTransaction).filter(SimulatorTransaction.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(SimulatorState).filter(SimulatorState.user_id == current_user.user_id).delete(synchronize_session=False)
+        
+        # Delete related manual portfolio logs
+        db.query(PortfolioHolding).filter(PortfolioHolding.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(PortfolioTransaction).filter(PortfolioTransaction.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(PortfolioCash).filter(PortfolioCash.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(Watchlist).filter(Watchlist.user_id == current_user.user_id).delete(synchronize_session=False)
+        
+        # Delete related community and stats logs
+        db.query(PostLike).filter(PostLike.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(PostComment).filter(PostComment.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(Post).filter(Post.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(UserFollow).filter((UserFollow.follower_id == current_user.user_id) | (UserFollow.following_id == current_user.user_id)).delete(synchronize_session=False)
+        db.query(UserStats).filter(UserStats.user_id == current_user.user_id).delete(synchronize_session=False)
+        
+        # Delete OAuth and Verification tokens
+        db.query(OAuthProvider).filter(OAuthProvider.user_id == current_user.user_id).delete(synchronize_session=False)
+        db.query(EmailVerification).filter(EmailVerification.user_id == current_user.user_id).delete(synchronize_session=False)
+        
+        # Finally delete user
+        db.delete(current_user)
+        db.commit()
+        
+        return MessageResponse(message="Account deleted successfully", success=True)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
 

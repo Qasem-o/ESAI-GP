@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Header } from "./Header";
@@ -59,9 +60,12 @@ const parseBioData = (rawBio: string | null) => {
 };
 
 export function Settings(props: any) {
-    const { user: currentUser, isAuthenticated, isLoading: authLoading, updateProfile } = useAuth();
+    const { user: currentUser, isAuthenticated, isLoading: authLoading, updateProfile, deleteAccount } = useAuth();
     const { t, isRTL, language } = useLanguage();
     const navigate = useNavigate();
+
+    const [accountDeleteConfirm, setAccountDeleteConfirm] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
     // Active tab state
     const [activeTab, setActiveTab] = useState<"profile" | "portfolio" | "security">("profile");
@@ -69,6 +73,7 @@ export function Settings(props: any) {
     // Profile fields states
     const [editUsername, setEditUsername] = useState("");
     const [editFullName, setEditFullName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
     const [editPhone, setEditPhone] = useState("");
     const [editBio, setEditBio] = useState("");
     const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
@@ -120,6 +125,7 @@ export function Settings(props: any) {
         if (currentUser) {
             setEditUsername(currentUser.username || "");
             setEditFullName(currentUser.full_name || "");
+            setEditEmail(currentUser.email || "");
             setEditPhone(currentUser.phone_number || "");
 
             const { cleanBio, investorType: parsedType, investmentGoal: parsedGoal } = parseBioData(currentUser.bio || "");
@@ -135,10 +141,10 @@ export function Settings(props: any) {
         try {
             await simulatorAPI.resetSimulator();
             setSimResetConfirm(false);
-            alert(language === "ar" ? "تمت إعادة تعيين محاكاة التداول بنجاح!" : "Trading simulator reset successfully!");
+            toast.success(language === "ar" ? "تمت إعادة تعيين محاكاة التداول بنجاح!" : "Trading simulator reset successfully!");
         } catch (err: any) {
             console.error("Error resetting simulator:", err);
-            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحاكي الافتراضي." : "Failed to reset virtual simulator."));
+            toast.error(err.message || (language === "ar" ? "فشل إعادة تعيين المحاكي الافتراضي." : "Failed to reset virtual simulator."));
         } finally {
             setIsResettingSim(false);
         }
@@ -149,12 +155,27 @@ export function Settings(props: any) {
         try {
             await portfolioAPI.resetPortfolio();
             setPortResetConfirm(false);
-            alert(language === "ar" ? "تمت إعادة تعيين محفظتك اليدوية بنجاح!" : "Your manual portfolio was reset successfully!");
+            toast.success(language === "ar" ? "تمت إعادة تعيين محفظتك اليدوية بنجاح!" : "Your manual portfolio was reset successfully!");
         } catch (err: any) {
             console.error("Error resetting portfolio:", err);
-            alert(err.message || (language === "ar" ? "فشل إعادة تعيين المحفظة اليدوية." : "Failed to reset manual portfolio."));
+            toast.error(err.message || (language === "ar" ? "فشل إعادة تعيين المحفظة اليدوية." : "Failed to reset manual portfolio."));
         } finally {
             setIsResettingPort(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setIsDeletingAccount(true);
+        try {
+            await deleteAccount();
+            toast.success(language === "ar" ? "تم حذف حسابك بنجاح. نأسف لمغادرتك!" : "Your account has been deleted successfully. We are sorry to see you go!");
+            navigate("/login");
+        } catch (err: any) {
+            console.error("Error deleting account:", err);
+            toast.error(err.message || (language === "ar" ? "فشل حذف الحساب. يرجى المحاولة مرة أخرى." : "Failed to delete account. Please try again."));
+        } finally {
+            setIsDeletingAccount(false);
+            setAccountDeleteConfirm(false);
         }
     };
 
@@ -304,13 +325,13 @@ export function Settings(props: any) {
 
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            alert(language === "ar" ? "يجب أن يكون حجم الملف أقل من 10 ميجابايت" : "File size must be less than 10MB");
+            toast.error(language === "ar" ? "يجب أن يكون حجم الملف أقل من 10 ميجابايت" : "File size must be less than 10MB");
             return;
         }
 
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert(language === "ar" ? "يُسمح فقط بصور JPG و PNG و GIF و WEBP" : "Only JPG, PNG, GIF, and WEBP images are allowed");
+            toast.error(language === "ar" ? "يُسمح فقط بصور JPG و PNG و GIF و WEBP" : "Only JPG, PNG, GIF, and WEBP images are allowed");
             return;
         }
 
@@ -366,7 +387,7 @@ export function Settings(props: any) {
         if (!currentUser) return;
 
         if (usernameError) {
-            alert(language === "ar" ? "يرجى إصلاح الأخطاء قبل الحفظ" : "Please fix errors before saving");
+            toast.warning(language === "ar" ? "يرجى إصلاح الأخطاء قبل الحفظ" : "Please fix errors before saving");
             return;
         }
 
@@ -388,16 +409,17 @@ export function Settings(props: any) {
 
             await updateProfile({
                 username: editUsername !== currentUser.username ? editUsername : undefined,
+                email: editEmail !== currentUser.email ? editEmail : undefined,
                 full_name: editFullName !== currentUser.full_name ? editFullName : undefined,
                 phone_number: editPhone || null,
                 bio: finalBio || null,
                 profile_picture_url: avatarUrl
             } as any);
 
-            alert(language === "ar" ? "تم تحديث بيانات ملفك الشخصي بنجاح!" : "Your profile details have been updated successfully!");
+            toast.success(language === "ar" ? "تم تحديث بيانات ملفك الشخصي بنجاح!" : "Your profile details have been updated successfully!");
         } catch (error: any) {
             console.error("Error updating profile:", error);
-            alert(error.message || (language === "ar" ? "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى." : "Failed to update profile. Please try again."));
+            toast.error(error.message || (language === "ar" ? "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى." : "Failed to update profile. Please try again."));
         } finally {
             setIsSaving(false);
         }
@@ -452,8 +474,8 @@ export function Settings(props: any) {
                         <div className="settings-nav-group">
                             {[
                                 { id: "profile", label: language === "ar" ? "الملف الشخصي" : "Profile Details", icon: User },
-                                { id: "portfolio", label: language === "ar" ? "إدارة المحفظة" : "Portfolio Settings", icon: Briefcase },
                                 { id: "security", label: language === "ar" ? "الأمان والحماية" : "Security & Password", icon: Lock },
+                                { id: "portfolio", label: language === "ar" ? "إدارة الحساب والبيانات" : "Account & Data Management", icon: SettingsIcon },
                             ].map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -592,17 +614,17 @@ export function Settings(props: any) {
                                                     />
                                                 </div>
 
-                                                {/* Email Address (Read-only) */}
+                                                {/* Email Address */}
                                                 <div className="settings-form-group">
                                                     <Label htmlFor="email" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
-                                                        {language === "ar" ? "البريد الإلكتروني (للعرض فقط)" : "Email Address (Read-only)"}
+                                                        {language === "ar" ? "البريد الإلكتروني" : "Email Address"}
                                                     </Label>
                                                     <Input
                                                         id="email"
                                                         type="email"
-                                                        value={currentUser?.email || ""}
-                                                        disabled
-                                                        className={isRTL ? 'text-right rounded-xl h-10.5 bg-muted/30 cursor-not-allowed opacity-80' : 'rounded-xl h-10.5 bg-muted/30 cursor-not-allowed opacity-80'}
+                                                        value={editEmail}
+                                                        onChange={(e) => setEditEmail(e.target.value)}
+                                                        className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
                                                     />
                                                 </div>
                                             </div>
@@ -682,17 +704,17 @@ export function Settings(props: any) {
                                         </div>
                                     )}
 
-                                    {/* 2. PORTFOLIO SETTINGS TAB */}
+                                    {/* 2. ACCOUNT & DATA MANAGEMENT TAB */}
                                     {activeTab === "portfolio" && (
                                         <div className="settings-tab-section">
                                             <div className="settings-tab-header">
                                                 <h2 className="settings-tab-title">
-                                                    {language === "ar" ? "إعادة تعيين وإدارة المحافظ" : "Portfolio & Simulator Settings"}
+                                                    {language === "ar" ? "إدارة الحساب والبيانات" : "Account & Data Management"}
                                                 </h2>
                                                 <p className="settings-tab-desc">
                                                     {language === "ar" 
-                                                        ? "تصفير حساب محاكاة التداول الافتراضي أو حذف محفظتك المسجلة يدوياً بنقرة زر واحدة." 
-                                                        : "Reset your simulator balance to starting capital or clear all manual holdings tracker records."}
+                                                        ? "تصفير حساب محاكاة التداول الافتراضي، حذف محفظتك اليدوية، أو حذف حسابك بشكل نهائي من المنصة." 
+                                                        : "Reset your simulator balance, clear all manual holdings tracker records, or permanently delete your account."}
                                                 </p>
                                             </div>
  
@@ -784,6 +806,53 @@ export function Settings(props: any) {
                                                                 variant="outline" 
                                                                 className="flex-1 cursor-pointer rounded-xl h-11"
                                                                 onClick={() => setPortResetConfirm(false)}
+                                                            >
+                                                                {language === "ar" ? "إلغاء" : "Cancel"}
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Delete Account Box */}
+                                                <div className="settings-reset-box border-red-500/20 bg-red-500/[0.02]">
+                                                    <div className="settings-reset-header-row">
+                                                        <div className="settings-reset-icon-wrapper bg-red-500/10 text-red-500">
+                                                            <User className="settings-reset-icon text-red-500" />
+                                                        </div>
+                                                        <div className="settings-reset-info">
+                                                            <h4 className="settings-reset-title text-red-500">
+                                                                {language === "ar" ? "حذف الحساب نهائياً" : "Permanently Delete Account"}
+                                                            </h4>
+                                                            <p className="settings-reset-description">
+                                                                {language === "ar" 
+                                                                    ? "سيؤدي هذا الإجراء إلى حذف حسابك بالكامل من المنصة، بما في ذلك بيانات ملفك الشخصي ومحفظتك الافتراضية واليدوية بشكل نهائي ولا يمكن التراجع عن هذا الإجراء."
+                                                                    : "This action will permanently delete your account, including your profile details, virtual trades, and manual portfolio trackers. This cannot be undone."}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {!accountDeleteConfirm ? (
+                                                        <Button 
+                                                            variant="destructive" 
+                                                            className="w-full cursor-pointer bg-red-500 text-white hover:bg-red-600 rounded-xl h-11 font-semibold"
+                                                            onClick={() => setAccountDeleteConfirm(true)}
+                                                        >
+                                                            {language === "ar" ? "حذف الحساب" : "Delete Account"}
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="settings-reset-actions">
+                                                            <Button 
+                                                                variant="destructive" 
+                                                                className="flex-1 cursor-pointer bg-red-600 text-white hover:bg-red-700 rounded-xl h-11 font-bold"
+                                                                onClick={handleDeleteAccount}
+                                                                disabled={isDeletingAccount}
+                                                            >
+                                                                {isDeletingAccount ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === "ar" ? "نعم، احذف حسابي" : "Yes, delete my account")}
+                                                            </Button>
+                                                            <Button 
+                                                                variant="outline" 
+                                                                className="flex-1 cursor-pointer rounded-xl h-11"
+                                                                onClick={() => setAccountDeleteConfirm(false)}
                                                             >
                                                                 {language === "ar" ? "إلغاء" : "Cancel"}
                                                             </Button>

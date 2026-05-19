@@ -95,6 +95,7 @@ class UpdateProfileRequest(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=20)
     bio: Optional[str] = Field(None, max_length=500)
     profile_picture_url: Optional[str] = Field(None)
+    email: Optional[EmailStr] = Field(None)
 
 
 class MessageResponse(BaseModel):

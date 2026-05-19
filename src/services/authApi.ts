@@ -281,6 +281,21 @@ class AuthAPI {
 
         return response.json();
     }
+
+    async deleteAccount(): Promise<MessageResponse> {
+        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+            method: 'DELETE',
+            headers: this.getHeaders(true),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to delete account');
+        }
+
+        this.logout();
+        return response.json();
+    }
 }
 
 export const authAPI = new AuthAPI();

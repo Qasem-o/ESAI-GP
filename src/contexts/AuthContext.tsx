@@ -18,6 +18,7 @@ interface AuthContextType {
     updateProfile: (data: Partial<UserProfile>) => Promise<void>;
     loginWithGoogle: (token: string) => Promise<void>;
     loginWithTelegram: (data: any) => Promise<void>;
+    deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -136,6 +137,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    const deleteAccount = async () => {
+        setIsLoading(true);
+        try {
+            await authAPI.deleteAccount();
+            setUser(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const value: AuthContextType = {
         user,
         isAuthenticated: !!user,
@@ -148,6 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateProfile,
         loginWithGoogle,
         loginWithTelegram,
+        deleteAccount,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

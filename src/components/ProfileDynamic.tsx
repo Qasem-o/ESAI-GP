@@ -1680,7 +1680,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                         <Button 
                             size="sm"
                             onClick={handleCropApply} 
-                            className="cursor-pointer font-bold px-5 h-9 text-xs sm:text-sm"
+                            className="cursor-pointer font-bold px-8 h-9 text-xs sm:text-sm"
                         >
                             {language === "ar" ? "اعتماد" : "Apply"}
                         </Button>
