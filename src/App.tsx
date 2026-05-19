@@ -29,6 +29,7 @@ import { HelpCategoryPage } from "./components/HelpCategoryPage";
 import { HelpArticlePage } from "./components/HelpArticlePage";
 import { Toaster } from "./components/ui/sonner";
 import ScrollToTop from "./components/ScrollToTop";
+import { Settings } from "./components/Settings";
 
 
 type Page = "home" | "explore" | "portfolio" | "simulator" | "profile" | "login" | "signup" | "stock";
@@ -136,6 +137,7 @@ export default function App() {
     onGoToPortfolio: () => navigate("/portfolio"),
     onGoToSimulator: () => navigate("/simulator"),
     onGoToProfile: () => navigate("/profile"),
+    onGoToSettings: () => navigate("/settings"),
     onGoToSignup: () => navigate("/signup"),
     onGoToLogin: () => navigate("/login"),
     onGoToAdmin: () => navigate("/admin"),
@@ -186,6 +188,7 @@ export default function App() {
             <Route path="/simulator" element={<Simulator {...navigationProps} />} />
             <Route path="/profile" element={<Profile {...navigationProps} />} />
             <Route path="/profile/:userId" element={<Profile {...navigationProps} />} />
+            <Route path="/settings" element={<Settings {...navigationProps} />} />
 
             {/* Dynamic Stock Detail Route - Standard Path */}
             <Route

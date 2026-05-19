@@ -853,7 +853,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                 {/* Actions */}
                                 <div className="space-y-2">
                                     {isEditingOwnProfile && (
-                                        <Button variant="outline" className="w-full cursor-pointer" onClick={handleEditProfile}>
+                                        <Button variant="outline" className="w-full cursor-pointer" onClick={() => navigate("/settings")}>
                                             <Settings className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                                             {t.profile.editProfile}
                                         </Button>

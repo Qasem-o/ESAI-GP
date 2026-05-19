@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "../assets/logo.png";
 import logoDarkImg from "../assets/logo-dark.png";
 import { Button } from "./ui/button";
-import { User, Menu, X, LogOut, ChevronDown, Shield, Languages, Home, Compass, Briefcase, TrendingUp, ChevronRight, ChevronLeft } from "lucide-react";
+import { User, Menu, X, LogOut, ChevronDown, Shield, Languages, Home, Compass, Briefcase, TrendingUp, ChevronRight, ChevronLeft, Settings as SettingsIcon } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -26,6 +26,7 @@ interface HeaderProps {
   onGoToPortfolio?: () => void;
   onGoToSimulator?: () => void;
   onGoToProfile?: () => void;
+  onGoToSettings?: () => void;
   onGoToSignup?: () => void;
   onGoToLogin?: () => void;
   onGoToAdmin?: () => void;
@@ -39,6 +40,7 @@ export function Header({
   onGoToPortfolio,
   onGoToSimulator,
   onGoToProfile,
+  onGoToSettings,
   onGoToSignup,
   onGoToLogin,
   onGoToAdmin,
@@ -185,6 +187,10 @@ export function Header({
                       <User className="mr-2 h-4 w-4" />
                       <span>{t.nav.profile}</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onGoToSettings} className="cursor-pointer">
+                      <SettingsIcon className="mr-2 h-4 w-4" style={{ transform: language === 'ar' ? 'scaleX(-1)' : 'none' }} />
+                      <span>{language === "ar" ? "الإعدادات" : "Settings"}</span>
+                    </DropdownMenuItem>
                     {user?.is_admin && (
                       <>
                         <DropdownMenuSeparator />
@@ -221,6 +227,7 @@ export function Header({
                 onGoToPortfolio={onGoToPortfolio}
                 onGoToSimulator={onGoToSimulator}
                 onGoToProfile={onGoToProfile}
+                onGoToSettings={onGoToSettings}
                 onGoToSignup={onGoToSignup}
                 onGoToLogin={onGoToLogin}
                 isAuthenticated={isAuthenticated}
@@ -242,6 +249,7 @@ interface MobileNavProps {
   onGoToPortfolio?: () => void;
   onGoToSimulator?: () => void;
   onGoToProfile?: () => void;
+  onGoToSettings?: () => void;
   onGoToSignup?: () => void;
   onGoToLogin?: () => void;
   isAuthenticated?: boolean;
@@ -256,6 +264,7 @@ function MobileNav({
   onGoToPortfolio,
   onGoToSimulator,
   onGoToProfile,
+  onGoToSettings,
   onGoToSignup,
   onGoToLogin,
   isAuthenticated,
@@ -417,19 +426,27 @@ function MobileNav({
                     </div>
 
                     {/* Quick profile actions */}
-                    <div className="grid grid-cols-2 gap-3 pt-0.5">
+                    <div className="grid grid-cols-3 gap-2 pt-0.5">
                       <Button
                         variant="outline"
                         onClick={() => handleNavClick(onGoToProfile)}
-                        className="w-full h-10 justify-center rounded-xl gap-2 border-border/80 text-[12.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all"
+                        className="w-full h-10 justify-center rounded-xl gap-1.5 border-border/80 text-[11.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all px-1"
                       >
                         <User className="w-3.5 h-3.5" /> 
                         <span>{t.nav.profile}</span>
                       </Button>
                       <Button
+                        variant="outline"
+                        onClick={() => handleNavClick(onGoToSettings)}
+                        className="w-full h-10 justify-center rounded-xl gap-1.5 border-border/80 text-[11.5px] font-semibold text-foreground/80 hover:text-foreground hover:scale-[1.005] active:scale-[0.995] transition-all px-1"
+                      >
+                        <SettingsIcon className="w-3.5 h-3.5" style={{ transform: language === 'ar' ? 'scaleX(-1)' : 'none' }} /> 
+                        <span>{language === "ar" ? "الإعدادات" : "Settings"}</span>
+                      </Button>
+                      <Button
                         variant="destructive"
                         onClick={() => handleNavClick(onLogout)}
-                        className="w-full h-10 justify-center rounded-xl gap-2 hover:bg-red-600/90 hover:scale-[1.005] active:scale-[0.995] transition-all"
+                        className="w-full h-10 justify-center rounded-xl gap-1.5 hover:bg-red-600/90 hover:scale-[1.005] active:scale-[0.995] transition-all px-1"
                       >
                         <LogOut className="w-3.5 h-3.5" /> 
                         <span>{t.nav.logout}</span>
