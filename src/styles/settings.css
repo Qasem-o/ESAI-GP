@@ -128,27 +128,27 @@
 }
 
 .settings-nav-button.active {
-  background: rgba(249, 115, 22, 0.12) !important;
-  color: #f97316 !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: #000000 !important;
   font-weight: 700 !important;
-  border-left: 4px solid #f97316 !important;
+  border-left: 4px solid #000000 !important;
   border-radius: 0.25rem 0.75rem 0.75rem 0.25rem !important;
 }
 
 [dir="rtl"] .settings-nav-button.active {
   border-left: none !important;
-  border-right: 4px solid #f97316 !important;
+  border-right: 4px solid #000000 !important;
   border-radius: 0.75rem 0.25rem 0.25rem 0.75rem !important;
 }
 
 .dark .settings-nav-button.active {
-  background: rgba(249, 115, 22, 0.2) !important;
-  color: #fb923c !important;
-  border-color: #fb923c !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
 }
 
 .dark [dir="rtl"] .settings-nav-button.active {
-  border-right: 4px solid #fb923c !important;
+  border-right: 4px solid #ffffff !important;
 }
 
 .settings-nav-icon {
