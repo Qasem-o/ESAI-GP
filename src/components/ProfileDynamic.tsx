@@ -405,7 +405,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
         setIsChangingPassword(true);
         try {
             await authAPI.changePassword({
-                current_password: currentPassword,
+                current_password: currentUser?.has_password ? currentPassword : "",
                 new_password: newPassword
             });
             setPasswordSuccess(language === "ar" ? "تم تغيير كلمة المرور بنجاح!" : "Password changed successfully!");
@@ -1476,7 +1476,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         </div>
                                     )}
 
-                                    {currentUser?.password_hash && (
+                                    {currentUser?.has_password ? (
                                         <div className="space-y-2">
                                             <Label htmlFor="currentPassword">{language === "ar" ? "كلمة المرور الحالية" : "Current Password"}</Label>
                                             <Input
@@ -1487,6 +1487,12 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                                 required
                                                 className={isRTL ? 'text-right' : ''}
                                             />
+                                        </div>
+                                    ) : (
+                                        <div className="p-3 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                                            {language === "ar" 
+                                                ? "بما أنك قمت بتسجيل الدخول عبر Google، ليس لديك كلمة مرور حالية. يمكنك تعيين كلمة مرور جديدة مباشرة لحسابك للتمكن من الدخول بالبريد الإلكتروني لاحقًا." 
+                                                : "Since you logged in via Google, you do not have a current password. You can set a password directly to log in using your email later."}
                                         </div>
                                     )}
 

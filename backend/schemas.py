@@ -69,6 +69,7 @@ class UserResponse(BaseModel):
     is_verified: bool
     is_admin: bool = False
     last_login: Optional[datetime]
+    has_password: bool = False
     
     class Config:
         from_attributes = True

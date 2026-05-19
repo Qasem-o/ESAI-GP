@@ -47,6 +47,14 @@
   gap: 1.25rem;
 }
 
+@media (min-width: 1025px) {
+  .settings-sidebar {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+  }
+}
+
 .settings-profile-summary {
   display: flex;
   flex-direction: column;

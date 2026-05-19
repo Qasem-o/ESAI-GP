@@ -176,7 +176,7 @@ export function Settings(props: any) {
         setIsChangingPassword(true);
         try {
             await authAPI.changePassword({
-                current_password: currentPassword,
+                current_password: currentUser?.has_password ? currentPassword : "",
                 new_password: newPassword
             });
             setPasswordSuccess(language === "ar" ? "تم تغيير كلمة المرور بنجاح!" : "Password changed successfully!");
@@ -591,6 +591,20 @@ export function Settings(props: any) {
                                                         className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
                                                     />
                                                 </div>
+
+                                                {/* Email Address (Read-only) */}
+                                                <div className="settings-form-group">
+                                                    <Label htmlFor="email" className={isRTL ? 'text-right block font-medium' : 'block font-medium'}>
+                                                        {language === "ar" ? "البريد الإلكتروني (للعرض فقط)" : "Email Address (Read-only)"}
+                                                    </Label>
+                                                    <Input
+                                                        id="email"
+                                                        type="email"
+                                                        value={currentUser?.email || ""}
+                                                        disabled
+                                                        className={isRTL ? 'text-right rounded-xl h-10.5 bg-muted/30 cursor-not-allowed opacity-80' : 'rounded-xl h-10.5 bg-muted/30 cursor-not-allowed opacity-80'}
+                                                    />
+                                                </div>
                                             </div>
  
                                             {/* Bio */}
@@ -805,7 +819,7 @@ export function Settings(props: any) {
                                                     </div>
                                                 )}
  
-                                                {currentUser?.password_hash && (
+                                                {currentUser?.has_password ? (
                                                     <div className="settings-form-group">
                                                         <Label htmlFor="currentPassword">{language === "ar" ? "كلمة المرور الحالية" : "Current Password"}</Label>
                                                         <Input
@@ -816,6 +830,12 @@ export function Settings(props: any) {
                                                             required
                                                             className={isRTL ? 'text-right rounded-xl h-10.5' : 'rounded-xl h-10.5'}
                                                         />
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-3 bg-blue-500/10 text-blue-400 text-xs rounded-xl border border-blue-500/20">
+                                                        {language === "ar" 
+                                                            ? "بما أنك قمت بتسجيل الدخول عبر Google، ليس لديك كلمة مرور حالية. يمكنك تعيين كلمة مرور جديدة مباشرة لحسابك للتمكن من الدخول بالبريد الإلكتروني لاحقًا." 
+                                                            : "Since you logged in via Google, you do not have a current password. You can set a password directly to log in using your email later."}
                                                     </div>
                                                 )}
  

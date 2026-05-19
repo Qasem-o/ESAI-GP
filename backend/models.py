@@ -26,6 +26,10 @@ class User(Base):
     locked_until = Column(DateTime, nullable=True)
     last_login = Column(DateTime, nullable=True)
     
+    @property
+    def has_password(self) -> bool:
+        return self.password_hash is not None
+
     # Relationships
     oauth_providers = relationship("OAuthProvider", back_populates="user", cascade="all, delete-orphan")
     email_verifications = relationship("EmailVerification", back_populates="user", cascade="all, delete-orphan")
