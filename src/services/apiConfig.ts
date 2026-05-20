@@ -42,3 +42,26 @@ if (typeof window !== 'undefined') {
     return response;
   };
 }
+
+export const translateError = (message: string, language: string): string => {
+  if (!message) return message;
+  const msgLower = message.toLowerCase();
+  
+  if (language === 'ar') {
+    if (msgLower.includes('session expired') || msgLower.includes('invalid or expired token') || msgLower.includes('token expired')) {
+      return 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى إلى منصة EyeStocksAi.';
+    }
+    if (msgLower.includes('verification code expired')) {
+      return 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.';
+    }
+    if (msgLower.includes('reset code expired')) {
+      return 'انتهت صلاحية رمز إعادة التعيين. يرجى طلب رمز جديد.';
+    }
+  } else {
+    if (msgLower.includes('session expired') || msgLower.includes('invalid or expired token') || msgLower.includes('token expired')) {
+      return 'Session expired. Please login again to EyeStocksAi.';
+    }
+  }
+  
+  return message;
+};

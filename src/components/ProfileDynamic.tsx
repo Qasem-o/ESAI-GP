@@ -124,6 +124,7 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
     const [following, setFollowing] = useState<Follower[]>([]);
     const [targetUser, setTargetUser] = useState<any>(null);
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isFollowLoading, setIsFollowLoading] = useState(false);
 
     // Comments & SubTab states
     const [commentsPostId, setCommentsPostId] = useState<number | null>(null);
@@ -304,28 +305,32 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
             return;
         }
         if (!targetUserId || isEditingOwnProfile) return;
-        const isFollowing = followers.some(f => f.user_id === currentUser.user_id);
+        setIsFollowLoading(true);
         try {
-            if (isFollowing) {
-                await profileAPI.unfollowUser(targetUserId, currentUser.user_id);
-                setFollowers(prev => prev.filter(f => f.user_id !== currentUser.user_id));
-                setStats(prev => prev ? { ...prev, followers_count: Math.max(0, prev.followers_count - 1) } : null);
-            } else {
-                await profileAPI.followUser(targetUserId, currentUser.user_id);
+            const res = await communityAPI.toggleFollow(targetUserId);
+            if (res.following) {
+                // Add current user to followers list
                 const newFollower: Follower = {
                     user_id: currentUser.user_id,
                     username: currentUser.username,
-                    full_name: currentUser.full_name || "",
+                    full_name: currentUser.full_name || undefined,
                     email: currentUser.email || "",
-                    profile_picture_url: currentUser.profile_picture_url || "",
+                    profile_picture_url: currentUser.profile_picture_url || undefined,
                     followers_count: 0,
-                    is_verified: false
+                    is_verified: currentUser.is_verified || false
                 };
                 setFollowers(prev => [...prev, newFollower]);
                 setStats(prev => prev ? { ...prev, followers_count: prev.followers_count + 1 } : null);
+            } else {
+                // Remove current user from followers list
+                setFollowers(prev => prev.filter(f => f.user_id !== currentUser.user_id));
+                setStats(prev => prev ? { ...prev, followers_count: Math.max(0, prev.followers_count - 1) } : null);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error toggling follow:", err);
+            toast.error(err.message || (language === "ar" ? "فشل تنفيذ العملية. يرجى المحاولة مرة أخرى." : "Operation failed. Please try again."));
+        } finally {
+            setIsFollowLoading(false);
         }
     };
 
@@ -866,8 +871,15 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                             variant={followers.some(f => f.user_id === currentUser?.user_id) ? "outline" : "default"} 
                                             className="w-full cursor-pointer"
                                             onClick={handleFollowToggle}
+                                            disabled={isFollowLoading}
                                         >
-                                            {followers.some(f => f.user_id === currentUser?.user_id) ? (language === "ar" ? "إلغاء المتابعة" : "Unfollow") : (language === "ar" ? "متابعة" : "Follow")}
+                                            {isFollowLoading ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                followers.some(f => f.user_id === currentUser?.user_id) 
+                                                    ? (language === "ar" ? "إلغاء المتابعة" : "Unfollow") 
+                                                    : (language === "ar" ? "متابعة" : "Follow")
+                                            )}
                                         </Button>
                                     )}
                                     <Button variant="outline" className="w-full cursor-pointer">

@@ -23,6 +23,7 @@ import { portfolioAPI } from "../services/portfolioApi";
 import { LoadingScreen } from "./LoadingScreen";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
+import { translateError } from "../services/apiConfig";
 
 import {
   TrendingUp,
@@ -110,7 +111,7 @@ interface StocksProps extends NavigationProps { }
 
 
 export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio, onGoToCommunity, onGoToSimulator, onGoToProfile, onGoToStockDetails, onGoToSignup, onGoToLogin, onGoToAdmin }: StocksProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSector, setSelectedSector] = useState("All");
   const [stocks, setStocks] = useState<StockPrice[]>([]);
@@ -212,7 +213,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
         toast.success(`${name} added to watchlist`);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to update watchlist");
+      toast.error(translateError(err.message || "Failed to update watchlist", language));
       if (err.message === 'Session expired' && onGoToLogin) {
         onGoToLogin();
       }

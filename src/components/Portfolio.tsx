@@ -19,6 +19,7 @@ import {
   WatchlistItem,
 } from "../services/portfolioApi";
 import { useLanguage } from "../contexts/LanguageContext";
+import { translateError } from "../services/apiConfig";
 import {
   TrendingUp,
   TrendingDown,
@@ -111,7 +112,7 @@ export function Portfolio({
   onGoToLogin,
 }: PortfolioProps) {
   const { isAuthenticated } = useAuth();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const [selectedTab, setSelectedTab] = useState<"holdings" | "transactions" | "watchlist">("holdings");
   const [tick, setTick] = useState(0);
 
@@ -265,7 +266,7 @@ export function Portfolio({
       }
       fetchData(true); // Silent refresh to update watchlist tab
     } catch (err: any) {
-      toast.error(err.message || "Failed to update watchlist");
+      toast.error(translateError(err.message || "Failed to update watchlist", language));
     } finally {
       setIsTogglingWatchlist(prev => ({ ...prev, [symbol]: false }));
     }
@@ -398,9 +399,9 @@ export function Portfolio({
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center mx-auto mb-6">
               <LogIn className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-3">{t.portfolio.loginRequired || "Sign in to view your Portfolio"}</h2>
+            <h2 className="text-2xl font-bold mb-3">{t.portfolio.signInToView || "Sign in to view your Portfolio"}</h2>
             <p className="text-muted-foreground mb-6">
-              {t.portfolio.loginToView || "Track your holdings, make trades, and monitor performance — all in one place."}
+              {t.portfolio.signInDesc || "Track your holdings, make trades, and monitor performance — all in one place."}
             </p>
             <div className="flex gap-3 justify-center">
               <Button onClick={onGoToLogin} size="lg">
