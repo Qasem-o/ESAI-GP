@@ -2,7 +2,7 @@
 let baseUrl = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
-    : 'https://esai-firstdraft.onrender.com');
+    : 'https://esai-firstdraft-production.up.railway.app');
 
 if (baseUrl && baseUrl.startsWith('http://') && (baseUrl.includes('railway.app') || baseUrl.includes('onrender.com'))) {
   baseUrl = baseUrl.replace('http://', 'https://');
