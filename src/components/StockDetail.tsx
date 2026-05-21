@@ -757,38 +757,71 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                             <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               <h3 className="font-bold text-lg">{language === "ar" ? "تحليلات الذكاء الاصطناعي" : "AI Market Insight"}</h3>
                               <Badge variant="secondary" className="text-xs">
-                                {Number(prediction.confidence).toFixed(2)}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
+                                {Number(prediction.confidence).toFixed(2)}% {language === "ar" ? "ثقة الذكاء الاصطناعي" : "AI Confidence"}
                               </Badge>
                             </div>
                             <p className={`text-sm text-muted-foreground mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {language === "ar" ? "التوقع القادم:" : "Nearest forecast:"} <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price?.toFixed(2) || "0.00"}</span>
+                              {language === "ar" ? "السعر المتوقع:" : "Expected Price:"} <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price?.toFixed(2) || "0.00"}</span>
                               {prediction.prediction_date ? ` ${language === "ar" ? "بتاريخ" : "on"} ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}` : ''}
                               {' '}({prediction.change_percent != null ? (prediction.change_percent >= 0 ? '+' : '') + Number(prediction.change_percent).toFixed(2) : '0'}% {language === "ar" ? "من اليوم" : "from today"}).
-                              {language === "ar" ? "الاتجاه:" : "Direction:"} <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
-                                prediction.direction === 'bearish' ? 'text-red-500' : 'text-yellow-500'
-                                }`}>{language === "ar" ? (prediction.direction === 'bullish' ? "صعودي" : prediction.direction === 'bearish' ? "هبوطي" : "محايد") : (prediction.direction?.toUpperCase() || "N/A")}</span>.
                             </p>
-                            <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <div className={`grid grid-cols-2 gap-3 mb-3 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">{language === "ar" ? "التوصية" : "Recommendation"}</span>
-                                <span className="font-bold">{language === "ar" ? (prediction.recommendation === "BUY" ? "شراء" : prediction.recommendation === "SELL" ? "بيع" : "احتفاظ") : (prediction.recommendation || "HOLD")}</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "توقعات السوق" : "Market Outlook"}</span>
+                                <span className={`font-bold ${
+                                  prediction.direction === 'bullish' ? 'text-green-500' :
+                                  prediction.direction === 'bearish' ? 'text-red-500' : 'text-yellow-500'
+                                }`}>
+                                  {(() => {
+                                    const cp = Math.abs(Number(prediction.change_percent) || 0);
+                                    const dir = prediction.direction;
+                                    if (cp < 1.5) return language === "ar" ? "إشارات مختلطة" : "Mixed Signals";
+                                    if (dir === 'bullish') return cp >= 3 ? (language === "ar" ? "توقعات صعودية" : "Bullish Outlook") : (language === "ar" ? "صعود طفيف" : "Slightly Bullish");
+                                    if (dir === 'bearish') return cp >= 3 ? (language === "ar" ? "توقعات هبوطية" : "Bearish Outlook") : (language === "ar" ? "هبوط طفيف" : "Slightly Bearish");
+                                    return language === "ar" ? "سوق جانبي" : "Sideways Market";
+                                  })()}
+                                </span>
                               </div>
                               <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
-                                <span className="font-bold">{getCurrency(displayStockData.symbol)} {prediction.target_price || "N/A"}</span>
-                              </div>
-                              <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
-                                <span className="font-bold text-red-400">{getCurrency(displayStockData.symbol)} {prediction.stop_loss || "N/A"}</span>
-                              </div>
-                              <div className="bg-background/40 p-2 rounded">
-                                <span className="text-muted-foreground block">{language === "ar" ? "مستوى المخاطرة" : "Risk Level"}</span>
-                                <span className="font-bold text-yellow-500">{language === "ar" ? (prediction.risk_level === "Low" ? "منخفض" : prediction.risk_level === "High" ? "مرتفع" : "متوسط") : (prediction.risk_level || "Medium")}</span>
+                                <span className="text-muted-foreground block">{language === "ar" ? "ثقة النموذج" : "AI Confidence"}</span>
+                                <span className="font-bold">{Number(prediction.confidence).toFixed(2)}%</span>
                               </div>
                             </div>
+                            {Math.abs(Number(prediction.change_percent) || 0) >= 1.5 ? (
+                              <div className={`grid grid-cols-2 gap-3 mb-3 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+                                <div className="bg-background/40 p-2 rounded">
+                                  <span className="text-muted-foreground block">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
+                                  <span className="font-bold text-green-500">
+                                    {getCurrency(displayStockData.symbol)} {(() => {
+                                      const curr = displayStockData.price || 0;
+                                      const ret = Math.abs(Number(prediction.change_percent) / 100);
+                                      return prediction.direction === 'bullish'
+                                        ? (curr * (1 + ret * 1.8)).toFixed(2)
+                                        : (curr * (1 - ret * 1.8)).toFixed(2);
+                                    })()}
+                                  </span>
+                                </div>
+                                <div className="bg-background/40 p-2 rounded">
+                                  <span className="text-muted-foreground block">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
+                                  <span className="font-bold text-red-400">
+                                    {getCurrency(displayStockData.symbol)} {(() => {
+                                      const curr = displayStockData.price || 0;
+                                      const vol = Math.abs(Number(prediction.change_percent) / 100) * 0.5;
+                                      return prediction.direction === 'bullish'
+                                        ? (curr * (1 - vol * 0.8)).toFixed(2)
+                                        : (curr * (1 + vol * 0.8)).toFixed(2);
+                                    })()}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className={`text-xs text-muted-foreground italic mb-3 ${isRTL ? 'text-right' : ''}`}>
+                                {language === "ar" ? "لا توجد إشارة تداول واضحة." : "No strong trading signal detected."}
+                              </p>
+                            )}
                             {prediction.analysis && prediction.analysis.length > 0 && (
                               <div className={`bg-background/20 p-3 rounded-lg text-xs space-y-1 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                                <p className="font-semibold mb-1">{language === "ar" ? "تحليل الذكاء الاصطناعي:" : "AI Analysis:"}</p>
+                                <p className="font-semibold mb-1">{language === "ar" ? "تحليل الذكاء الاصطناعي:" : "AI Insight:"}</p>
                                 <ul className={`list-disc list-inside text-muted-foreground space-y-1 ${isRTL ? 'pr-2' : ''}`}>
                                   {prediction.analysis.map((point, i) => (
                                     <li key={i}>{point}</li>
@@ -1187,7 +1220,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                   </div>
                   <span>{language === "ar" ? "توقعات الذكاء الاصطناعي" : "AI Prediction"}</span>
                   <Badge variant="outline" className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-xs`}>
-                    {prediction ? Number(prediction.confidence).toFixed(2) : 0}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
+                    {prediction ? Number(prediction.confidence).toFixed(2) : 0}% {language === "ar" ? "ثقة الذكاء الاصطناعي" : "AI Confidence"}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -1233,29 +1266,56 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                         </div>
                       </div>
 
-                      {/* AI Recommendation */}
+                      {/* Market Outlook & Conditional Target/Stop */}
                       <div className="pt-3 border-t space-y-2">
                         <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <span className="text-sm text-muted-foreground">{language === "ar" ? "توصية الذكاء الاصطناعي" : "AI Recommendation"}</span>
+                          <span className="text-sm text-muted-foreground">{language === "ar" ? "توقعات السوق" : "Market Outlook"}</span>
                           <Badge
-                            variant={prediction.recommendation === 'BUY' ? 'default' : prediction.recommendation === 'SELL' ? 'destructive' : 'secondary'}
+                            variant={prediction.direction === 'bullish' ? 'default' : prediction.direction === 'bearish' ? 'destructive' : 'secondary'}
                             className="font-bold"
                           >
-                            {language === "ar" ? (prediction.recommendation === "BUY" ? "شراء" : prediction.recommendation === "SELL" ? "بيع" : "احتفاظ") : prediction.recommendation}
+                            {(() => {
+                              const cp = Math.abs(Number(prediction.change_percent) || 0);
+                              const dir = prediction.direction;
+                              if (cp < 1.5) return language === "ar" ? "إشارات مختلطة" : "Mixed Signals";
+                              if (dir === 'bullish') return cp >= 3 ? (language === "ar" ? "توقعات صعودية" : "Bullish Outlook") : (language === "ar" ? "صعود طفيف" : "Slightly Bullish");
+                              if (dir === 'bearish') return cp >= 3 ? (language === "ar" ? "توقعات هبوطية" : "Bearish Outlook") : (language === "ar" ? "هبوط طفيف" : "Slightly Bearish");
+                              return language === "ar" ? "سوق جانبي" : "Sideways Market";
+                            })()}
                           </Badge>
                         </div>
-                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <span className="text-muted-foreground">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
-                          <span className="font-semibold text-green-500">{getCurrency(currentSymbol)} {prediction.target_price || "N/A"}</span>
-                        </div>
-                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <span className="text-muted-foreground">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
-                          <span className="font-semibold text-red-500">{getCurrency(currentSymbol)} {prediction.stop_loss || "N/A"}</span>
-                        </div>
-                        <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <span className="text-muted-foreground">{language === "ar" ? "مستوى المخاطرة" : "Risk Level"}</span>
-                          <Badge variant="outline" className="text-xs">{language === "ar" ? (prediction.risk_level === "Low" ? "منخفض" : prediction.risk_level === "High" ? "مرتفع" : "متوسط") : (prediction.risk_level || "Medium")}</Badge>
-                        </div>
+                        {Math.abs(Number(prediction.change_percent) || 0) >= 1.5 ? (
+                          <>
+                            <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <span className="text-muted-foreground">{language === "ar" ? "السعر المستهدف" : "Target Price"}</span>
+                              <span className="font-semibold text-green-500">
+                                {getCurrency(currentSymbol)} {(() => {
+                                  const curr = displayStockData.price || 0;
+                                  const ret = Math.abs(Number(prediction.change_percent) / 100);
+                                  return prediction.direction === 'bullish'
+                                    ? (curr * (1 + ret * 1.8)).toFixed(2)
+                                    : (curr * (1 - ret * 1.8)).toFixed(2);
+                                })()}
+                              </span>
+                            </div>
+                            <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <span className="text-muted-foreground">{language === "ar" ? "وقف الخسارة" : "Stop Loss"}</span>
+                              <span className="font-semibold text-red-500">
+                                {getCurrency(currentSymbol)} {(() => {
+                                  const curr = displayStockData.price || 0;
+                                  const vol = Math.abs(Number(prediction.change_percent) / 100) * 0.5;
+                                  return prediction.direction === 'bullish'
+                                    ? (curr * (1 - vol * 0.8)).toFixed(2)
+                                    : (curr * (1 + vol * 0.8)).toFixed(2);
+                                })()}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            {language === "ar" ? "لا توجد إشارة تداول واضحة." : "No strong trading signal detected."}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1329,9 +1389,18 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                     <p className="text-muted-foreground">Prediction unavailable for this stock.</p>
                   </div>
                 )}
-                <p className="text-xs text-center text-muted-foreground pt-2 border-t">
-                  Disclaimer: AI predictions are for informational purposes only. Not financial advice.
-                </p>
+                <div className="pt-2 border-t space-y-1">
+                  <p className="text-xs text-center text-muted-foreground">
+                    {language === "ar"
+                      ? "النموذج مُحسَّن للكشف عن اتجاهات السوق والزخم، وليس للتنبؤ بأسعار دقيقة."
+                      : "The AI model is optimized for identifying market direction and momentum trends rather than exact future prices."}
+                  </p>
+                  <p className="text-[10px] text-center text-muted-foreground/60">
+                    {language === "ar"
+                      ? "للأغراض التعليمية فقط. لا تمثل نصيحة مالية."
+                      : "For informational and educational purposes only. Not financial advice."}
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
