@@ -24,5 +24,5 @@ EXPOSE 8000
 # Set environment variable to ensure logs are flushed immediately
 ENV PYTHONUNBUFFERED=1
 
-# Command to run uvicorn pointing to backend.main:app, binding strictly to port 8000
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port 8000"]
+# Command to run uvicorn pointing to backend.main:app, binding dynamically to the assigned port
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
