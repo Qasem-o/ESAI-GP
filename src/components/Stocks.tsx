@@ -505,7 +505,7 @@ export function Stocks({ currentPage, onGoToHome, onGoToStocks, onGoToPortfolio,
                             </div>
                             <div className="flex items-center gap-2">
                               <Sparkles className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm font-medium">{stock.directionalAccuracy || 0}% Accuracy</span>
+                              <span className="text-sm font-medium">{Number(stock.directionalAccuracy || 0).toFixed(2)}% Accuracy</span>
                             </div>
                           </div>
 
