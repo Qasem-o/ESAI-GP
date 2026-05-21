@@ -644,52 +644,84 @@ def get_stock_prediction(symbol: str, db: Session = Depends(get_db)):
             predicted_price = float(ai_pred.predicted_price)
             change_percent  = float(ai_pred.change_percent or 0)
             direction       = ai_pred.direction or ("bullish" if change_percent > 0 else "bearish")
-            confidence      = float(ai_pred.confidence) if ai_pred.confidence is not None else 75.0
-            recommendation  = "BUY" if direction == "bullish" else ("SELL" if direction == "bearish" else "HOLD")
-            target_price    = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
-            stop_loss       = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
-            pred_date_str   = str(ai_pred.prediction_date) if ai_pred.prediction_date else None
+            confidence      = float(ai_pred.confidence) if ai_pred.confidence is not None else 65.0
 
-            # ... rest of the logic ...
+            # Recommendation: map direction + confidence to BUY / HOLD / SELL
+            # Mirrors the return_to_signal logic in model_training.py:
+            #   |change| < 0.5 % or confidence < 55 → HOLD
+            if abs(change_percent) < 0.5 or confidence < 55:
+                recommendation = "HOLD"
+            elif direction == "bullish":
+                recommendation = "BUY"
+            elif direction == "bearish":
+                recommendation = "SELL"
+            else:
+                recommendation = "HOLD"
+
+            target_price  = round(predicted_price * (1.05 if direction == "bullish" else 0.95), 2)
+            stop_loss     = round(current_price   * (0.95 if direction == "bullish" else 1.05), 2)
+            pred_date_str = str(ai_pred.prediction_date) if ai_pred.prediction_date else None
+
+            # Build analysis commentary
             latest_tech = (
                 db.query(TechnicalIndicator)
                 .filter(TechnicalIndicator.stock_id == stock.stock_id)
                 .order_by(desc(TechnicalIndicator.date))
                 .first()
             )
-            analysis_points = [f"Hybrid Model prediction (LSTM + XGBoost) — {ai_pred.model_type}."]
-            
+            analysis_points = [
+                f"Hybrid Model prediction (Global BiLSTM + XGBoost residual corrector)."
+            ]
+
             # Fetch metrics
             metric = db.query(ModelMetric).filter(ModelMetric.stock_id == stock.stock_id).first()
-            if metric and metric.mape is not None and metric.rmse is not None:
-                analysis_points.append(f"Model Accuracy Metrics: MAPE = {metric.mape}%, RMSE = {metric.rmse}")
-                
+            if metric:
+                parts = []
+                if metric.mape is not None:
+                    parts.append(f"MAPE={float(metric.mape):.2f}%")
+                if metric.rmse is not None:
+                    parts.append(f"RMSE={float(metric.rmse):.5f}")
+                if metric.directional_accuracy is not None:
+                    parts.append(f"Dir.Acc={float(metric.directional_accuracy):.1f}%")
+                if parts:
+                    analysis_points.append(f"Model metrics: {' | '.join(parts)}")
+
             if latest_tech:
                 rsi_val = float(latest_tech.rsi) if latest_tech.rsi else None
                 if rsi_val:
                     if rsi_val > 70:
-                        analysis_points.append(f"RSI at {rsi_val:.1f}: overbought territory.")
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: overbought territory — caution.")
                     elif rsi_val < 30:
-                        analysis_points.append(f"RSI at {rsi_val:.1f}: oversold territory.")
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: oversold territory — potential reversal.")
                     else:
-                        analysis_points.append(f"RSI at {rsi_val:.1f}: neutral zone.")
+                        analysis_points.append(f"RSI at {rsi_val:.1f}: neutral momentum zone.")
                 if latest_tech.macd and latest_tech.macd_signal:
-                    if latest_tech.macd > latest_tech.macd_signal:
+                    macd_v   = float(latest_tech.macd)
+                    signal_v = float(latest_tech.macd_signal)
+                    if macd_v > signal_v:
                         analysis_points.append("MACD above signal line — bullish momentum.")
                     else:
                         analysis_points.append("MACD below signal line — bearish momentum.")
-            analysis_points.append(f"Predicted change: {change_percent:+.2f}%")
+
+            analysis_points.append(
+                f"Predicted change: {change_percent:+.2f}% | "
+                f"Confidence: {confidence:.1f}% | Signal: {recommendation}"
+            )
 
             return {
                 "tomorrow_price": round(predicted_price, 2),
-                "confidence": confidence,
-                "direction": direction,
+                "confidence":     round(confidence, 1),
+                "direction":      direction,
                 "change_percent": round(change_percent, 2),
                 "recommendation": recommendation,
-                "target_price": target_price,
-                "stop_loss": stop_loss,
-                "risk_level": "Low" if confidence > 85 else ("Medium" if confidence > 70 else "High"),
-                "analysis": analysis_points,
+                "target_price":   target_price,
+                "stop_loss":      stop_loss,
+                "risk_level": (
+                    "Low" if confidence > 80
+                    else "Medium" if confidence > 65
+                    else "High"
+                ),
+                "analysis":        analysis_points,
                 "prediction_date": pred_date_str,
             }
             

@@ -448,6 +448,46 @@ def trigger_training_all(
     return {"message": "Full training started", "status": "running"}
 
 
+@router.post("/models/monthly-retrain")
+def trigger_monthly_retrain(
+    admin: User = Depends(get_current_admin),
+):
+    """
+    Monthly full rebuild of the global BiLSTM + all per-stock XGBoost correctors.
+
+    This endpoint:
+    - Rebuilds the global multi-stock BiLSTM from scratch (all tickers pooled).
+    - Retrains every per-stock XGBoost residual corrector.
+    - Regenerates all forward predictions for the current month.
+
+    Designed to be called via Supabase pg_cron or an external scheduler once per month.
+    Expected runtime: 15–60 min depending on GPU/CPU and number of stocks.
+    """
+    with _training_lock:
+        if _training_state["status"] == "running":
+            return {"message": "A training job is already running", "status": "running"}
+        _training_state["status"] = "running"
+        _training_state["started_at"] = datetime.now(timezone.utc).isoformat()
+        _training_state["log"] = ["[MONTHLY] Full global model rebuild started..."]
+
+    thread = threading.Thread(
+        target=_run_training_subprocess,
+        kwargs={
+            "skip_trained_today": False,
+            "force_lstm": True,
+            "monthly_retrain": True,
+            "workers": 1,   # single worker to avoid GPU memory contention
+        },
+        daemon=True,
+    )
+    thread.start()
+    return {
+        "message": "Monthly global model rebuild started",
+        "status": "running",
+        "note": "Global BiLSTM + all XGBoost correctors will be rebuilt from scratch.",
+    }
+
+
 @router.get("/models/status")
 def training_status(admin: User = Depends(get_current_admin)):
     with _training_lock:
@@ -653,12 +693,21 @@ def _fill_missing_bg():
             session.close()
 
 
-def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = None,
-                               workers: int = 1, force_lstm: bool = False):
+def _run_training_subprocess(
+    skip_trained_today: bool = True,
+    symbols: list = None,
+    workers: int = 1,
+    force_lstm: bool = False,
+    monthly_retrain: bool = False,
+):
     """
     Run model_training.py as a subprocess.
-    - LSTM is trained weekly (auto-detected inside the script).
-    - XGBoost runs in parallel using ProcessPoolExecutor (--workers).
+
+    Flags forwarded to CLI:
+      --force-lstm       : force global BiLSTM rebuild
+      --monthly-retrain  : full monthly rebuild (global model + all XGBoost)
+      --skip-trained-today: skip stocks already trained this month
+      --workers N        : parallel XGBoost workers
     """
     root_dir = os.path.dirname(current_dir)
     script   = os.path.join(root_dir, "model_training.py")
@@ -667,6 +716,8 @@ def _run_training_subprocess(skip_trained_today: bool = True, symbols: list = No
         cmd.append("--skip-trained-today")
     if force_lstm:
         cmd.append("--force-lstm")
+    if monthly_retrain:
+        cmd.append("--monthly-retrain")
     if symbols:
         cmd += ["--symbols"] + symbols
     try:

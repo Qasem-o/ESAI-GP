@@ -319,7 +319,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
         case '6M': limit = 180; break;
         case '1Y': limit = 365; break;
         case 'ALL': limit = 5000; break;
-        case 'Monthly Forecast': limit = 30; break;
+        case 'Monthly Forecast': limit = 60; break;
         default: limit = 30;
       }
 
@@ -757,13 +757,13 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                             <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               <h3 className="font-bold text-lg">{language === "ar" ? "تحليلات الذكاء الاصطناعي" : "AI Market Insight"}</h3>
                               <Badge variant="secondary" className="text-xs">
-                                {prediction.confidence}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
+                                {Number(prediction.confidence).toFixed(2)}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
                               </Badge>
                             </div>
                             <p className={`text-sm text-muted-foreground mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                               {language === "ar" ? "التوقع القادم:" : "Nearest forecast:"} <span className="font-semibold text-purple-600">{getCurrency(displayStockData.symbol)} {prediction.tomorrow_price?.toFixed(2) || "0.00"}</span>
                               {prediction.prediction_date ? ` ${language === "ar" ? "بتاريخ" : "on"} ${new Date(prediction.prediction_date + 'T12:00:00').toLocaleDateString(language === "ar" ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}` : ''}
-                              {' '}({prediction.change_percent != null ? (prediction.change_percent >= 0 ? '+' : '') + prediction.change_percent : '0'}% {language === "ar" ? "من اليوم" : "from today"}).
+                              {' '}({prediction.change_percent != null ? (prediction.change_percent >= 0 ? '+' : '') + Number(prediction.change_percent).toFixed(2) : '0'}% {language === "ar" ? "من اليوم" : "from today"}).
                               {language === "ar" ? "الاتجاه:" : "Direction:"} <span className={`font-bold ${prediction.direction === 'bullish' ? 'text-green-500' :
                                 prediction.direction === 'bearish' ? 'text-red-500' : 'text-yellow-500'
                                 }`}>{language === "ar" ? (prediction.direction === 'bullish' ? "صعودي" : prediction.direction === 'bearish' ? "هبوطي" : "محايد") : (prediction.direction?.toUpperCase() || "N/A")}</span>.
@@ -1187,7 +1187,7 @@ export function StockDetail({ symbol: propSymbol, initialSymbol, currentPage, on
                   </div>
                   <span>{language === "ar" ? "توقعات الذكاء الاصطناعي" : "AI Prediction"}</span>
                   <Badge variant="outline" className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-xs`}>
-                    {prediction ? prediction.confidence : 0}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
+                    {prediction ? Number(prediction.confidence).toFixed(2) : 0}% {language === "ar" ? "دقة الاتجاه" : "Directional Accuracy"}
                   </Badge>
                 </CardTitle>
               </CardHeader>
