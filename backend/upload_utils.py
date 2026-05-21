@@ -61,9 +61,13 @@ def generate_unique_filename(user_id: int, original_filename: str) -> str:
 
 async def save_avatar(file: UploadFile, user_id: int) -> str:
     """
-    Save uploaded avatar file in database as Base64 Data URL
+    Save uploaded avatar image.
+    Compresses to 150x150 JPEG (quality=75) before storing as Base64 Data URL.
+    This keeps stored avatars small (~10-15KB each) to minimize DB/API Egress.
     """
     import base64
+    import io
+    from PIL import Image
     
     # Validate file
     validate_image_file(file)
@@ -87,9 +91,38 @@ async def save_avatar(file: UploadFile, user_id: int) -> str:
             detail="File is not a valid image"
         )
     
+    # ─── Compress & Resize with Pillow ────────────────────────────────────────
+    try:
+        img = Image.open(io.BytesIO(content))
+        
+        # Convert to RGB (handles RGBA/palette PNGs and animated GIFs)
+        if img.mode not in ('RGB',):
+            img = img.convert('RGB')
+        
+        # Resize to 150x150 using thumbnail (preserves aspect ratio then crops to square)
+        img.thumbnail((150, 150), Image.LANCZOS)
+        
+        # If image is not already square, crop to centered square
+        w, h = img.size
+        if w != h:
+            min_side = min(w, h)
+            left = (w - min_side) // 2
+            top  = (h - min_side) // 2
+            img = img.crop((left, top, left + min_side, top + min_side))
+        
+        # Save as JPEG at quality 75 into a buffer
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=75, optimize=True)
+        compressed_content = buffer.getvalue()
+        mime_type = 'image/jpeg'
+    except Exception:
+        # Fallback: use original content if Pillow fails for any reason
+        compressed_content = content
+        mime_type = file.content_type or f"image/{image_type}"
+    # ──────────────────────────────────────────────────────────────────────────
+    
     # Encode content to base64 and format as Data URL
-    mime_type = file.content_type or f"image/{image_type}"
-    base64_encoded = base64.b64encode(content).decode('utf-8')
+    base64_encoded = base64.b64encode(compressed_content).decode('utf-8')
     return f"data:{mime_type};base64,{base64_encoded}"
 
 def delete_avatar(file_path: str) -> None:

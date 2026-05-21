@@ -17,4 +17,4 @@ numpy
 yfinance
 email-validator
 httpx
-
+Pillow>=10.0
