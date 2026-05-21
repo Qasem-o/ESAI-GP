@@ -1018,36 +1018,86 @@ export function Profile({ currentPage, onGoToHome, onGoToExplore, onGoToPortfoli
                                         </div>
 
                                         {/* Performance Badge / Trading Tier Card */}
-                                        <Card className="bg-card/40 backdrop-blur-sm border-border/50">
-                                            <CardContent className="p-6">
-                                                <div className="flex flex-col md:flex-row items-center gap-6">
-                                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-yellow-500/20 to-orange-500/20 flex items-center justify-center border border-yellow-500/30 flex-shrink-0 shadow-inner">
-                                                        <Trophy className="w-10 h-10 text-yellow-500" />
-                                                    </div>
-                                                    <div className="flex-1 text-center md:text-left space-y-1">
-                                                        <Badge variant="outline" className="border-yellow-500/30 text-yellow-600 bg-yellow-500/5 font-bold px-3 py-0.5 mb-1">
-                                                            {stats && stats.win_rate >= 75 
-                                                                ? (language === "ar" ? "محلل نخبة • فئة ذهبية" : "Elite Analyst • Gold Class")
-                                                                : stats && stats.win_rate >= 50 
-                                                                    ? (language === "ar" ? "متداول خبير • فئة فضية" : "Veteran Trader • Silver Class")
-                                                                    : (language === "ar" ? "متداول نشط • فئة برونزية" : "Active Trader • Bronze Class")
-                                                            }
-                                                        </Badge>
-                                                        <h4 className="text-lg font-bold text-foreground">
-                                                            {language === "ar" 
-                                                                ? `رتبة المحاكاة: ${stats && stats.win_rate >= 75 ? "مستثمر ذكي" : stats && stats.win_rate >= 50 ? "محلل محترف" : "مستكشف السوق"}`
-                                                                : `Simulation Standing: ${stats && stats.win_rate >= 75 ? "Smart Investor" : stats && stats.win_rate >= 50 ? "Professional Analyst" : "Market Explorer"}`
-                                                            }
-                                                        </h4>
-                                                        <p className="text-xs text-muted-foreground max-w-xl">
-                                                            {language === "ar" 
-                                                                ? "يتم احتساب الرتب والترقيات بناءً على معدل نجاح الصفقات ومتوسط العائد المحقق عبر صفقات محاكي الأسواق الافتراضي."
-                                                                : "Rankings and performance classes are calculated automatically based on deal success rate and average simulator returns."}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                        {(() => {
+                                            const pVal = stats?.portfolio_value ?? 2000;
+                                            let badgeAr = "مستكشف السوق • فئة مبتدئة";
+                                            let badgeEn = "Market Explorer • Beginner Class";
+                                            let standingAr = "مستكشف السوق";
+                                            let standingEn = "Market Explorer";
+                                            let colorClass = "border-blue-500/30 text-blue-600 bg-blue-500/5 dark:text-blue-400 dark:bg-blue-500/10";
+                                            let bgGradient = "from-blue-500/20 to-indigo-500/20 border-blue-500/30";
+                                            let iconColor = "text-blue-500";
+
+                                            if (pVal >= 10000) {
+                                                badgeAr = "محلل نخبة • فئة الماس";
+                                                badgeEn = "Elite Analyst • Diamond Class";
+                                                standingAr = "محلل نخبة";
+                                                standingEn = "Elite Analyst";
+                                                colorClass = "border-cyan-500/30 text-cyan-600 bg-cyan-500/5 dark:text-cyan-400 dark:bg-cyan-500/10";
+                                                bgGradient = "from-cyan-500/20 to-blue-500/20 border-cyan-500/30";
+                                                iconColor = "text-cyan-500";
+                                            } else if (pVal >= 9000) {
+                                                badgeAr = "محلل محترف • فئة بلاتينية";
+                                                badgeEn = "Professional Analyst • Platinum Class";
+                                                standingAr = "محلل محترف";
+                                                standingEn = "Professional Analyst";
+                                                colorClass = "border-slate-400/30 text-slate-600 bg-slate-400/5 dark:text-slate-300 dark:bg-slate-400/10";
+                                                bgGradient = "from-slate-400/20 to-slate-600/20 border-slate-400/30";
+                                                iconColor = "text-slate-400";
+                                            } else if (pVal >= 7000) {
+                                                badgeAr = "مستثمر ذكي • فئة ذهبية";
+                                                badgeEn = "Smart Investor • Gold Class";
+                                                standingAr = "مستثمر ذكي";
+                                                standingEn = "Smart Investor";
+                                                colorClass = "border-yellow-500/30 text-yellow-600 bg-yellow-500/5 dark:text-yellow-400 dark:bg-yellow-500/10";
+                                                bgGradient = "from-yellow-500/20 to-orange-500/20 border-yellow-500/30";
+                                                iconColor = "text-yellow-500";
+                                            } else if (pVal >= 5000) {
+                                                badgeAr = "متداول خبير • فئة فضية";
+                                                badgeEn = "Veteran Trader • Silver Class";
+                                                standingAr = "محلل محترف";
+                                                standingEn = "Professional Analyst";
+                                                colorClass = "border-gray-400/30 text-gray-600 bg-gray-400/5 dark:text-gray-300 dark:bg-gray-400/10";
+                                                bgGradient = "from-gray-300/20 to-gray-500/20 border-gray-400/30";
+                                                iconColor = "text-gray-400";
+                                            } else if (pVal >= 3000) {
+                                                badgeAr = "متداول نشط • فئة برونزية";
+                                                badgeEn = "Active Trader • Bronze Class";
+                                                standingAr = "متداول نشط";
+                                                standingEn = "Active Trader";
+                                                colorClass = "border-amber-600/30 text-amber-700 bg-amber-600/5 dark:text-amber-400 dark:bg-amber-600/10";
+                                                bgGradient = "from-amber-600/20 to-amber-800/20 border-amber-600/30";
+                                                iconColor = "text-amber-600";
+                                            }
+
+                                            return (
+                                                <Card className="bg-card/40 backdrop-blur-sm border-border/50">
+                                                    <CardContent className="p-6">
+                                                        <div className="flex flex-col md:flex-row items-center gap-6">
+                                                            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-tr ${bgGradient} flex items-center justify-center border flex-shrink-0 shadow-inner`}>
+                                                                <Trophy className={`w-10 h-10 ${iconColor}`} />
+                                                            </div>
+                                                            <div className="flex-1 text-center md:text-left space-y-1">
+                                                                <Badge variant="outline" className={`${colorClass} font-bold px-3 py-0.5 mb-1`}>
+                                                                    {language === "ar" ? badgeAr : badgeEn}
+                                                                </Badge>
+                                                                <h4 className="text-lg font-bold text-foreground">
+                                                                    {language === "ar" 
+                                                                        ? `رتبة المحاكاة: ${standingAr}`
+                                                                        : `Simulation Standing: ${standingEn}`
+                                                                    }
+                                                                </h4>
+                                                                <p className="text-xs text-muted-foreground max-w-xl">
+                                                                    {language === "ar" 
+                                                                        ? "يتم احتساب الرتب والترقيات بناءً على إجمالي قيمة المحفظة الحالية في محاكي الأسواق الافتراضي."
+                                                                        : "Rankings and performance classes are calculated automatically based on the current total portfolio value in the virtual market simulator."}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })()}
 
                                         {/* Simulator CTA */}
                                         <div className="flex justify-center pt-2">
