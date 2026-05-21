@@ -5,7 +5,7 @@ All endpoints require JWT authentication.
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
@@ -16,6 +16,7 @@ from auth_utils import verify_token
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from preparedata import Stock, PriceHistory
+from cache_utils import get_stock_data_bulk, get_usd_price
 
 # Currency conversion map
 CURRENCY_MAP = {
@@ -197,14 +198,22 @@ async def get_portfolio_summary(
     total_value = 0.0
     day_change_total = 0.0
 
+    # Fetch all stock data in bulk
+    symbols = [h.stock_symbol for h in holdings]
+    stock_data_map = get_stock_data_bulk(db, symbols)
+
     for h in holdings:
-        current_price = get_current_price(db, h.stock_symbol)
+        sym = h.stock_symbol.upper()
+        rate = get_currency_rate(sym)
+        stock_data = stock_data_map.get(sym, {})
+        current_price = get_usd_price(stock_data, rate)
+        
         cost = h.shares * h.avg_price
         value = h.shares * current_price
         total_cost += cost
         total_value += value
 
-        day_pct = get_day_change(db, h.stock_symbol)
+        day_pct = stock_data.get("day_change", 0.0)
         day_change_total += value * (day_pct / 100)
 
     total_gain = total_value - total_cost
@@ -233,22 +242,29 @@ async def get_holdings(
         PortfolioHolding.user_id == user_id
     ).all()
 
+    symbols = [h.stock_symbol for h in holdings]
+    stock_data_map = get_stock_data_bulk(db, symbols)
+
     # Calculate total portfolio value for allocation %
     total_portfolio = 0.0
     enriched = []
     for h in holdings:
-        current_price = get_current_price(db, h.stock_symbol)
+        sym = h.stock_symbol.upper()
+        rate = get_currency_rate(sym)
+        stock_data = stock_data_map.get(sym, {})
+        current_price = get_usd_price(stock_data, rate)
+        
         value = h.shares * current_price
         total_portfolio += value
-        enriched.append((h, current_price, value))
+        enriched.append((h, current_price, value, stock_data))
 
     result = []
-    for h, current_price, value in enriched:
+    for h, current_price, value, stock_data in enriched:
         cost = h.shares * h.avg_price
         gain = value - cost
         gain_pct = (gain / cost * 100) if cost > 0 else 0
         alloc = (value / total_portfolio * 100) if total_portfolio > 0 else 0
-        day_change = get_day_change(db, h.stock_symbol)
+        day_change = stock_data.get("day_change", 0.0)
 
         result.append(HoldingResponse(
             holding_id=h.holding_id,
@@ -481,7 +497,6 @@ async def get_performance(
     holdings = db.query(PortfolioHolding).filter(
         PortfolioHolding.user_id == user_id
     ).all()
-    cash = get_or_create_cash(db, user_id)
 
     if not holdings:
         # Return flat line at zero
@@ -492,22 +507,62 @@ async def get_performance(
     days_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     performance = []
 
+    # Get stock IDs for all holdings in a single bulk query
+    symbols = [h.stock_symbol.upper() for h in holdings]
+    stocks = db.query(Stock).filter(Stock.symbol.in_(symbols)).all()
+    stocks_map = {s.symbol.upper(): s for s in stocks}
+    stock_ids = [s.stock_id for s in stocks]
+
+    # Fetch 8 latest histories in bulk using row_number window function
+    histories_by_stock = {}
+    if stock_ids:
+        try:
+            subq = db.query(
+                PriceHistory.stock_id,
+                PriceHistory.close,
+                PriceHistory.date,
+                func.row_number().over(
+                    partition_by=PriceHistory.stock_id,
+                    order_by=desc(PriceHistory.date)
+                ).label("rn")
+            ).filter(PriceHistory.stock_id.in_(stock_ids)).subquery()
+
+            histories = db.query(subq).filter(subq.c.rn <= 8).all()
+            for h in histories:
+                histories_by_stock.setdefault(h.stock_id, []).append(h)
+        except Exception as e:
+            print(f"Error fetching performance histories in bulk, falling back: {e}", file=sys.stderr)
+
     for i, label in enumerate(days_labels):
         day_value = 0.0
         for h in holdings:
-            stock = db.query(Stock).filter(Stock.symbol == h.stock_symbol).first()
+            sym = h.stock_symbol.upper()
+            stock = stocks_map.get(sym)
+            rate = get_currency_rate(sym)
+            
             if stock:
-                history = db.query(PriceHistory).filter(
-                    PriceHistory.stock_id == stock.stock_id
-                ).order_by(desc(PriceHistory.date)).limit(8).all()
-
-                if len(history) > (6 - i):
-                    price = float(history[6 - i].close)
-                elif history:
-                    price = float(history[-1].close)
+                # Get the pre-fetched histories list for this stock_id
+                history_list = histories_by_stock.get(stock.stock_id, [])
+                
+                # If bulk prefetch failed or returned nothing, try querying directly
+                if not history_list:
+                    try:
+                        history_list = db.query(PriceHistory).filter(
+                            PriceHistory.stock_id == stock.stock_id
+                        ).order_by(desc(PriceHistory.date)).limit(8).all()
+                        histories_by_stock[stock.stock_id] = history_list
+                    except Exception:
+                        pass
+                
+                if len(history_list) > (6 - i):
+                    price = float(history_list[6 - i].close)
+                elif history_list:
+                    price = float(history_list[-1].close)
                 else:
-                    price = h.avg_price
-                day_value += h.shares * price
+                    price = h.avg_price / rate  # avg_price is stored in USD, history is local
+                
+                # Convert price to USD
+                day_value += h.shares * (price * rate)
             else:
                 day_value += h.shares * h.avg_price
 
@@ -564,20 +619,26 @@ async def get_watchlist(
     """Get user's watchlist with live prices."""
     items = db.query(Watchlist).filter(Watchlist.user_id == user_id).order_by(desc(Watchlist.created_at)).all()
 
+    symbols = [item.stock_symbol for item in items]
+    stock_data_map = get_stock_data_bulk(db, symbols)
+
     result = []
     for item in items:
-        stock = db.query(Stock).filter(Stock.symbol == item.stock_symbol).first()
-        current_price = float(stock.current_price) if stock and stock.current_price else 0
+        sym = item.stock_symbol.upper()
+        stock_data = stock_data_map.get(sym, {})
+        
+        # Watchlist uses local currency prices
+        current_price = stock_data.get("current_price_local") or stock_data.get("latest_close_local") or 0.0
         currency_info = get_stock_currency_info(item.stock_symbol)
 
         result.append({
             "watchlist_id": item.watchlist_id,
             "stock_symbol": item.stock_symbol,
-            "stock_name": item.stock_name or (stock.name if stock else item.stock_symbol),
+            "stock_name": item.stock_name or stock_data.get("name") or item.stock_symbol,
             "current_price": round(current_price, 2),
             "currency": currency_info["code"],
             "currency_symbol": currency_info["symbol"],
-            "sector": stock.sector if stock else None,
+            "sector": stock_data.get("sector"),
             "added_at": (item.created_at.isoformat() + "Z") if item.created_at else None,
         })
 

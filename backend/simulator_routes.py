@@ -10,6 +10,7 @@ from auth_utils import verify_token
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from preparedata import Stock, PriceHistory
+from cache_utils import get_stock_data_bulk, get_usd_price
 
 # Currency conversion map (same as main.py)
 CURRENCY_MAP = {
@@ -99,8 +100,16 @@ async def get_simulator_summary(
     total_cost = 0.0
     total_value = 0.0
 
+    # Fetch all stock data in bulk
+    symbols = [h.stock_symbol for h in holdings]
+    stock_data_map = get_stock_data_bulk(db, symbols)
+
     for h in holdings:
-        current_price = get_current_price(db, h.stock_symbol)
+        sym = h.stock_symbol.upper()
+        rate = get_currency_rate(sym)
+        stock_data = stock_data_map.get(sym, {})
+        current_price = get_usd_price(stock_data, rate)
+
         total_cost += h.shares * h.avg_price
         total_value += h.shares * current_price
 
@@ -157,10 +166,18 @@ async def get_holdings(
     db: Session = Depends(get_db)
 ):
     holdings = db.query(SimulatorHolding).filter(SimulatorHolding.user_id == user_id).all()
+    
+    symbols = [h.stock_symbol for h in holdings]
+    stock_data_map = get_stock_data_bulk(db, symbols)
+
     total_portfolio = 0.0
     enriched = []
     for h in holdings:
-        cp = get_current_price(db, h.stock_symbol)
+        sym = h.stock_symbol.upper()
+        rate = get_currency_rate(sym)
+        stock_data = stock_data_map.get(sym, {})
+        cp = get_usd_price(stock_data, rate)
+
         v = h.shares * cp
         total_portfolio += v
         enriched.append((h, cp, v))

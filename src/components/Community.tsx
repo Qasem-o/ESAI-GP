@@ -125,9 +125,13 @@ export function Community({ currentPage, onGoToHome, onGoToStocks, onGoToPortfol
     fetchFeed();
   }, [fetchFeed]);
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 120s (only when page is visible)
   useEffect(() => {
-    const interval = setInterval(() => fetchFeed(true), 120000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchFeed(true);
+      }
+    }, 120000);
     return () => clearInterval(interval);
   }, [fetchFeed]);
 

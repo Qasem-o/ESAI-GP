@@ -206,10 +206,14 @@ export function Portfolio({
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh prices every 30 seconds
+  // Auto-refresh prices every 120 seconds (only when page is visible)
   useEffect(() => {
     if (!isAuthenticated) return;
-    const interval = setInterval(() => fetchData(true), 120000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchData(true);
+      }
+    }, 120000);
     return () => clearInterval(interval);
   }, [isAuthenticated, fetchData]);
 
